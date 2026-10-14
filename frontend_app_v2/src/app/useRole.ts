@@ -87,6 +87,8 @@ export const ROLE_APPS: Record<Role, string[]> = {
     "purchase",
     "quality",
     "reports",
+    // H5: Settings (guard SETTINGS_ROLES = admin + owner).
+    "settings",
     "ai",
     // F15 — Finance: owner + admin (route FINANCE_ROLES).
     "finance",

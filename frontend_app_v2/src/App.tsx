@@ -800,8 +800,8 @@ const ADMIN_ROLES: Role[] = ['admin'];
 /** Reports = supervisor ke atas (Fase 21). */
 const REPORTS_ROLES: Role[] = ['supervisor', 'admin', 'owner'];
 
-/** Konfigurasi sistem = khusus admin (Fase 22). */
-const SETTINGS_ROLES: Role[] = ['admin'];
+/** Konfigurasi sistem = admin + owner (Fase 22; owner ditambah pada fix role H5). */
+const SETTINGS_ROLES: Role[] = ['admin', 'owner'];
 
 /** AI Assistant = admin & owner (ROLE_APPS: `supervisor` TIDAK punya app 'ai'). */
 const AI_ROLES: Role[] = ['admin', 'owner'];
