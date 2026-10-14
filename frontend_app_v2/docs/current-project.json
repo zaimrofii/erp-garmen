@@ -1,0 +1,2415 @@
+{
+  "⚠️_concept_notice": "KONSEP LAMA DEPRECATED. MES = ERP produksi (input master & transaksi di MES). Lihat docs/REPLACE-NOTICE.md.",
+  "$schema": "internal-status-v1",
+  "generated_at": "2026-10-14",
+  "generated_by": "Cline + Senior Dev (F1–F16 + H1–H4.8 + Sprint C + H5.1–H5.8)",
+
+  "project": {
+    "name": "MES Garmen — Frontend v3 + Backend v4.3",
+    "stack": ["Vite", "React 18+", "TypeScript (strict)", "Tailwind v4"],
+    "runtime": "bun 1.4.2",
+    "version_frontend": "v3.0 (hand-coded)",
+    "version_backend": "v4.3 (production-grade)",
+    "philosophy": "Frontend hand-coded (bukan metadata-driven). Backend = source of truth.",
+    "last_updated": "2026-10-14"
+  },
+
+  "gates_v3": {
+    "typecheck": "0 error",
+    "lint": "0 error, 1 warning lama (integrations/use-offline-sync.ts) — 603 file (H5.4 menambah 7 file: types/api/real/barrel/lib/page + 2 test)",
+    "build": "hijau — 343.07 kB (gzip 99.86 kB) < 500 kB",
+    "test": "1479 passed | 74 skipped (1553 test; 137 file passed + 11 skipped) — 0 failed",
+    "live_suite": "41 passed | 29 skipped | 0 failed (9 file, gated MES_LIVE=1)",
+    "browser_manual": "36 skenario Chrome headless (FIX ROUTE + F7.1) — lihat entri fix_route_bugs & f7_1_quality_owner",
+    "md5_tailwind_css": "d51e4a31c0871858c7861a9aeb31089f (gate `bun --bun run css:gate` → PASS; H5.4 TANPA delta (566 rule, md5 identik — 2 kelas transformasi teks baru dihapus), lihat blok css_gate)",
+    "h1_progress": "9/9 — FASE H1 (Master CRUD) SELESAI",
+    "h2_progress": "6/6 — FASE H2 (Transaksi Bisnis) SELESAI: H2.1 Sales Order, H2.2 Purchase Order, H2.3 Work Order, H2.4 Bundle, H2.5 Inventory Adjustment, H2.6 Stock Transfer",
+    "h3_progress": "6/6 — FASE H3 (Finance) SELESAI: H3.5 Product Price, H3.6 Tax Config, H3.1 Customer Invoice, H3.2 Vendor Bill, H3.3 Payment, H3.4 Journal Entry Manual",
+    "h4_progress": "8/8 — FASE H4 (Laporan & Analytics) SELESAI: H4.1 Sales, H4.2 Purchases, H4.3 Stock, H4.4 HPP, H4.5 PnL, H4.6 Produksi, H4.7 Dashboard Eksekutif, H4.8 Export Excel/PDF (7 tombol Export aktif)",
+    "h5_progress": "8/8 — FASE H5 SELESAI: H5.1 Company Profile, H5.2 Currency CRUD, H5.3 Number Sequence CRUD, H5.4 Permission Matrix (/settings/permissions: grid profil + efektif + banner), H5.5 Audit Log Viewer, H5.6 Integration Config, H5.7 Printer Config, H5.8 WA Gateway Config",
+    "last_verified": "H5.4 (Permission Matrix, modul 8/8 FASE H5 — PENUTUP) — backend 18 test + frontend 17 test, css:gate PASS (566 rule, md5 identik)"
+  },
+
+  "css_gate": {
+    "tujuan": "Gate 'no visual regression' untuk CSS Tailwind — diperbaiki H2.3 setelah investigasi menunjukkan nilai lama hanya DISALIN (tidak pernah diukur ulang).",
+    "cara_jalan": "`bun --bun run css:gate` (script `frontend_app_v2/scripts/css-gate.sh`) → build + ukur ulang md5 & jumlah rule, bandingkan dengan `frontend_app_v2/scripts/css-gate.baseline`; exit 0 = PASS, 1 = FAIL, 2 = error.",
+    "baseline_saat_ini": {
+      "md5": "d51e4a31c0871858c7861a9aeb31089f",
+      "rules": 566,
+      "rules_note": "dihitung `tr '}' '\\n' | grep -c '{'`",
+      "updated_h4_1": "Baseline di-`--update` H4.1 (2026-10-13T07:54:09Z, dipanggil dari frontend_app_v2/): 565→566 rule (delta 1) — satu utilitas baru dari halaman /reports/sales (SalesReportPage). Percobaan awal memakai kelas lebar-kolom, kolom-grid, dan padding yang belum ada; semuanya DIGANTI utilitas yang sudah dipakai halaman lain sehingga delta tetap 1 rule. Nama token kelas SENGAJA tidak ditulis di berkas ini (Tailwind v4 memindai docs/*.json — aturan repo)."
+    },
+    "hasil_investigasi_drift": {
+      "gejala": "md5 lama `7e65992b…` tercatat LOCKED di 23 entri (F2 → H2.2) padahal build H2.3 menghasilkan `211df84a…`.",
+      "penyebab_sah": "Kelas Tailwind BARU memang ditambahkan modul H1.5/H1.6/H1.8/H2.1/H2.2 (md:col-span-*, whitespace-pre-line, max-h-72, tracking-wide).",
+      "root_cause": "Nilai gate tidak pernah diukur ulang; repo tanpa commit git (.git/objects kosong); Tailwind v4 memindai seluruh project root termasuk tests/**.",
+      "H2.3_bukan_penyebab": "Dibuktikan: stub halaman H2.3 tanpa kelas → md5 tetap; analisis selektor CSS → 0 kelas hanya dari H2.3.",
+      "perbaikan": "Baseline diperbarui + gate otomatis dibuat & diuji sensitivitas; retroaktif H2.1/H2.2/H2.3."
+    },
+    "decisions": [
+      "OPSI B: `bun --bun run css:gate --update` mengukur ulang & menulis baseline baru (header komentar + jejak updated_at + WARNING).",
+      "Verifikasi Opsi B 5 langkah: clean PASS → +1 kelas baru FAIL (565→567) → --update PASS (baseline baru) → PASS → probe hapus PASS kembali ke 211df84a…/565.",
+      "OPSI A (CI/pre-commit) DITUNDA — utang teknis `css-gate-ci-integration` status open.",
+      "Aturan modul berikutnya: `css:gate` WAJIB PASS; kalau CSS memang berubah → `--update` + catat di entri modul.",
+      "PELAJARAN: JANGAN menyalin token kelas Tailwind mentah ke docs/*.json (Tailwind v4 memindai seluruh project root)."
+    ]
+  },
+
+  "h1_1_product_crud": {
+    "status": "done",
+    "completed_at": "2026-10-10",
+    "pages": [
+      "src/pages/master/ProductsPage.tsx (list: search + kategori + tab status + Export CSV + pagination)",
+      "src/pages/master/ProductFormPage.tsx (/master/products/new + /master/products/:id/edit)",
+      "src/pages/master/ProductDetailPage.tsx (read-only + Edit + Sync placeholder disabled/H2)"
+    ],
+    "api_files": [
+      "src/api/real/masterProducts.ts (fetchProducts/fetchProduct/createProduct/updateProduct/deleteProduct)",
+      "src/api/masterProducts.ts (barrel pickAdapter, MODE.masterProducts='real')",
+      "src/types/master-product.ts (MasterProductRow/Input/Saved)",
+      "src/lib/master-product.ts (validasi, mapping, STATUS_FILTERS, formatPrice) — PURE"
+    ],
+    "routes": [
+      "/master/products (INVENTORY_ROLES)",
+      "/master/products/new (INVENTORY_ROLES)",
+      "/master/products/:id (INVENTORY_ROLES)",
+      "/master/products/:id/edit (INVENTORY_ROLES)"
+    ],
+    "nav": "app `inventory` → topbar 'Master Products'; LEGACY_APP_PATHS {prefix:'/master/products', appId:'inventory'}",
+    "tests_new": 31,
+    "tests_files": [
+      "tests/unit/api/master-products.test.ts (13)",
+      "tests/unit/pages/master-products.test.ts (18)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (47→48 + masterProducts)"
+    ],
+    "decisions": [
+      "Form edit memakai route tambahan /master/products/:id/edit.",
+      "UoM sementara input teks ID (master UoM endpoint belum ada; dropdown menyusul di H1.2).",
+      "Tombol 'Sync ke Odoo' di detail DISABLED + tooltip H2.",
+      "Validasi form di klien + server.",
+      "Guard route INVENTORY_ROLES; izin tulis API juga menerima purchasing."
+    ],
+    "notes": [
+      "Pre-fill form edit tanpa useEffect (derivasi saat render) untuk lint react set-state-in-effect.",
+      "Tanpa jsdom: react-dom/server + createElement.",
+      "tailwind.css tidak disentuh."
+    ]
+  },
+
+  "h1_2_uom_crud": {
+    "status": "done",
+    "completed_at": "2026-10-10",
+    "pages": [
+      "src/pages/master/UomsPage.tsx (list: search + tab status + Export CSV + pagination)",
+      "src/pages/master/UomFormPage.tsx (/master/uoms/new + /:id/edit — 7 field)",
+      "src/pages/master/UomDetailPage.tsx (read-only + Edit + Sync placeholder disabled/H2)"
+    ],
+    "api_files": [
+      "src/api/real/masterUoms.ts (fetchUoms/fetchUom/createUom/updateUom/deleteUom)",
+      "src/api/masterUoms.ts (barrel pickAdapter, MODE.masterUoms='real')",
+      "src/types/master-uom.ts (MasterUomRow/Input/Saved/UomType)",
+      "src/lib/master-uom.ts (validasi, mapping, UOM_TYPE_OPTIONS) — PURE"
+    ],
+    "routes": [
+      "/master/uoms (INVENTORY_ROLES)",
+      "/master/uoms/new (INVENTORY_ROLES)",
+      "/master/uoms/:id (INVENTORY_ROLES)",
+      "/master/uoms/:id/edit (INVENTORY_ROLES)"
+    ],
+    "nav": "app `inventory` → topbar 'Master UoM'; LEGACY_APP_PATHS {prefix:'/master/uoms', appId:'inventory'}",
+    "tests_new": 33,
+    "tests_files": [
+      "tests/unit/api/master-uoms.test.ts (12)",
+      "tests/unit/pages/master-uoms.test.ts (19)",
+      "tests/unit/pages/master-products.test.ts (+2 bonus dropdown UoM)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (48→49 + masterUoms)",
+      "tests/unit/pages/master-products.test.ts (label UoM + validator 2-arg)"
+    ],
+    "bonus_h1_1": "Dropdown UoM di ProductFormPage AKTIF (fetchUoms({active:true, limit:200}) + validasi uomIds).",
+    "decisions": [
+      "Form 7 field (code, name, category, uom_type, factor, rounding, active) sesuai Opsi C.",
+      "Dropdown tipe = 3 opsi Odoo (bigger|reference|smaller); nilai tak dikenal → 'reference'.",
+      "deleteUom tersedia di adapter & backend; UI memakai checkbox 'UoM aktif'.",
+      "Guard route INVENTORY_ROLES; izin tulis API ADMIN/OWNER."
+    ],
+    "notes": [
+      "Bonus H1.2 menutup backlog H1.1 (dropdown UoM) — tidak ada endpoint baru.",
+      "Validasi klien memakai daftar UoM aktif; daftar belum termuat → cek bentuk angka saja."
+    ]
+  },
+
+  "h1_3_warehouse_crud": {
+    "status": "done",
+    "completed_at": "2026-10-10",
+    "pages": [
+      "src/pages/master/WarehousesPage.tsx (list: search + tab status + Export CSV + pagination)",
+      "src/pages/master/WarehouseFormPage.tsx (/master/warehouses/new + /:id/edit — 5 field)",
+      "src/pages/master/WarehouseDetailPage.tsx (read-only + Edit + Sync placeholder disabled/H2)"
+    ],
+    "api_files": [
+      "src/api/real/masterWarehouses.ts (fetch/create/update/delete)",
+      "src/api/masterWarehouses.ts (barrel pickAdapter)",
+      "src/types/master-warehouse.ts (Row/Input/Saved + ReceptionSteps/DeliverySteps)",
+      "src/lib/master-warehouse.ts (validasi, mapping, opsi 2 dropdown) — PURE"
+    ],
+    "routes": [
+      "/master/warehouses (INVENTORY_ROLES)",
+      "/master/warehouses/new (INVENTORY_ROLES)",
+      "/master/warehouses/:id (INVENTORY_ROLES)",
+      "/master/warehouses/:id/edit (INVENTORY_ROLES)"
+    ],
+    "nav": "app `inventory` → topbar 'Master Gudang'; LEGACY_APP_PATHS {prefix:'/master/warehouses'}",
+    "tests_new": 31,
+    "tests_files": [
+      "tests/unit/api/master-warehouses.test.ts (14)",
+      "tests/unit/pages/master-warehouses.test.ts (17)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (49→50 + masterWarehouses)"
+    ],
+    "decisions": [
+      "Form 5 field (code, name, reception_steps, delivery_steps, active) — TANPA usage (milik Location/H1.4).",
+      "Dropdown langkah = selection Odoo hasil probe.",
+      "Detail menampilkan catatan short_name Odoo maks 5 karakter.",
+      "deleteWarehouse tersedia; UI memakai checkbox 'Gudang aktif'.",
+      "Guard route INVENTORY_ROLES; izin tulis API ADMIN/OWNER."
+    ],
+    "notes": [
+      "Push ke Odoo create + update (setelah debt sprint warehouse-create-mapping closed).",
+      "Tanpa jsdom; tailwind.css tidak disentuh."
+    ]
+  },
+
+  "h1_4_location_crud": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "pages": [
+      "src/pages/master/LocationsPage.tsx (list: search + tab status + dropdown jenis + Export CSV + pagination)",
+      "src/pages/master/LocationFormPage.tsx (/master/locations/new + /:id/edit — 6 field)",
+      "src/pages/master/LocationDetailPage.tsx (read-only + Edit + Sync disabled + tabel anak langsung)"
+    ],
+    "api_files": [
+      "src/api/real/masterLocations.ts (fetch/create/update/delete)",
+      "src/api/masterLocations.ts (barrel pickAdapter)",
+      "src/types/master-location.ts (Row/Input/Saved + LocationUsage 7 nilai)",
+      "src/lib/master-location.ts (validasi, mapping, opsi jenis/induk) — PURE"
+    ],
+    "routes": [
+      "/master/locations (INVENTORY_ROLES)",
+      "/master/locations/new (INVENTORY_ROLES)",
+      "/master/locations/:id (INVENTORY_ROLES)",
+      "/master/locations/:id/edit (INVENTORY_ROLES)"
+    ],
+    "nav": "app `inventory` → topbar 'Master Lokasi'; LEGACY_APP_PATHS {prefix:'/master/locations'}",
+    "tests_new": 36,
+    "tests_files": [
+      "tests/unit/api/master-locations.test.ts (15)",
+      "tests/unit/pages/master-locations.test.ts (21)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (50→51 + masterLocations)"
+    ],
+    "decisions": [
+      "Form 6 field (code, name, usage, parent_id, warehouse_id, active); dropdown usage 7 nilai; induk/gudang pakai <Select> opsi.",
+      "Dropdown induk = lokasi AKTIF (diri sendiri disembunyikan saat edit); gudang dari master H1.3.",
+      "Detail menambah tabel 'Anak langsung' (filter ?parent_id=) — daftar tidak memuat anak (annotate Count).",
+      "deleteLocation tersedia; UI memakai checkbox 'Lokasi aktif'.",
+      "Detail READ-ONLY tanpa useMutation.",
+      "Guard route INVENTORY_ROLES; izin tulis API ADMIN/OWNER."
+    ],
+    "notes": [
+      "Push create Odoo BOLEH (Odoo wajib name+usage, keduanya di MES); push GAGAL kalau induk belum punya odoo_id.",
+      "Tanpa jsdom; tailwind.css tidak disentuh."
+    ]
+  },
+
+  "h1_5_bom_crud": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "pages": [
+      "src/pages/master/BomsPage.tsx (list: search + tab status + Export CSV + pagination)",
+      "src/pages/master/BomFormPage.tsx (/master/boms/new + /:id/edit — header 6 field + editor baris INLINE)",
+      "src/pages/master/BomDetailPage.tsx (read-only + tabel komponen + Edit + Sync disabled)"
+    ],
+    "api_files": [
+      "src/api/real/masterBoms.ts (fetch/create/update/delete + detail dengan lines[])",
+      "src/api/masterBoms.ts (barrel pickAdapter)",
+      "src/types/master-bom.ts (Row/Detail/LineRow/LineInput/Input/Saved)",
+      "src/lib/master-bom.ts (validasi header+baris, operasi baris, mapping) — PURE"
+    ],
+    "routes": [
+      "/master/boms (INVENTORY_ROLES)",
+      "/master/boms/new (INVENTORY_ROLES)",
+      "/master/boms/:id (INVENTORY_ROLES)",
+      "/master/boms/:id/edit (INVENTORY_ROLES)"
+    ],
+    "nav": "app `inventory` → topbar 'Master BOM'; LEGACY_APP_PATHS {prefix:'/master/boms'}",
+    "tests_new": 39,
+    "tests_files": [
+      "tests/unit/api/master-boms.test.ts (15)",
+      "tests/unit/pages/master-boms.test.ts (24)"
+    ],
+    "tests_updated": ["tests/unit/api/_adapter.test.ts (51→52 + masterBoms)"],
+    "decisions": [
+      "Form = header + editor baris INLINE + tombol Tambah Baris; 1 submit kirim header + lines[] sekaligus.",
+      "Baris di form membawa id/odoo_id hasil GET detail (PUT cocokkan baris sama).",
+      "Validasi klien: produk wajib, output_qty & qty > 0, tidak boleh self-reference; siklus diserahkan ke backend.",
+      "Kode boleh kosong → backend bangkitkan BOM-<kode produk>.",
+      "Detail READ-ONLY; soft delete lewat checkbox 'BOM aktif'.",
+      "Guard route INVENTORY_ROLES; izin tulis API ADMIN/OWNER."
+    ],
+    "notes": [
+      "Daftar BOM tidak memuat lines[] (annotate lines_count).",
+      "Tanpa jsdom; build memakai `bun --bun run build` (quirk Node 18)."
+    ]
+  },
+
+  "h1_6_partner_crud": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "pages": [
+      "src/pages/master/PartnersPage.tsx (list: search server + tab peran + Reset Filter + Export CSV)",
+      "src/pages/master/PartnerFormPage.tsx (/master/partners/new + /:id/edit — 7 input + 4 checkbox)",
+      "src/pages/master/PartnerDetailPage.tsx (read-only + orders_count + Edit + Sync disabled)"
+    ],
+    "api_files": [
+      "src/api/real/masterPartners.ts (fetch/create/update/delete + build path + reader + toBody)",
+      "src/api/masterPartners.ts (barrel pickAdapter)",
+      "src/types/master-partner.ts (Row/Detail/Input/Saved)",
+      "src/lib/master-partner.ts (validasi, EMPTY_PARTNER_FORM, roleLabels, formatNpwp) — PURE"
+    ],
+    "routes": [
+      "/master/partners (INVENTORY_ROLES)",
+      "/master/partners/new (INVENTORY_ROLES)",
+      "/master/partners/:id (INVENTORY_ROLES)",
+      "/master/partners/:id/edit (INVENTORY_ROLES)"
+    ],
+    "nav": "app `inventory` → topbar 'Master Partner'; LEGACY_APP_PATHS {prefix:'/master/partners'}",
+    "tests_new": 36,
+    "tests_files": [
+      "tests/unit/api/master-partners.test.ts (14)",
+      "tests/unit/pages/master-partners.test.ts (22)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (52→53 + masterPartners)"
+    ],
+    "decisions": [
+      "Filter peran & search dikerjakan SERVER (?search=/?is_customer=/?is_vendor=); limit 200 sekali tarik; paging tabel klien 20/halaman.",
+      "Form menegakkan aturan backend: nama wajib, minimal 1 peran, NPWP 15/16 digit, format email.",
+      "Kode opsional; placeholder backend bangkitkan PTR-<slug nama>.",
+      "customer_rank/supplier_rank READ-ONLY.",
+      "Sync disabled placeholder H2; soft delete lewat checkbox 'Partner aktif'.",
+      "Guard route INVENTORY_ROLES; izin tulis API ADMIN/OWNER."
+    ],
+    "notes": [
+      "Backend H1.6 tambah field kontak/NPWP/peran; B12 /purchase/vendors/ kini kirim email/phone/city nyata + is_customer/is_vendor.",
+      "Tanpa jsdom; NPWP ditampilkan terformat (15/16 digit) tapi dikirim apa adanya.",
+      "PELAJARAN: jangan tulis `**/**` di JSDoc (menutup komentar lebih awal)."
+    ]
+  },
+
+  "h1_7_work_center_crud": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "pages": [
+      "src/pages/master/WorkCentersPage.tsx (list: search server + chip tipe + Reset Filter + Export CSV)",
+      "src/pages/master/WorkCenterFormPage.tsx (/master/work-centers/new + /:id/edit — kode/nama/tipe/capacity/tags)",
+      "src/pages/master/WorkCenterDetailPage.tsx (read-only + badge MES-only + active_bundles_count)"
+    ],
+    "api_files": [
+      "src/api/real/masterWorkCenters.ts (fetch/create/update/delete + reader + toBody)",
+      "src/api/masterWorkCenters.ts (barrel pickAdapter)",
+      "src/types/master-work-center.ts (Row/Detail/Line/Input/Saved — tanpa odoo_id)",
+      "src/lib/master-work-center.ts (validasi, tag add/remove/normalize, formatCapacity) — PURE"
+    ],
+    "routes": [
+      "/master/work-centers (INVENTORY_ROLES)",
+      "/master/work-centers/new (INVENTORY_ROLES)",
+      "/master/work-centers/:id (INVENTORY_ROLES)",
+      "/master/work-centers/:id/edit (INVENTORY_ROLES)"
+    ],
+    "nav": "app `inventory` → topbar 'Master Work Center'; LEGACY_APP_PATHS {prefix:'/master/work-centers'}",
+    "tests_new": 38,
+    "tests_files": [
+      "tests/unit/api/master-work-centers.test.ts (16)",
+      "tests/unit/pages/master-work-centers.test.ts (22)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (53→54 + masterWorkCenters)"
+    ],
+    "decisions": [
+      "Filter tipe & search dikerjakan SERVER; limit 200; paging tabel klien 20/halaman.",
+      "Chip tipe memakai WC_TYPE_SUGGESTIONS + tombol cepat; wc_type tetap free-form.",
+      "Tag kapabilitas: input Enter/koma; dedupe case-insensitive.",
+      "Detail menampilkan badge MES-only + tombol Sync disabled; kolom/field odoo_id TIDAK ada.",
+      "Label status sync baru SKIPPED = 'Dilewati'.",
+      "Guard route INVENTORY_ROLES; izin tulis API ADMIN/OWNER."
+    ],
+    "notes": [
+      "CsvColumn hanya skalar → CSV via proyeksi toCsvRow (tag → A|B).",
+      "Render SSR detail uji elemen header (badge/disabled) karena data belum ter-fetch."
+    ]
+  },
+
+  "h1_8_production_line_crud": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "pages": [
+      "src/pages/master/ProductionLinesPage.tsx (list: search server + chip tag + Reset + Export CSV)",
+      "src/pages/master/ProductionLineFormPage.tsx (/master/production-lines/new + /:id/edit — kode/nama/tags/multi-select WC)",
+      "src/pages/master/ProductionLineDetailPage.tsx (read-only + badge MES-only + daftar WC + counters)"
+    ],
+    "api_files": [
+      "src/api/real/masterProductionLines.ts (fetch/create/update/delete + reader + toBody)",
+      "src/api/masterProductionLines.ts (barrel pickAdapter)",
+      "src/types/master-production-line.ts (Row/Detail/WorkCenter/Input/Saved — tanpa odoo_id)",
+      "src/lib/master-production-line.ts (validasi, tag helper reuse H1.7, toggleWorkCenter, form↔input, workCentersSummary) — PURE"
+    ],
+    "routes": [
+      "/master/production-lines (INVENTORY_ROLES)",
+      "/master/production-lines/new (INVENTORY_ROLES)",
+      "/master/production-lines/:id (INVENTORY_ROLES)",
+      "/master/production-lines/:id/edit (INVENTORY_ROLES)"
+    ],
+    "nav": "app `inventory` → topbar 'Master Production Line'; LEGACY_APP_PATHS {prefix:'/master/production-lines'}",
+    "tests_new": 18,
+    "tests_files": [
+      "tests/unit/api/master-production-lines.test.ts (8)",
+      "tests/unit/pages/master-production-lines.test.ts (10)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (54→55 + masterProductionLines)",
+      "tests/unit/components/app-menu-bar.test.ts (F16: asersi 'bukan daftar app' dari substring ke LABEL UTUH)"
+    ],
+    "decisions": [
+      "Filter tag & search dikerjakan SERVER; limit 200; paging tabel klien 20/halaman.",
+      "Anggota work center diisi multi-select checkbox dari /master/work-centers/?active=true.",
+      "Tag kapabilitas reuse helper H1.7.",
+      "Detail sync disabled MES-only; kolom odoo_id TIDAK ada.",
+      "Guard route INVENTORY_ROLES; izin tulis API ADMIN/OWNER."
+    ],
+    "notes": [
+      "CSV via proyeksi toCsvRow (tag & anggota → A|B).",
+      "Asersi teks JSX berspasi memakai regex.",
+      "PELAJARAN: label menu memuat kata nama app ('Master Production Line' memuat 'Production') → asersi diuji ulang pakai label utuh."
+    ]
+  },
+
+  "h1_9_routing_dag": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "scope": "EXTEND B22 di tempat — TIDAK ada endpoint paralel /master/routings/. MES-only (probe Odoo 17: mrp.routing tidak ada).",
+    "pages": [
+      "src/pages/master/RoutingsPage.tsx (list B22: kolom Kode/Nama/Langkah/Status; pencarian menyaring halaman termuat)",
+      "src/pages/master/RoutingFormPage.tsx (/master/routings/new + /:id/edit — editor DAG: label/order/WC/depends_on/rework per node + pratinjau RoutingGraph)",
+      "src/pages/master/RoutingDetailPage.tsx (read-only: ringkasan + tag + visualisasi DAG + tabel step + Nonaktifkan)"
+    ],
+    "api_files": [
+      "src/api/real/masterRoutings.ts (fetch/create/update/delete routing + create/update/delete step)",
+      "src/api/masterRoutings.ts (barrel pickAdapter → MODE.masterRoutings='real')",
+      "src/types/master-routing.ts (Row/StepRow/Node/Edge/Detail/Saved/CreateInput/Input/StepInput/StepB22Input — tanpa odoo_id)",
+      "src/lib/master-routing.ts (form↔detail, DETEKSI SIKLUS sisi klien DFS MAX_DAG_DEPTH=10, payload B22 & step id-based) — PURE"
+    ],
+    "routes": [
+      "/master/routings (INVENTORY_ROLES)",
+      "/master/routings/new (INVENTORY_ROLES)",
+      "/master/routings/:id (INVENTORY_ROLES)",
+      "/master/routings/:id/edit (INVENTORY_ROLES)"
+    ],
+    "nav": "app `inventory` → topbar 'Master Routing'; LEGACY_APP_PATHS {prefix:'/master/routings'}; route /settings/routing (B22 F3A) TETAP hidup",
+    "tests_new": 24,
+    "tests_files": [
+      "tests/unit/api/master-routings.test.ts (12)",
+      "tests/unit/pages/master-routings.test.ts (12)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (55→56 + masterRoutings)"
+    ],
+    "decisions": [
+      "Extend B22: GET /<id>/, PUT/DELETE /<id>/, CRUD /<id>/steps/[/<step_id>/].",
+      "Shape GET list B22 TIDAK diubah (16 test F3A hijau tanpa edit).",
+      "Izin tulis endpoint BARU ADMIN/OWNER; POST B22 lama tetap IsAuthenticated.",
+      "capability_tags ditambah ke ProcessRouting; tanpa routing_type, tanpa odoo_id.",
+      "Step pakai id backend (depends_on_step_ids/next_step_ids); order kosong → max+10.",
+      "Validasi DAG: siklus DFS max 10 → 400; self-reference/lintas-routing → 400.",
+      "DELETE step structural; soft delete routing dengan guard Rule tag-router aktif."
+    ],
+    "notes": [
+      "H1.9 = modul terakhir Fase H1; sync record SKIPPED MES-only.",
+      "Editor DAG pakai checkbox depends_on + dropdown rework; validasi klien hanya peringatan.",
+      "Batasan edit: node BARU yang bergantung pada node BARU lain belum punya id backend (didokumentasikan)."
+    ]
+  },
+
+  "sprint_C_number_sequence": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "scope": "Sprint pendukung H2.1–H2.6 + H3.1–H3.4: penomoran `<PREFIX>-<YEAR>-<SEQ:04d>` reset per tahun. MES-only.",
+    "pages": [
+      "src/pages/settings/SequencesPage.tsx (/settings/sequences: list + tombol Preview (modal) + tombol Ubah (modal) — tanpa tombol Sync)"
+    ],
+    "api_files": [
+      "src/api/real/masterSequences.ts (fetchSequences/previewNumber/updateSequence)",
+      "src/api/masterSequences.ts (barrel pickAdapter → MODE.masterSequences='real')",
+      "src/types/master-sequence.ts (Row/Preview/Input — tanpa odoo_id)",
+      "src/lib/master-sequence.ts (validasi form edit, sequenceInputFromForm, sequenceStatusLabel) — PURE"
+    ],
+    "routes": ["/settings/sequences (SETTINGS_ROLES)"],
+    "nav": "app `settings` → topbar 'Number Sequence'",
+    "tests_new": 12,
+    "tests_files": [
+      "tests/unit/api/master-sequences.test.ts (6)",
+      "tests/unit/pages/sequences.test.ts (6)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (56→57 + masterSequences)"
+    ],
+    "decisions": [
+      "Halaman di /settings/sequences (guard SETTINGS_ROLES).",
+      "Preview memakai atom Modal + endpoint read-only TANPA increment.",
+      "Edit inline modal dengan nama/prefix/padding + toggle Aktif; code/year/last_seq tidak di UI.",
+      "Filter status dikirim ke backend; paging tabel klien 20/halaman.",
+      "Tanpa dummy: MODE key ke-57."
+    ],
+    "notes": [
+      "Tidak ada tombol Sync (MES-only) — jejak SKIPPED di /sync/records/.",
+      "Tanpa jsdom; build `bun --bun run build`."
+    ]
+  },
+
+  "h5_1_company_profile": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "scope": "Modul 3/8 FASE H5 (Settings & Admin) — Company Profile **singleton** (form tunggal + dropdown mata uang H5.2) di app Settings; MES-only (ledger SKIPPED).",
+    "pages": [
+      "src/pages/settings/CompanyPage.tsx (/settings/company: form tunggal — nama*, nama legal, alamat, kota, negara ISO, telepon, email, NPWP, website, logo URL, mata uang (dropdown H5.2), zona waktu, aktif + tombol Simpan Profil & Muat Ulang)"
+    ],
+    "api_files": [
+      "src/api/real/company.ts (fetchCompany/updateCompany + PURE readCompanyRow/readCompanyEnvelope/readCompanyCurrency/toCompanyBody)",
+      "src/api/company.ts (barrel pickAdapter — MODE.company='real'; key 79 → 80)",
+      "src/types/company.ts (CompanyRow/CompanyCurrency/CompanyInput/CompanyEnvelope)",
+      "src/lib/company.ts (validateCompanyForm/companyFormFromRow/companyInputFromForm/isCompanyFormValid/isHttpUrl) — PURE; reuse H1.6 (isEmailLike/normalizeNpwp/NPWP_LENGTHS)"
+    ],
+    "routes": ["/settings/company (SETTINGS_ROLES)"],
+    "nav": "app `settings` → topbar 'Company' (setelah 'Line Allocation' — landing app tetap /settings/routing)",
+    "tests_new": 12,
+    "tests_files": [
+      "tests/unit/api/company.test.ts (6) — MODE/path, parsing row/envelope/currency, body PURE, GET null/row, PUT, error 403/400, respons rusak",
+      "tests/unit/pages/company.test.ts (6) — route+guard+nav, render form, sumber GET/PUT, validasi PURE (nama/ISO/email/NPWP/URL), formFromRow + inputFromForm"
+    ],
+    "tests_updated": ["tests/unit/api/_adapter.test.ts (MODE 79 → 80 + 'company')"],
+    "decisions": [
+      "Singleton: satu form (bukan list) — GET boleh {company: null}, PUT create-on-first-PUT.",
+      "Dropdown mata uang memakai adapter H5.2 (fetchCurrencies, hanya aktif) — tanpa duplikasi data mata uang.",
+      "Nilai form = draft pengguna → data GET → form kosong (derivasi saat render, tanpa useEffect — patuh lint set-state-in-effect).",
+      "Error field baru muncul setelah Simpan ditekan (showErrors) supaya form kosong saat pertama dibuka tidak 'merah'.",
+      "Nav 'Company' sengaja BUKAN item pertama Settings: route-fix menguji landing app = item topbar pertama (/settings/routing).",
+      "Tanpa kelas Tailwind mentah baru: css:gate md5 identik (566 rule, tanpa update baseline)."
+    ],
+    "notes": [
+      "MES-only: tanpa tombol Sync (jejak SKIPPED di /sync/records/).",
+      "Tanpa jsdom; build `bun --bun run build` (341.04 kB)."
+    ]
+  },
+
+  "h5_2_currency_crud": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "scope": "Modul 2/8 FASE H5 (Settings & Admin) — Currency: list + modal create/edit + Set Default + Hapus (soft delete) di app Settings; MES-only (ledger SKIPPED, tanpa push ke Odoo).",
+    "pages": [
+      "src/pages/settings/CurrenciesPage.tsx (/settings/currencies: list + filter status + tombol 'Buat Mata Uang' (modal) + 'Ubah' (modal) + 'Default' (set-default) + 'Hapus' (window.confirm))"
+    ],
+    "api_files": [
+      "src/api/real/masterCurrencies.ts (fetchCurrencies/fetchCurrency/fetchDefaultCurrency/createCurrency/updateCurrency/deleteCurrency/setDefaultCurrency + PURE readers/builders)",
+      "src/api/masterCurrencies.ts (barrel pickAdapter — MODE.masterCurrencies='real'; key 78 → 79)",
+      "src/types/master-currency.ts (Row/CreateInput/Input/Deleted)",
+      "src/lib/master-currency.ts (validateCurrencyCreateForm/validateCurrencyEditForm/create+update input from form/currencyFormFromRow/currencySourceLabel/currencyRateLabel) — PURE"
+    ],
+    "routes": ["/settings/currencies (SETTINGS_ROLES)"],
+    "nav": "app `settings` → topbar 'Currencies' (setelah 'Number Sequence')",
+    "tests_new": 15,
+    "tests_files": [
+      "tests/unit/api/master-currencies.test.ts (8) — MODE/path, parsing row/page/default/deleted, body PURE, GET/POST/PUT/DELETE, error",
+      "tests/unit/pages/currencies.test.ts (7) — route+guard+nav, render, sumber CRUD, validasi create/edit PURE (termasuk echo kode 'ODOO-12')"
+    ],
+    "tests_updated": ["tests/unit/api/_adapter.test.ts (MODE 78 → 79 + 'masterCurrencies')"],
+    "decisions": [
+      "Halaman di /settings/currencies (guard SETTINGS_ROLES) — Currency masuk Settings, konsisten H5-series.",
+      "Form create & edit memakai atom Modal (pola H5.3 SequencesPage), bukan halaman terpisah.",
+      "Delete pakai window.confirm (pola BundleFormPage/WorkOrderDetailPage) + DELETE 200 + body (deleted/sync_record_id ditampilkan di toast).",
+      "Kode pada form edit hanya dikirim ke backend kalau BERUBAH → baris hasil pull I1 ber-kode 'ODOO-12' tetap bisa diedit tanpa 400 (cermin perilaku backend).",
+      "Kolom 'Sumber' menandai baris MES vs Odoo (odoo_id) supaya user paham kenapa penghapusan bisa ditolak backend.",
+      "Tanpa kelas Tailwind mentah baru: css:gate md5 identik (566 rule, tanpa update baseline)."
+    ],
+    "notes": [
+      "MES-only: tanpa tombol Sync (jejak SKIPPED di /sync/records/).",
+      "Tanpa jsdom; build `bun --bun run build` (340.60 kB)."
+    ]
+  },
+
+  "h5_3_number_sequence_crud": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "scope": "Modul 1/8 FASE H5 (Settings & Admin) — EXTEND Sprint C: CRUD Number Sequence (create + soft delete) di halaman yang sudah ada, tanpa breaking 12 test Sprint C.",
+    "pages": [
+      "src/pages/settings/SequencesPage.tsx (/settings/sequences: list + Preview + Ubah existing + BARU tombol 'Buat Sequence' (modal) + tombol 'Hapus' (window.confirm) + filter Tahun)"
+    ],
+    "api_files": [
+      "src/api/real/masterSequences.ts (+createSequence/deleteSequence/sequenceCreatePath/toMasterSequenceCreateBody)",
+      "src/api/masterSequences.ts (barrel pickAdapter — MODE.masterSequences TETAP 'real')",
+      "src/types/master-sequence.ts (+MasterSequenceCreateInput)",
+      "src/lib/master-sequence.ts (+validateCreateSequenceForm/createSequenceInputFromForm/EMPTY_CREATE_SEQUENCE_FORM/SEQUENCE_CODE_PATTERN/SEQUENCE_PREFIX_PATTERN) — PURE"
+    ],
+    "routes": ["/settings/sequences (SETTINGS_ROLES) — TIDAK berubah"],
+    "nav": "app `settings` → topbar 'Number Sequence' (TIDAK berubah)",
+    "tests_new": 8,
+    "tests_files": [
+      "tests/unit/api/master-sequences.test.ts (6 → 11; +5 H5.3: path/body PURE, POST, respons rusak, DELETE 204, gagal 400/403)",
+      "tests/unit/pages/sequences.test.ts (6 → 9; +3 H5.3: render tombol Buat/filter tahun, sumber CRUD, validasi form create PURE)"
+    ],
+    "decisions": [
+      "Extend halaman + adapter Sprint C (bukan halaman baru).",
+      "Delete pakai window.confirm (pola BundleFormPage/WorkOrderDetailPage) — tanpa molecule ConfirmDialog baru.",
+      "deleteSequence TIDAK memakai unwrap() karena DELETE 204 tanpa body (data undefined).",
+      "Filter tahun = Select atom existing (opsi tahun berjalan/lalu/depan/semua) → ?year= backend.",
+      "Create mengirim ?year= sesuai filter terpilih (default tahun berjalan) — konsisten reset per tahun.",
+      "Tanpa kelas Tailwind mentah baru: css:gate md5 identik (566 rule)."
+    ],
+    "notes": [
+      "MES-only: tanpa tombol Sync (jejak SKIPPED di /sync/records/).",
+      "Tanpa jsdom; build `bun --bun run build` (340.17 kB)."
+    ]
+  },
+
+  "h5_4_permission_matrix": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "scope": "Modul 8/8 FASE H5 (Settings & Admin) — **Permission Matrix** (**Opsi A′**: profil tersimpan + viewer efektif) di app Settings; **enforcement TIDAK diubah** (guard tetap hardcoded) ⇒ banner wajib di UI; MES-only (ledger SKIPPED).",
+    "pages": [
+      "src/pages/settings/PermissionMatrixPage.tsx (/settings/permissions: banner wajib (profil ≠ enforcement) + pilih role + ringkasan (sel aktif profil/efektif/beda) + grid checkbox resource × aksi + indikator efektif + badge 'beda' + Simpan/Batalkan (hanya sel berubah) + Muat Ulang)"
+    ],
+    "api_files": [
+      "src/api/real/permissionMatrix.ts (fetchPermissionMatrix/updateRolePermissions + PURE readPermissionRole/readCellMap/readMatrix/readDivergence(s)/readPermissionEnvelope/readPermissionSaveResult/toPermissionBody/readStrList)",
+      "src/api/permissionMatrix.ts (barrel pickAdapter — MODE.permissionMatrix='real'; key 84 → 85)",
+      "src/types/permission-matrix.ts (Matrix/Divergence(s)/Role/Envelope/Update/Input/SaveResult + PERMISSION_BANNER_FALLBACK)",
+      "src/lib/permission-matrix.ts (roleOptions/defaultRoleId/actionLabel/resourceLabel/emptyCell/roleDraft/readCell/readDivergenceCell/diffUpdates/toggleCell/roleSummary) — PURE"
+    ],
+    "routes": ["/settings/permissions (SETTINGS_ROLES)"],
+    "nav": "app `settings` → topbar 'Permissions' (SETELAH Printer — modul terakhir; landing app tetap /settings/routing)",
+    "tests_new": 17,
+    "tests_files": [
+      "tests/unit/api/permission-matrix.test.ts (9) — MODE/path, parsing role/cell/matrix/diverges/envelope (banner fallback), save-result (sync null saat tanpa perubahan), toPermissionBody (dedupe + saring matrix), GET/PUT, error 400/403/bentuk rusak",
+      "tests/unit/pages/permission-matrix.test.ts (8) — route+guard+nav (Permissions setelah Printer; landing tetap Routing), render halaman (banner wajib tampil tanpa data), sumber (fetch/PUT/diffUpdates/toggleCell/roleSummary/Checkbox/TABLE_HEAD), label role/aksi/resource, draft/read/toggle, diffUpdates hanya sel berubah, roleSummary (stored/effective/divergent)"
+    ],
+    "tests_updated": ["tests/unit/api/_adapter.test.ts (MODE 84 → 85 + 'permissionMatrix')"],
+    "decisions": [
+      "READ = transparan (GET IsAuthenticated) tetapi TULIS hanya ADMIN/OWNER — halaman memakai guard route SETTINGS_ROLES.",
+      "UI jujur: banner WAJIB di atas tabel (teks dari backend + fallback konstanta) menyatakan perubahan = PROFIL dan enforcement belum berubah.",
+      "Hanya sel yang berubah (diffUpdates) yang dikirim ke PUT → payload kecil & jejak audit rapi; tombol Simpan mati bila tidak ada perubahan.",
+      "Indikator 'efektif' + badge 'beda' ditampilkan per sel dari `effective`/`diverges` supaya operator langsung tahu sel mana yang menyimpang dari aturan berlaku.",
+      "Field kondisional tidak ada di sini (matrix penuh) tetapi bentuk tabel dijaga lengkap: semua resource × aksi selalu dirender (nilai default false).",
+      "Nav 'Permissions' di posisi terakhir (modul penutup H5): route-fix tetap menguji landing app Settings = item topbar pertama (/settings/routing).",
+      "2 kelas transformasi teks baru (huruf normal + jarak normal) dihapus agar css:gate tetap PASS dengan md5 identik (566 rule, tanpa update baseline)."
+    ],
+    "notes": [
+      "MES-only: profil izin tidak memengaruhi endpoint mana pun sampai sprint enforcement ditulis (ledger SKIPPED di /sync/records/).",
+      "Tanpa jsdom; build `bun --bun run build` (343.07 kB)."
+    ]
+  },
+
+  "h5_7_printer_config": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "scope": "Modul 7/8 FASE H5 (Settings & Admin) — Printer Config **singleton** (field kondisional per backend + Status + Test Koneksi) di app Settings; **Opsi B** (profil di DB, konsumen `get_backend` tetap baca `.env`); MES-only (ledger SKIPPED).",
+    "pages": [
+      "src/pages/settings/PrinterConfigPage.tsx (/settings/printers: bagian Printer (backend mock|usb|network + aktif) + blok KONDISIONAL USB/Network/Mock + Status read-only (effective 6 field, diverges, needs_restart, Test Koneksi, restart_command))"
+    ],
+    "api_files": [
+      "src/api/real/printerConfig.ts (fetchPrinterConfig/updatePrinterConfig/testPrinterConnection + PURE readDivergence/readPrinterConfigValues/readPrinterConfigRow/readPrinterConfigEnvelope/toPrinterConfigBody/readTestConnection)",
+      "src/api/printerConfig.ts (barrel pickAdapter — MODE.printerConfig='real'; key 83 → 84)",
+      "src/types/printer-config.ts (Row/Values/Divergence/Envelope/Input/PrinterTestConnectionResult + batas port & panjang)",
+      "src/lib/printer-config.ts (visibleFieldGroups/isKnownBackend/validatePrinterConfigForm/printerConfigFormFromRow/printerConfigInputFromForm/toNullablePort/effectiveStatusRows/formatConfigValue) — PURE"
+    ],
+    "routes": ["/settings/printers (SETTINGS_ROLES)"],
+    "nav": "app `settings` → topbar 'Printer' (SETELAH Audit Log — landing app tetap /settings/routing)",
+    "tests_new": 16,
+    "tests_files": [
+      "tests/unit/api/printer-config.test.ts (8) — MODE/path, parsing values/row/envelope/diverges, body PURE (trim + port null), GET/PUT/POST test-connection, error 400/403/bentuk rusak",
+      "tests/unit/pages/printer-config.test.ts (8) — route+guard+nav (item pertama tetap Routing; Printer setelah Audit Log), render halaman (mock default → blok Mock saja), sumber (fetch/visibleFieldGroups/groups.*/restart_command), field kondisional PURE per backend, validasi guard usb/network + port + panjang, formFromRow/inputFromForm, helper tampilan"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (MODE 83 → 84 + 'printerConfig')",
+      "tests/unit/pages/audit-log.test.ts (assertion posisi nav diubah RELATIF: Audit Log setelah WA Gateway — tahan modul H5 berikutnya)"
+    ],
+    "decisions": [
+      "Opsi B ditegakkan di UI: bagian Status menampilkan effective (nilai .env aktif) + diverges + needs_restart + restart_command supaya user tahu perubahan BELUM aktif.",
+      "Field kondisional: blok USB (vendor/product) hanya tampil bila backend `usb`; blok Network (host/port) hanya bila `network`; blok Mock (folder) hanya bila `mock` — field yang tidak relevan disembunyikan (nilai lama di DB tidak dihapus).",
+      "Guard UI selaras backend: `usb` ⇒ vendor+product wajib; `network` ⇒ host+port (1..65535) wajib; `mock` bebas. Port non-integer/di luar rentang ditahan sebelum dikirim (tidak ada 400 karena UI).",
+      "Test Koneksi read-only & TIDAK pernah mencetak: backend hanya memanggil cek folder (mock), pesan stub (usb), atau TCP connect (network) — UI hanya menampilkan badge Printer OK/belum siap + message.",
+      "Tanpa mask: host/port/USB id ditampilkan apa adanya (bukan kredensial) — berbeda dari H5.6/H5.8 yang mem-mask API key.",
+      "Nav 'Printer' di posisi terakhir: route-fix menguji landing app Settings = item topbar pertama (/settings/routing); 1 assertion H5.5 diubah ke pembandingan indeks agar tidak rapuh.",
+      "Tanpa kelas Tailwind mentah baru: css:gate PASS dengan md5 identik (566 rule, tanpa update baseline)."
+    ],
+    "notes": [
+      "MES-only: tanpa tombol Sync (jejak SKIPPED di /sync/records/); cetak tetap lewat `POST /api/v1/print/bundle-tag/` & `/print/kupon/` (tidak diubah).",
+      "Tanpa jsdom; build `bun --bun run build` (342.63 kB)."
+    ]
+  },
+
+  "h5_5_audit_log_viewer": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "scope": "Modul 6/8 FASE H5 (Settings & Admin) — **Audit Log Viewer** READ-ONLY (filter + tabel + modal detail) di app Settings; **append-only** (tanpa create/update/delete); guard ADMIN/OWNER.",
+    "pages": [
+      "src/pages/settings/AuditLogPage.tsx (/settings/audit-log: filter 8 field (kata kunci, aksi exact/prefix, resource, resource id, hasil, user id, dari/sampai tanggal) + DenseTable (klik baris → Modal detail payload/metadata lengkap) + PaginationBar offset)"
+    ],
+    "api_files": [
+      "src/api/real/auditLogs.ts (fetchAuditLogs/fetchAuditLog + PURE buildAuditLogsPath/parseUserId/parseAuditResult/readAuditLogRow/readAuditLogPage/readAuditLogDetail/readJsonObject)",
+      "src/api/auditLogs.ts (barrel pickAdapter — MODE.auditLogs='real'; key 82 → 83)",
+      "src/types/audit-log.ts (Row/Detail/Page/Filters + AUDIT_RESULTS/AUDIT_MASK + batas paging)",
+      "src/lib/audit-log.ts (validateAuditFilters/isIsoDate/auditResultTone/formatAuditTimestamp/actorLabel/metadataSummary/hasActiveFilters/auditDetailEntries/formatJsonBlock) — PURE"
+    ],
+    "routes": ["/settings/audit-log (SETTINGS_ROLES) — BUKAN /settings/audit (dipakai F9)"],
+    "nav": "app `settings` → topbar 'Audit Log' (URUTAN AKHIR setelah WA Gateway — landing app tetap /settings/routing)",
+    "tests_new": 16,
+    "tests_files": [
+      "tests/unit/api/audit-logs.test.ts (9) — MODE/path, buildAuditLogsPath (filter terisi saja, limit/cursor rentang), parseUserId/parseAuditResult, readRow/readPage (has_more + has_next + rusak), readDetail, GET daftar/detail, error 403/404/bentuk rusak",
+      "tests/unit/pages/audit-log.test.ts (7) — route+guard+nav (item pertama tetap Routing; /settings/audit F9 tetap ada; Audit Log terakhir), render halaman, sumber (fetch/onRowClick/Modal/PaginationBar + BUKAN tombol Simpan/Hapus), validasi filter PURE, helper tampilan, entries modal"
+    ],
+    "tests_updated": ["tests/unit/api/_adapter.test.ts (MODE 82 → 83 + 'auditLogs')"],
+    "decisions": [
+      "READ-ONLY: halaman tanpa aksi tulis sama sekali (audit trail = append-only); detail dimuat lewat query terpisah saat baris diklik (modal).",
+      "Filter diterapkan eksplisit lewat tombol 'Terapkan Filter' (draft vs applied) supaya tidak ada request per ketikan; 'Bersihkan' mengosongkan keduanya + reset cursor.",
+      "Nilai filter tidak valid (result di luar enum, user_id bukan angka, tanggal salah format) ditahan di UI (error field) dan TIDAK dikirim ke backend — `buildAuditLogsPath` membuang nilai tak valid agar tidak ada 400 karena UI.",
+      "Daftar memakai `metadata_preview` (sudah dipotong + di-mask backend); modal menampilkan payload/metadata lengkap sebagai blok JSON (juga sudah di-mask) — UI tidak pernah mem-mask ulang atau meminta nilai mentah.",
+      "Path frontend /settings/audit-log (bukan /settings/audit) + MODE key `auditLogs`: F9 (audit produk) tetap utuh pada path/key lamanya.",
+      "2 kelas utilitas teks baru (pemenggalan kata + pertahankan baris) diganti kelas 'pre-line' yang sudah dipakai halaman lain → css:gate PASS dengan md5 identik (566 rule, tanpa update baseline)."
+    ],
+    "notes": [
+      "Tanpa jsdom; build `bun --bun run build` (342.28 kB).",
+      "Paginasi offset `limit=50` + `cursor` + tombol prev/next (`PaginationBar`); total & rentang baris tampil di bawah tabel."
+    ]
+  },
+
+  "h5_6_integration_config": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "scope": "Modul 4/8 FASE H5 (Settings & Admin) — Integration Config **singleton** (5 bagian + Test Koneksi) di app Settings; **Opsi B** (profil di DB, konsumen tetap baca `.env`); MES-only (ledger SKIPPED).",
+    "pages": [
+      "src/pages/settings/IntegrationConfigPage.tsx (/settings/integration: bagian Odoo (adapter/URL/db/user/API key masked/timeout/aktif) + Lokasi (4 id + UoM) + Advanced (picking type, journal) + Rekonsiliasi (toleransi unit/rasio + alert WA) + Status read-only (effective 16 field, diverges, needs_restart, Test Koneksi, restart_command))"
+    ],
+    "api_files": [
+      "src/api/real/integrationConfig.ts (fetchIntegrationConfig/updateIntegrationConfig/testIntegrationConnection + PURE readers/builders)",
+      "src/api/integrationConfig.ts (barrel pickAdapter — MODE.integrationConfig='real'; key 80 → 81)",
+      "src/types/integration-config.ts (Row/Values/Divergence/Envelope/Input/TestConnectionResult + SENSITIVE_MASK)",
+      "src/lib/integration-config.ts (validateIntegrationConfigForm/integrationConfigFormFromRow/integrationConfigInputFromForm/effectiveStatusRows/formatConfigValue/isMaskedApiKey/isHttpUrl/waNumbers/toNullableInt) — PURE"
+    ],
+    "routes": ["/settings/integration (SETTINGS_ROLES)"],
+    "nav": "app `settings` → topbar 'Integration' (urutan AKHIR — landing app tetap /settings/routing)",
+    "tests_new": 15,
+    "tests_files": [
+      "tests/unit/api/integration-config.test.ts (8) — MODE/path, parsing values/row/envelope/diverges, body PURE (mask tidak di-trim), GET/PUT/POST test-connection, error 400/403/bentuk rusak",
+      "tests/unit/pages/integration-config.test.ts (7) — route+guard+nav (item pertama tetap Routing), render 5 bagian, sumber (type=password, restart_command), validasi PURE 16 field, formFromRow/inputFromForm + mask, helper tampilan"
+    ],
+    "tests_updated": ["tests/unit/api/_adapter.test.ts (MODE 80 → 81 + 'integrationConfig')"],
+    "decisions": [
+      "Opsi B ditegakkan di UI: bagian Status menampilkan effective (nilai .env aktif) + diverges + needs_restart + restart_command supaya user tahu perubahan BELUM aktif.",
+      "API key ditampilkan masked (***) di input type=password; kirim *** = jangan ubah; mengosongkan = hapus (backend mengabaikan '***').",
+      "Kolom diverges menampilkan 'profil … · .env …' dengan nilai rahasia tetap '***' (backend sudah mem-mask) — tidak ada rahasia di UI/log.",
+      "Nav 'Integration' di posisi terakhir: route-fix menguji landing app Settings = item topbar pertama (/settings/routing).",
+      "Test Koneksi memakai endpoint read-only (POST) + menampilkan server_version; tanpa efek samping ke DB/Odoo.",
+      "Tanpa kelas Tailwind mentah baru: css:gate md5 identik (566 rule, tanpa update baseline)."
+    ],
+    "notes": [
+      "MES-only: tanpa tombol Sync (jejak SKIPPED di /sync/records/).",
+      "Tanpa jsdom; build `bun --bun run build` (341.44 kB)."
+    ]
+  },
+
+  "h5_8_wa_gateway_config": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "scope": "Modul 5/8 FASE H5 (Settings & Admin) — WA Gateway Config **singleton** (2 bagian + Test Koneksi) di app Settings; **Opsi B** (profil di DB, konsumen `get_wa_gateway` tetap baca `.env`); MES-only (ledger SKIPPED).",
+    "pages": [
+      "src/pages/settings/WAConfigPage.tsx (/settings/wa: bagian WA Gateway (backend mock|real|api, URL API, API key masked type=password, aktif) + Status read-only (effective 3 field, diverges, needs_restart, Test Koneksi, restart_command))"
+    ],
+    "api_files": [
+      "src/api/real/waConfig.ts (fetchWAConfig/updateWAConfig/testWAConnection + PURE readers/builders)",
+      "src/api/waConfig.ts (barrel pickAdapter — MODE.waConfig='real'; key 81 → 82)",
+      "src/types/wa-config.ts (Row/Values/Divergence/Envelope/Input/WATestConnectionResult + SENSITIVE_MASK)",
+      "src/lib/wa-config.ts (validateWAConfigForm/waConfigFormFromRow/waConfigInputFromForm/effectiveStatusRows/formatConfigValue/isMaskedApiKey/isHttpUrl) — PURE"
+    ],
+    "routes": ["/settings/wa (SETTINGS_ROLES)"],
+    "nav": "app `settings` → topbar 'WA Gateway' (urutan AKHIR setelah Integration — landing app tetap /settings/routing)",
+    "tests_new": 15,
+    "tests_files": [
+      "tests/unit/api/wa-config.test.ts (8) — MODE/path, parsing values/row/envelope/diverges, body PURE (mask tidak di-trim), GET/PUT/POST test-connection, error 400/403/bentuk rusak",
+      "tests/unit/pages/wa-config.test.ts (7) — route+guard+nav (item pertama tetap Routing), render 2 bagian, sumber (type=password, restart_command), validasi PURE 3 field + guard real/api, formFromRow/inputFromForm + mask, helper tampilan"
+    ],
+    "tests_updated": ["tests/unit/api/_adapter.test.ts (MODE 81 → 82 + 'waConfig')"],
+    "decisions": [
+      "Opsi B ditegakkan di UI: bagian Status menampilkan effective (nilai .env aktif) + diverges + needs_restart + restart_command supaya user tahu perubahan BELUM aktif.",
+      "API key ditampilkan masked (***) di input type=password; kirim *** = jangan ubah; mengosongkan = hapus (backend mengabaikan '***').",
+      "Guard UI selaras backend: backend real/api wajib URL + API key; 'mock' bebas kredensial. isHttpUrl menerima hostname internal tanpa TLD (mis. http://wa-gateway:8080).",
+      "Test Koneksi memakai endpoint read-only (POST) dan menampilkan badge Gateway OK/gagal + backend/url/mock; tanpa efek samping (tidak mengirim pesan WA).",
+      "Nav 'WA Gateway' di posisi terakhir: route-fix menguji landing app Settings = item topbar pertama (/settings/routing).",
+      "Tanpa kelas Tailwind mentah baru: css:gate PASS dengan md5 identik (566 rule, tanpa update baseline)."
+    ],
+    "notes": [
+      "MES-only: tanpa tombol Sync (jejak SKIPPED di /sync/records/).",
+      "Tanpa jsdom; build `bun --bun run build` (341.80 kB)."
+    ]
+  },
+
+  "h2_1_sales_order": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "scope": "Modul 1 FASE H2. Sync SATU ARAH MES → Odoo: CONFIRMED → enqueue sale.order.create (state Odoo tetap draft). Nomor next_number('SO') dikirim sebagai client_order_ref.",
+    "pages": [
+      "src/pages/sales/OrdersPage.tsx (list + filter state + search server + Export CSV + CTA Order Baru)",
+      "src/pages/sales/OrderFormPage.tsx (/sales/orders/new + /:id/edit — header + editor baris INLINE)",
+      "src/pages/sales/OrderDetailPage.tsx (detail + tombol transisi Confirm/Done/Cancel + Edit/Hapus DRAFT-only)"
+    ],
+    "api_files": [
+      "src/api/real/salesOrders.ts (fetch/create/update/delete/runAction)",
+      "src/api/salesOrders.ts (barrel pickAdapter → MODE.salesOrders='real')",
+      "src/types/sales-order.ts (Row/LineRow/Detail/Input/LineInput/Saved/State — harga & total string Decimal)",
+      "src/lib/sales-order.ts (PURE: validasi, add/remove/update line, lineSubtotal/orderFormTotal, allowedOrderActions, isOrderEditable)"
+    ],
+    "routes": [
+      "/sales/orders (SALES_ROLES)",
+      "/sales/orders/new (SALES_ROLES)",
+      "/sales/orders/:id (SALES_ROLES)",
+      "/sales/orders/:id/edit (SALES_ROLES)"
+    ],
+    "nav": "app BARU `sales` (ikon FileText) → topbar 'Orders'; sales dikeluarkan dari PLACEHOLDER_APPS; ROLE_APPS.admin/owner += sales",
+    "tests_new": 23,
+    "tests_files": [
+      "tests/unit/api/sales-orders.test.ts (11)",
+      "tests/unit/pages/sales-orders.test.ts (12)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (57→58 + salesOrders)",
+      "tests/unit/app/menu-config.test.ts (sales real; placeholder sisa Master)",
+      "tests/unit/app/role-route-audit.test.ts (SALES_ROLES terdaftar)",
+      "tests/unit/pages/invoice-queue.test.ts (Finance & Sales tidak lagi placeholder)"
+    ],
+    "decisions": [
+      "App BARU `sales` sesuai brief H2.1; TIDAK menambah role `sales` baru; SALES_ROLES = ['admin','owner'].",
+      "Tanpa pemilih pajak di form (endpoint daftar pajak belum ada) — gap sengaja (bukan bug).",
+      "Delete = hard delete DRAFT-only (Order tidak punya is_active).",
+      "Transisi mengikuti allowed_actions dari backend.",
+      "Harga/total string dari backend (Decimal → str).",
+      "sales keluar dari PLACEHOLDER_APPS; 3 test meta diperbarui."
+    ],
+    "notes": [
+      "Push otomatis saat CONFIRMED (task erp_sync.push_sale_order); tombol Sync manual tidak ada.",
+      "Tanpa jsdom; tailwind.css tidak disentuh — KOREKSI RETROAKTIF: H2.1 menambah utility `tracking-wide` di OrderDetailPage ⇒ md5 berubah sah."
+    ],
+    "decisions_retroaktif": [
+      "KOREKSI 2026-10-12: klaim 'md5 LOCKED tetap 7e65992b…' adalah nilai BASI. Utility `tracking-wide` di sales/OrderDetailPage.tsx hanya dipicu file era H2.1/H2.2. Nilai yang benar: `211df84a…`/565 rule (lihat blok css_gate)."
+    ]
+  },
+
+  "h2_2_purchase_order": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "scope": "Modul 2 FASE H2: PO + PurchaseOrderLine (greenfield). Sync SATU ARAH MES → Odoo; CONFIRMED → enqueue purchase.order.create (draft). Nomor next_number('PO') → partner_ref (Odoo memakai nomor sendiri P00013).",
+    "pages": [
+      "src/pages/purchase/PurchaseOrderFormPage.tsx (/purchase/orders/new + /:id/edit — header + editor baris INLINE)",
+      "src/pages/purchase/PurchaseOrderDetailPage.tsx (/purchase/orders/:id — detail + tombol transisi + Cek state Odoo read-only)",
+      "src/pages/purchase/PurchaseOrdersPage.tsx (B10 existing, ADITIF): tombol 'Buat PO Baru' → /purchase/orders/new"
+    ],
+    "api_files": [
+      "src/api/real/purchaseOrdersCrud.ts (fetch/create/update/delete/runAction/fetchOdooState)",
+      "src/api/purchaseOrdersCrud.ts (barrel pickAdapter → MODE.purchaseOrdersCrud='real')",
+      "src/types/purchase-order.ts (Row/LineRow/Detail/Input/LineInput/Saved/OdooState — qty & total string)",
+      "src/lib/purchase-order.ts (PURE: validasi, add/remove/update line, poLineSubtotal/poFormTotal, allowedPoActions, isPoEditable, filter state)"
+    ],
+    "routes": [
+      "/purchase/orders/new (PURCHASING_ROLES)",
+      "/purchase/orders/:id (PURCHASING_ROLES)",
+      "/purchase/orders/:id/edit (PURCHASING_ROLES)"
+    ],
+    "nav": "TIDAK ada app baru — memakai app purchase existing (topbar 'Orders' → /purchase/orders B10 yang kini punya tombol 'Buat PO Baru')",
+    "tests_new": 23,
+    "tests_files": [
+      "tests/unit/api/purchase-orders-crud.test.ts (12)",
+      "tests/unit/pages/purchase-orders-crud.test.ts (11)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (58→59 + purchaseOrdersCrud)"
+    ],
+    "decisions": [
+      "Adapter BARU purchaseOrdersCrud (key ke-59) — purchaseOrders (B10) tidak disentuh.",
+      "Halaman form/detail guard PURCHASING_ROLES (= izin tulis API PURCHASING/ADMIN/OWNER).",
+      "Tanpa pemilih pajak (konsisten H2.1).",
+      "'Cek state Odoo' read-only — TIDAK menyimpan ke MES.",
+      "Tombol 'Buat PO Baru' di B10 ditambahkan aditif."
+    ],
+    "notes": [
+      "Tanpa jsdom; query tidak resolve → render uji state loading + label statis.",
+      "KOREKSI RETROAKTIF: H2.2 menambah utility `tracking-wide` di PurchaseOrderDetailPage.tsx ⇒ md5 berubah sah.",
+      "H2.2 selesai ⇒ H2.3 Work Order."
+    ],
+    "decisions_retroaktif": [
+      "KOREKSI 2026-10-12: klaim md5 '7e65992b… TETAP' adalah nilai BASI. Utility `tracking-wide` di PurchaseOrderDetailPage.tsx hanya dipicu H2.1/H2.2. Nilai yang benar: `211df84a…`/565 rule (lihat blok css_gate)."
+    ]
+  },
+
+  "h2_3_work_order": {
+    "status": "done",
+    "completed_at": "2026-10-12",
+    "scope": "Modul 3 FASE H2: Work Order MES (CRUD + split + batch generate). MES-ONLY — probe Odoo 17: mrp.workorder = operasi per mrp.production (production_id required & readonly), dan sale.order.line TIDAK punya field workorder. Karena itu TIDAK ada push/pull; jejak CUD hanya ledger stage WORK_ORDER_PUSH status SKIPPED.",
+    "pages": [
+      "src/pages/production/WorkOrderFormPage.tsx (/production/work-orders/new + /:id/edit — dropdown baris order, kode opsional, qty opsional)",
+      "src/pages/production/WorkOrderDetailPage.tsx (/production/work-orders/:id — detail + tombol aksi + Split + Ubah/Hapus hibrida)",
+      "src/pages/work-orders/WorkOrderListPage.tsx (F13 existing, hanya ADITIF): tombol 'Buat WO Baru'",
+      "src/pages/sales/OrderDetailPage.tsx (H2.1, ADITIF): tombol 'Generate WO' → POST /garmen/orders/<id>/generate-wo/"
+    ],
+    "api_files": [
+      "src/api/real/workOrdersCrud.ts (fetch/create/update/delete/split/runAction/generate)",
+      "src/api/workOrdersCrud.ts (barrel re-export → MODE.workOrdersCrud='real')",
+      "src/types/work-order.ts (ADITIF: State/BundleRow/CrudListRow/CrudRow/CrudDetail/CrudSaved/CrudInput/SplitSaved/GenerateResult)",
+      "src/lib/work-order.ts (PURE: EMPTY_WO_FORM, validasi, woInputFromForm, parseSplitParts/validateSplitParts, allowedWoActions, isWoEditable/isWoSplittable)"
+    ],
+    "routes": [
+      "/production/work-orders (PRODUCTION_ROLES — memakai halaman F13)",
+      "/production/work-orders/new (PRODUCTION_ROLES)",
+      "/production/work-orders/:id (PRODUCTION_ROLES)",
+      "/production/work-orders/:id/edit (PRODUCTION_ROLES)"
+    ],
+    "nav": "app production (existing) topbar += 'Work Order'; route F13 lama /work-orders TETAP hidup",
+    "tests_new": 32,
+    "tests_files": [
+      "tests/unit/api/work-orders-crud.test.ts (17)",
+      "tests/unit/pages/work-orders-crud.test.ts (15)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (59→60 + workOrdersCrud)"
+    ],
+    "notes": [
+      "KOREKSI RETROAKTIF: md5 lama 7e65992b… terbukti hantu. Baseline baru: 211df84a…/565 rule + gate css:gate. H2.3 TIDAK menambah kelas Tailwind (diuji stub).",
+      "Izin: halaman PRODUCTION_ROLES; tulis API = IsAuthenticated tanpa role.",
+      "Nomor WO: next_number('WO') bila code kosong; split pertahankan WO asli sebagai bagian pertama.",
+      "Tidak ada field baru di model WorkOrder.",
+      "Quirk env: `bun --bun run build` (plain gagal di Node 18)."
+    ]
+  },
+
+  "h2_4_bundle": {
+    "status": "done",
+    "completed_at": "2026-10-12",
+    "scope": "Modul 4 FASE H2: Bundle MES (create dari matriks ukuran + update/split/merge/delete). MES-only sebagai OBJEK — ledger stage BARU BUNDLE_PUSH status SKIPPED; pergerakan stok tetap WIP/FG + scrap.",
+    "pages": [
+      "src/pages/production/BundleFormPage.tsx (create dari WO DRAFT + matriks ukuran + bundle_size + SKU + pratinjau; edit + Split + Merge + Hapus)",
+      "src/pages/bundles/BundleListPage.tsx (F13 existing, ADITIF): tombol 'Buat Bundle'"
+    ],
+    "api_files": [
+      "src/api/real/bundlesCrud.ts (fetch/preview/create/update/delete/split/merge)",
+      "src/api/bundlesCrud.ts (barrel re-export → MODE.bundlesCrud='real')",
+      "src/types/bundle.ts (ADITIF: BundleCrudRow/Detail/CreateInput/UpdateInput/PlanRow/PreviewResult/Created/Saved/MergeSaved)",
+      "src/lib/bundle.ts (PURE: EMPTY_BUNDLE_FORM, sizeMatrixFromRows, validasi, validateSplitParts/validateMergeIds, allowed actions, isBundleEditable/isBundleStructurallyEditable)"
+    ],
+    "routes": [
+      "/production/bundles/new (PRODUCTION_ROLES)",
+      "/production/bundles/:id/edit (PRODUCTION_ROLES)"
+    ],
+    "routes_utuh": "Route existing TIDAK diubah: /production/bundles/:id, /bundles, /bundles/:id, /workshop*. Tidak ada menu baru.",
+    "tests_new": 30,
+    "tests_files": [
+      "tests/unit/api/bundles-crud.test.ts (16)",
+      "tests/unit/pages/bundles-crud.test.ts (14)"
+    ],
+    "tests_updated": ["tests/unit/api/_adapter.test.ts (60→61 + bundlesCrud)"],
+    "decisions": [
+      "Delete hibrida: DRAFT tanpa BundleEvent/WIP-FG/scrap → hard; selain itu 409 (state machine tidak punya CANCELLED).",
+      "Split: sum parts = qty sumber; bundle asli = bagian pertama.",
+      "Merge: WO + size + SKU wajib sama.",
+      "Bundle.version SHA-256 tidak diubah; PUT X-Base-Version.",
+      "Izin: halaman PRODUCTION_ROLES; tulis API = IsAuthenticated tanpa role."
+    ],
+    "notes": [
+      "Tidak ada kelas Tailwind baru (css:gate PASS tanpa --update).",
+      "H2.4 selesai ⇒ H2.5 Inventory Adjustment."
+    ]
+  },
+
+  "h2_5_inventory_adjustment": {
+    "status": "done",
+    "completed_at": "2026-10-12",
+    "scope": "Modul 5 FASE H2: Inventory Adjustment. MES TIDAK menyimpan stok (CHANGES-DETAIL §4) — model = LOG/audit; stok di Odoo. Push jalur RESMI stock.quant (inventory_mode=True + action_apply_inventory).",
+    "pages": [
+      "src/pages/inventory/InventoryAdjustmentListPage.tsx (/inventory/adjustments: daftar log + filter + CTA)",
+      "src/pages/inventory/InventoryAdjustmentFormPage.tsx (/inventory/adjust: dropdown produk/lokasi + qty delta + alasan + pratinjau stok Odoo)",
+      "src/pages/inventory/InventoryAdjustmentDetailPage.tsx (/inventory/adjustments/:id: read-only + tombol Commit)"
+    ],
+    "api_files": [
+      "src/api/real/inventoryAdjustments.ts (fetch/create(+commit)/commit/fetchStockQty)",
+      "src/api/inventoryAdjustments.ts (barrel re-export → MODE.inventoryAdjustments='real')",
+      "src/types/inventory-adjustment.ts (Row/Detail/Page/CreateInput/Created/CommitResult/Sync + StockQty)",
+      "src/lib/inventory-adjustment.ts (PURE: validasi, parseQtyDelta, signedDelta, label/chip state, isAdjustmentCommittable)"
+    ],
+    "routes": [
+      "/inventory/adjustments (INVENTORY_ROLES)",
+      "/inventory/adjust (INVENTORY_ROLES)",
+      "/inventory/adjustments/:id (INVENTORY_ROLES)"
+    ],
+    "routes_utuh": "Route existing tidak diubah (products, operations, reporting, config). Tulis API = IsAuthenticated tanpa role; guard UI INVENTORY_ROLES.",
+    "nav": "app inventory (existing) topbar += 'Adjustment' → /inventory/adjustments",
+    "tests_new": 33,
+    "tests_files": [
+      "tests/unit/api/inventory-adjustments.test.ts (19)",
+      "tests/unit/pages/inventory-adjustments.test.ts (14)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (61→62 + inventoryAdjustments)"
+    ],
+    "notes": [
+      "Gate CSS: percobaan pertama +2 rule karena 2 utility baru → diganti utility existing ⇒ PASS tanpa --update.",
+      "MES tidak menyimpan stok: tidak ada tabel/mirror stok baru; stock-qty boleh null.",
+      "Prasyarat Odoo: user API harus punya stock.group_stock_manager (utang teknis `odoo-api-stock-manager-group`).",
+      "H2.5 selesai ⇒ H2.6 Stock Transfer."
+    ]
+  },
+
+  "h2_6_stock_transfer": {
+    "status": "done",
+    "completed_at": "2026-10-12",
+    "scope": "Modul 6 (PENUTUP) FASE H2: Stock Transfer — internal transfer antar 2 lokasi. MES hanya LOG; push jalur stock.picking internal + button_validate(). FASE H2 SELESAI 6/6.",
+    "pages": [
+      "src/pages/inventory/StockTransferListPage.tsx (/inventory/transfers)",
+      "src/pages/inventory/StockTransferFormPage.tsx (/inventory/transfer)",
+      "src/pages/inventory/StockTransferDetailPage.tsx (/inventory/transfers/:id)"
+    ],
+    "api_files": [
+      "src/api/real/stockTransfers.ts (fetch/create(+commit)/commit)",
+      "src/api/stockTransfers.ts (barrel re-export → MODE.stockTransfers='real')",
+      "src/types/stock-transfer.ts (Row/Detail/Page/CreateInput/Created/CommitResult/Sync)",
+      "src/lib/stock-transfer.ts (PURE: validasi, parseTransferQty, routeLabel, label/chip state, isTransferCommittable)"
+    ],
+    "routes": [
+      "/inventory/transfers (INVENTORY_ROLES)",
+      "/inventory/transfer (INVENTORY_ROLES)",
+      "/inventory/transfers/:id (INVENTORY_ROLES)"
+    ],
+    "nav": "app inventory (existing) topbar += 'Transfer' → /inventory/transfers",
+    "tests_new": 29,
+    "tests_files": [
+      "tests/unit/api/stock-transfers.test.ts (15)",
+      "tests/unit/pages/stock-transfers.test.ts (14)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (62→63 + stockTransfers)"
+    ],
+    "notes": [
+      "Catatan gaya: JSON ini SENGAJA tidak memuat token kelas Tailwind mentah (H2.5 pelajaran).",
+      "Snapshot stok asal (qty_before) informatif & tidak memblokir commit.",
+      "FASE H2 SELESAI 6/6."
+    ]
+  },
+
+  "h3_1_customer_invoice": {
+    "status": "done",
+    "completed_at": "2026-10-12",
+    "scope": "Modul 3 dari 6 FASE H3 (Finance): Customer Invoice MANUAL. Backend greenfield + push account.move draft out_invoice. Jalur OTOMATIS I5 (resource=order, harga 0) dan F15 TIDAK diubah.",
+    "pages": [
+      "src/pages/finance/InvoicesPage.tsx (daftar invoice MES + filter + CTA)",
+      "src/pages/finance/InvoiceFormPage.tsx (form baru/edit — header + tabel baris editable)",
+      "src/pages/finance/InvoiceDetailPage.tsx (detail + tombol transisi + Edit/Hapus)",
+      "src/pages/sales/OrderDetailPage.tsx (H2.1 ADITIF): tombol 'Buat Invoice'"
+    ],
+    "api_files": [
+      "src/types/customer-invoice.ts",
+      "src/api/real/customerInvoices.ts",
+      "src/api/customerInvoices.ts (barrel → MODE.customerInvoices='real')",
+      "src/lib/customer-invoice.ts (PURE)"
+    ],
+    "routes": [
+      "/finance/customer-invoices (FINANCE_ROLES)",
+      "/finance/customer-invoices/new (FINANCE_ROLES)",
+      "/finance/customer-invoices/:id (FINANCE_ROLES)",
+      "/finance/customer-invoices/:id/edit (FINANCE_ROLES)",
+      "alias: /finance/invoices/new|:id|:id/edit (FINANCE_ROLES)"
+    ],
+    "routes_utuh": "Tidak ada route lama diubah; /finance/invoices* F15 tetap; menu topbar Finance += Customer Invoices.",
+    "tests_new": 28,
+    "tests_files": [
+      "tests/unit/api/customer-invoices.test.ts (13)",
+      "tests/unit/pages/customer-invoices.test.ts (15)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (64→65 + customerInvoices)"
+    ],
+    "notes": [
+      "Push saat CONFIRMED; SENT = odoo_id terisi. Kegagalan push ≠ state model.",
+      "Satu order boleh >1 invoice (termin/DP); duplicate_warning.",
+      "CSS: percobaan pertama +1 rule (utility grid kolom varian md baru) → diganti span 4 existing ⇒ PASS.",
+      "Endpoint CRUD baru /finance/customer-invoices/ memakai amplop has_more (bukan has_next F15)."
+    ]
+  },
+
+  "h3_2_vendor_bill": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "scope": "Modul 4 dari 6 FASE H3: Vendor Bill MANUAL (greenfield). Push account.move draft in_invoice. Jalur I6 & B10 TIDAK diubah. Tambahan: tombol 'Buat Bill' di detail PO.",
+    "pages": [
+      "src/pages/finance/VendorBillsPage.tsx (daftar + filter + CTA)",
+      "src/pages/finance/VendorBillFormPage.tsx (form baru/edit + prefill dari PO)",
+      "src/pages/finance/VendorBillDetailPage.tsx (detail + tombol transisi + Edit/Hapus)",
+      "src/pages/purchase/PurchaseOrderDetailPage.tsx (H2.2 ADITIF): tombol 'Buat Bill' → /finance/vendor-bills/new?po=<id>"
+    ],
+    "api_files": [
+      "src/types/vendor-bill.ts",
+      "src/api/real/vendorBills.ts",
+      "src/api/vendorBills.ts (barrel → MODE.vendorBills='real')",
+      "src/lib/vendor-bill.ts (PURE)"
+    ],
+    "routes": [
+      "/finance/vendor-bills (FINANCE_ROLES)",
+      "/finance/vendor-bills/new (FINANCE_ROLES)",
+      "/finance/vendor-bills/:id (FINANCE_ROLES)",
+      "/finance/vendor-bills/:id/edit (FINANCE_ROLES)"
+    ],
+    "tests_new": 28,
+    "tests_files": [
+      "tests/unit/api/vendor-bills.test.ts (13)",
+      "tests/unit/pages/vendor-bills.test.ts (15)"
+    ],
+    "tests_updated": ["tests/unit/api/_adapter.test.ts (65→66 + vendorBills)"],
+    "notes": [
+      "Bill tanpa PO diizinkan (biaya jasa); satu PO boleh >1 bill (termin/partial).",
+      "ref best-effort: kosong/duplikat tidak memblokir.",
+      "Ledger: resource vendor_bill + stage VENDOR_BILL (baru).",
+      "CSS: 0 kelas Tailwind baru ⇒ PASS tanpa --update."
+    ]
+  },
+
+  "h3_3_payment": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "scope": "Modul 5 dari 6 FASE H3: Payment (greenfield, satu model dua arah). INBOUND (customer bayar kita, sumber CustomerInvoice) / OUTBOUND (kita bayar vendor, sumber VendorBill). Push account.payment draft. Guard anti-overpay 400. MES TIDAK merekonsiliasi.",
+    "pages": [
+      "src/pages/finance/PaymentsPage.tsx (daftar + filter state + filter arah + CTA)",
+      "src/pages/finance/PaymentFormPage.tsx (form baru/edit — segmented button arah + sumber + jumlah + tanggal + referensi + catatan)",
+      "src/pages/finance/PaymentDetailPage.tsx (detail + badge + tombol transisi + Lihat Dokumen + Edit/Hapus)",
+      "src/pages/finance/InvoiceDetailPage.tsx (H3.1 ADITIF): tombol 'Bayar' → /finance/payments/new?invoice=<id>",
+      "src/pages/finance/VendorBillDetailPage.tsx (H3.2 ADITIF): tombol 'Bayar' → /finance/payments/new?bill=<id>"
+    ],
+    "api_files": [
+      "src/types/payment.ts",
+      "src/api/real/payments.ts",
+      "src/api/payments.ts (barrel → MODE.payments='real')",
+      "src/lib/payment.ts (PURE: validasi, switchPaymentType, activePaymentsTotal, remainingForSource, suggestedAmount)"
+    ],
+    "routes": [
+      "/finance/payments (FINANCE_ROLES)",
+      "/finance/payments/new (FINANCE_ROLES)",
+      "/finance/payments/:id (FINANCE_ROLES)",
+      "/finance/payments/:id/edit (FINANCE_ROLES)"
+    ],
+    "tests_new": 41,
+    "tests_files": [
+      "tests/unit/api/payments.test.ts (14)",
+      "tests/unit/pages/payments.test.ts (19)"
+    ],
+    "tests_updated": ["tests/unit/api/_adapter.test.ts (66→67 + payments)"],
+    "notes": [
+      "Kegagalan push ≠ state model; UI tampilkan state CONFIRMED + badge sync FAILED.",
+      "Jumlah disarankan di klien; backend tetap penentu (guard overpay 400).",
+      "MES tidak update paid_amount/payment_state invoice/bill.",
+      "Ledger: resource payment + stage PAYMENT (baru).",
+      "CSS: percobaan awal 2 utility gap ber-sumbu terpisah +2 rule → diganti gap existing ⇒ PASS."
+    ]
+  },
+
+  "h3_4_journal_entry": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "scope": "Modul 6 (TERAKHIR) FASE H3: Journal Entry Manual (greenfield, double-entry). Push account.move move_type=entry DRAFT. action_post TIDAK pernah dipanggil. FASE H3 SELESAI 6/6.",
+    "files": [
+      "src/types/journal-entry.ts + src/types/master-account.ts + src/types/master-journal.ts (BARU)",
+      "src/api/real/journalEntries.ts + src/api/journalEntries.ts (barrel) + src/api/real/masterAccounts.ts + src/api/masterAccounts.ts + src/api/real/masterJournals.ts + src/api/masterJournals.ts (BARU)",
+      "src/lib/journal-entry.ts (PURE: form values/errors, balance, XOR, validasi, konversi form↔API)",
+      "src/pages/finance/JournalEntriesPage.tsx + JournalEntryFormPage.tsx + JournalEntryDetailPage.tsx (BARU)",
+      "src/api/_adapter.ts (MODE += journalEntries, masterAccounts, masterJournals; 67→70 key)"
+    ],
+    "routes": [
+      "/finance/journal-entries (FINANCE_ROLES)",
+      "/finance/journal-entries/new (FINANCE_ROLES)",
+      "/finance/journal-entries/:id (FINANCE_ROLES)",
+      "/finance/journal-entries/:id/edit (FINANCE_ROLES)"
+    ],
+    "routes_utuh": "Tidak ada route lama diubah; menu topbar Finance += 'Journal Entries'.",
+    "tests_new": 46,
+    "tests_files": [
+      "tests/unit/api/journal-entries.test.ts (14)",
+      "tests/unit/api/master-accounts-journals.test.ts (6)",
+      "tests/unit/lib/journal-entry.test.ts (18)",
+      "tests/unit/pages/journal-entries.test.ts (8)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/_adapter.test.ts (67→70 + journalEntries/masterAccounts/masterJournals)"
+    ],
+    "notes": [
+      "MODE kini 70 key, semua real (tanpa dummy).",
+      "Form pakai 3 master read-only (journal type=general, akun active, partner).",
+      "Balance di klien sebagai bantuan; backend tetap penentu (400).",
+      "MES TIDAK mem-posting; akuntan Odoo yang posting & rekonsiliasi.",
+      "Ledger: stage JOURNAL_ENTRY + resource journal_entry (baru)."
+    ]
+  },
+
+  "fix_master_403_credentials": {
+    "status": "fixed",
+    "completed_at": "2026-10-13",
+    "reported": "Halaman /inventory/* selalu 403 untuk GET /api/v1/master/* (uoms, products, taxes, locations, partners, work-centers, production-lines) lewat React Query, padahal fetch() manual di console 200.",
+    "root_cause": "src/integrations/api-client.ts hanya kirim credentials: 'include' bila prefix path terdaftar di allowlist AUTH_SCOPED_GET_PREFIXES; /master/ (dan /routing/) TIDAK terdaftar → browser LINTAS ORIGIN (5173 → 8000) tidak kirim cookie sessionid → backend IsAuthenticated balas 403.",
+    "evidence": [
+      "Probe live di container django: anon GET /api/v1/master/uoms/ → 403; dengan cookie sesi user zaimrofii → 200 + header Access-Control-Allow-Origin: http://localhost:5173 & Access-Control-Allow-Credentials: true.",
+      "Unit RED sebelum fix: needsCredentials('GET', '/master/uoms/') = false; isAuthScopedGetPath('/master/products/') = false.",
+      "Manual di browser belum diuji; bukti setara: probe HTTP live + unit test."
+    ],
+    "fix": [
+      "Gerbang DIBALIK (default aman): PUBLIC_GET_PREFIXES (metadata, chatter, devices, garmen/bundles, garmen/order-lines) adalah SATU-SATUNYA pengecualian.",
+      "normalizeApiPath() BARU: pencocokan prefix setelah membuang prefix /api/v1.",
+      "AUTH_SCOPED_GET_PREFIXES kini = inventaris endpoint sesi (dokumentasi + uji drift) + sudah memuat /master/ + /routing/.",
+      "TIDAK ada perubahan backend; backend hanya ditambah test kontrak."
+    ],
+    "files": [
+      "src/integrations/api-client.ts (PUBLIC_GET_PREFIXES, normalizeApiPath, isAuthScopedGetPath)",
+      "tests/unit/integrations/api-client.test.ts (+5 test)"
+    ],
+    "backend_tests": "django_app/tests/integration/test_master_cors_credentials.py (BARU, 4 test)",
+    "gates": {
+      "typecheck": "0 error",
+      "lint": "0 error, 1 warning lama — 511 file",
+      "test": "1231 passed | 74 skipped (1305 test, 117 file) — 0 failed",
+      "build": "hijau — chunk terbesar 334.96 kB / gzip 98.09 kB",
+      "css_gate": "PASS — md5 211df84a… & 565 rule tidak berubah",
+      "backend_suite": "2050 passed / 7 failed (pre-existing) / 1 skipped"
+    },
+    "impact": "Memperbaiki 403 di semua halaman yang memuat master lewat React Query + /routing/graph/. /garmen/bundles/ & /garmen/order-lines/ (AllowAny) tetap tanpa cookie."
+  },
+
+  "h4_1_report_sales": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "scope": "Modul 1 dari 8 FASE H4 (Laporan & Analytics) — READ-ONLY: laporan penjualan agregat dari Order/OrderLine (akrual) + CustomerInvoice (piutang) + Payment INBOUND (kas masuk). Tanpa CRUD, tanpa push sync, tanpa migration baru, tanpa Odoo live.",
+    "endpoint": "GET /api/v1/reports/sales/ (IsAuthenticated; anonim 403) — cache backend 300 dtk + escape hatch ?_nocache=1",
+    "filters": "?period=YYYY-MM (default bulan berjalan) > ?date_from/?date_to > ?from/?to; ?customer_id=, ?product_id=, ?order_type=EXPORT|CUSTOM|BRAND, ?group_by=period|customer|product, ?_nocache=1; nilai tak dikenal → 400",
+    "response": "{rows[], summary{total_qty,total_amount,count_orders,count_lines,invoiced_amount,invoice_count,paid_amount,payment_count,currency}, group_by, filters{echo + resolved_from/resolved_to}, period{from,to}, generated_at, cached}",
+    "files": [
+      "src/types/report-sales.ts (BARU: SalesGroupBy, SalesReportRow/Summary/Filters/Response)",
+      "src/api/real/reportSales.ts (BARU: REPORTS_SALES_PATH, buildReportsSalesPath, readSalesReport, fetchSalesReport)",
+      "src/api/reports.ts (EXTEND barrel: fetchSalesReport + re-export tipe/konstanta)",
+      "src/api/_adapter.ts (MODE += reportSales: 'real'; 70→71 key)",
+      "src/pages/reports/SalesReportPage.tsx (BARU)"
+    ],
+    "page": [
+      "filter bar: Input type=month (periode), Select customer (fetchPartners is_customer=true), Select produk (fetchProducts active=true), Select order_type, Select group_by",
+      "KPI cards: Nilai Penjualan, Total Qty, Piutang (Invoice), Kas Masuk (Payment)",
+      "tabel DenseTable (Grup/Order/Baris/Qty/Nilai IDR) + catatan rentang & penanda 'dari cache backend'",
+      "tombol 'Muat Ulang' = ?_nocache=1 (force refresh) · tombol 'Export' DISABLED + tooltip H4.8"
+    ],
+    "routes": ["/reports/sales (REPORTS_ROLES — BARU)"],
+    "routes_utuh": "Route lama tidak diubah; topbar Reports += item 'Sales'. Tidak ada ReportsPage lama (index /reports = AppIndexRedirect) ⇒ tanpa duplikasi.",
+    "tests": {
+      "frontend": "16 test (tests/unit/api/sales-report.test.ts 8 + tests/unit/pages/sales-report.test.ts 8) — semua hijau",
+      "backend": "20 test (django_app/tests/integration/test_reports_sales.py)"
+    },
+    "read_only_bukti": "Halaman tidak memakai client.post/client.request sama sekali (diuji); tidak ada mutation route; export ditunda ke H4.8.",
+    "decisions": [
+      "Basis periode = Order.created_at (accrual). Alternatif invoice_date bisa jadi ?basis=invoice pada sprint terpisah.",
+      "Prioritas param: ?period > ?date_from/?date_to > ?from/?to (alias family report), default bulan berjalan.",
+      "invoiced_amount = Σ CustomerInvoiceLine.line_total (sebelum pajak, H3.1), invoice CANCELLED dibuang = PIUTANG, bukan kas.",
+      "paid_amount = Σ Payment.amount INBOUND state SENT/DONE per payment_date (BUKAN CustomerInvoice.amount_total); filter product lewat subquery invoice sumber (tanpa duplikasi).",
+      "OrderLine TIDAK punya line_total → nilai uang dihitung di query (qty × price_unit); TIDAK ada field/migration baru.",
+      "Cache 300 dtk key `reports:sales:<sha1(filter efektif)>` + ?_nocache=1 (tidak baca dan tidak tulis cache).",
+      "Export Excel/PDF ditunda ke H4.8 (openpyxl/reportlab belum ada; H4.1 read-only)."
+    ],
+    "gates": {
+      "typecheck": "0 error",
+      "lint": "0 error, 1 warning lama — 516 file",
+      "test": "1247 passed | 74 skipped (1321 test, 119 file) — 0 failed",
+      "build": "hijau — chunk terbesar 335.37 kB / gzip 98.17 kB",
+      "css_gate": "PASS setelah --update (565→566 rule; md5 d51e4a31…)",
+      "backend_suite": "2070 passed / 7 failed (pre-existing) / 1 skipped — 2050 + 20 test H4.1"
+    },
+    "non_breaking": "B13/B16/B18–B21 + purchase/inventory reporting + H2.1/H3.1 tetap hijau (107 test targeted + suite penuh sama)."
+  },
+
+  "h4_2_report_purchases": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "scope": "Modul 2 dari 8 FASE H4 (Laporan & Analytics) — READ-ONLY: laporan pembelian agregat dari PurchaseOrder/PurchaseOrderLine (akrual) + VendorBill (utang) + Payment OUTBOUND (kas keluar). Tanpa CRUD, tanpa push sync, tanpa migration baru, tanpa Odoo live.",
+    "endpoint": "GET /api/v1/reports/purchases/ (IsAuthenticated; anonim 403) — cache backend 300 dtk + escape hatch ?_nocache=1",
+    "filters": "?period=YYYY-MM (default bulan berjalan) > ?date_from/?date_to > ?from/?to; ?vendor_id=, ?product_id=, ?status=DRAFT|CONFIRMED|DONE|CANCELLED, ?group_by=period|vendor|product, ?_nocache=1; nilai tak dikenal → 400",
+    "response": "{rows[], summary{total_qty,total_amount,count_purchases,count_lines,billed_amount,bill_count,paid_amount,payment_count,currency}, group_by, filters{echo + resolved_from/resolved_to}, period{from,to}, generated_at, cached}",
+    "files": [
+      "src/types/report-purchases.ts (BARU: PurchasesGroupBy/PurchasesStatus, PurchasesReportRow/Summary/Filters/Response)",
+      "src/api/real/reportPurchases.ts (BARU: REPORTS_PURCHASES_PATH, buildReportsPurchasesPath, readPurchasesReport, fetchPurchasesReport)",
+      "src/api/reports.ts (EXTEND barrel: fetchPurchasesReport + re-export tipe/konstanta)",
+      "src/api/_adapter.ts (MODE += reportPurchases: real; 71→72 key)",
+      "src/pages/reports/PurchasesReportPage.tsx (BARU)"
+    ],
+    "page": [
+      "filter bar: Input type=month (periode), Select vendor (fetchPartners is_vendor=true), Select produk (fetchProducts active=true), Select status PO, Select group_by",
+      "KPI cards: Nilai Pembelian, Total Qty, Utang (Vendor Bill), Kas Keluar (Payment)",
+      "tabel DenseTable (Grup/PO/Baris/Qty/Nilai IDR) + catatan rentang & penanda (dari cache backend)",
+      "tombol Muat Ulang = ?_nocache=1 (force refresh) · tombol Export DISABLED + tooltip H4.8"
+    ],
+    "routes": ["/reports/purchases (REPORTS_ROLES — BARU)"],
+    "routes_utuh": "Route lama tidak diubah; topbar Reports += item Purchases. Halaman /reports/sales (H4.1) tetap.",
+    "tests": {
+      "frontend": "16 test (tests/unit/api/purchases-report.test.ts 8 + tests/unit/pages/purchases-report.test.ts 8) — semua hijau",
+      "backend": "20 test (django_app/tests/integration/test_reports_purchases.py)"
+    },
+    "test_registry_update": "tests/unit/api/_adapter.test.ts di-update: key real 71→72 + REAL_KEYS += reportPurchases (gate canonical MODE, bukan regresi).",
+    "read_only_bukti": "Halaman tidak memakai client.post/client.request sama sekali (diuji); tidak ada mutation route; export ditunda ke H4.8.",
+    "decisions": [
+      "Basis periode = PurchaseOrder.created_at (accrual, konsisten H4.1 Order.created_at). PO MES tidak punya purchase_date; expected_date = rencana kedatangan, bukan tanggal transaksi.",
+      "?status memakai SEMUA state PO MES (DRAFT|CONFIRMED|DONE|CANCELLED; case-insensitive); DRAFT tetap dihitung sebagai pipeline. PO CANCELLED dibuang dari agregat.",
+      "billed_amount = Σ VendorBillLine.line_total (sebelum pajak, H3.2), bill CANCELLED dibuang = UTANG, bukan kas.",
+      "paid_amount = Σ Payment.amount OUTBOUND state SENT/DONE per payment_date (BUKAN VendorBill.amount_total); filter product lewat subquery bill sumber (tanpa duplikasi).",
+      "total_qty baris = float 2 desimal (PurchaseOrderLine.qty Decimal 18,2 boleh pecahan, mis. benang 0.3) — beda dari H4.1 yang int.",
+      "PurchaseOrderLine TIDAK punya line_total → nilai uang dihitung di query (qty x price_unit); TIDAK ada field/migration baru.",
+      "Cache 300 dtk key reports:purchases:<sha1(filter efektif)> + ?_nocache=1 (tidak baca dan tidak tulis cache).",
+      "Export Excel/PDF ditunda ke H4.8 (openpyxl/reportlab belum ada; H4.2 read-only)."
+    ],
+    "gates": {
+      "typecheck": "0 error",
+      "lint": "0 error, 1 warning lama — 521 file",
+      "test": "1263 passed | 74 skipped (1337 test) — 0 failed",
+      "build": "hijau — chunk terbesar 335.80 kB / gzip 98.23 kB",
+      "css_gate": "PASS tanpa --update (566 rule; md5 d51e4a31… sama dengan baseline H4.1)",
+      "backend_suite": "2091 passed / 6 failed (7 daftar pre-existing; flake trace_bridge LULUS) / 1 skipped — 2070 + 20 test H4.2"
+    },
+    "non_breaking": "B11 (/purchase/reporting/) + H4.1 (/reports/sales/) + H2.2/H3.2/H3.3 + reports lain tetap hijau (155 test targeted)."
+  },
+
+  "h4_3_report_stock": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "scope": "Modul 3 dari 8 FASE H4 (Laporan & Analytics) — READ-ONLY: laporan stok SNAPSHOT dari Odoo stock.quant LIVE lewat jalur I7 (bukan proxy DB B30). Tanpa CRUD, tanpa tabel stok (CHANGES-DETAIL §4), tanpa migration, tanpa Odoo write.",
+    "endpoint": "GET /api/v1/reports/stock/ (IsAuthenticated; anonim 403) — cache backend 300 dtk + escape hatch ?_nocache=1",
+    "filters": "?location_id= (pk MES; wajib usage internal + odoo_id, else 400), ?product_id= (pk MES), ?search= (kode/nama produk), ?group_by=product|location (default product), ?only_nonzero=1, ?_nocache=1; TANPA ?period/?date_from/?date_to (snapshot); nilai tak dikenal → 400",
+    "response": "{rows[], summary{total_qty,reserved_qty,available_qty,product_count,location_count,quant_count,unmapped_product_count,unmapped_qty}, group_by, filters{echo + source}, generated_at, cached, source:odoo}",
+    "files": [
+      "src/types/report-stock.ts (BARU: StockGroupBy, StockReportRow/Summary/Filters/Response)",
+      "src/api/real/reportStock.ts (BARU: REPORTS_STOCK_PATH, buildReportsStockPath, readStockReport, fetchStockReport)",
+      "src/api/reports.ts (EXTEND barrel: fetchStockReport + re-export tipe/konstanta)",
+      "src/api/_adapter.ts (MODE += reportStock: real; 72→73 key)",
+      "src/pages/reports/StockReportPage.tsx (BARU)"
+    ],
+    "page": [
+      "filter bar: Select lokasi (fetchLocations usage internal), Select produk, Input cari produk, Select group_by, Checkbox sembunyikan qty 0",
+      "KPI cards: Total Qty, Reserved, Available, Cakupan (produk/lokasi)",
+      "tabel DenseTable dengan kolom menyesuaikan group_by (produk: UoM + jumlah lokasi; lokasi: jumlah produk) + qty/reserved/available",
+      "peringatan transparan bila ada produk Odoo belum ter-map ke master MES (unmapped_product_count/unmapped_qty)",
+      "tombol Muat Ulang = ?_nocache=1 (force refresh) · tombol Export DISABLED + tooltip H4.8"
+    ],
+    "routes": ["/reports/stock (REPORTS_ROLES — BARU)"],
+    "routes_utuh": "Route lama tidak diubah; topbar Reports += item Stock. Halaman /reports/sales (H4.1) dan /reports/purchases (H4.2) tetap.",
+    "tests": {
+      "frontend": "16 test (tests/unit/api/stock-report.test.ts 8 + tests/unit/pages/stock-report.test.ts 8) — semua hijau",
+      "backend": "18 test (django_app/tests/integration/test_reports_stock.py)"
+    },
+    "test_registry_update": "tests/unit/api/_adapter.test.ts di-update: key real 72→73 + REAL_KEYS += reportStock (gate canonical MODE, bukan regresi).",
+    "read_only_bukti": "Halaman tidak memakai client.post/client.request sama sekali (diuji); tidak ada mutation route; export ditunda ke H4.8.",
+    "decisions": [
+      "Stok = SNAPSHOT (bukan time-series) → TANPA filter rentang, beda dari H4.1/H4.2.",
+      "Sumber = Odoo stock.quant LIVE via I7 (fetch_internal_locations + fetch_stock_quants child_of=True = 2 RPC), BUKAN proxy DB B30 — MES tidak menyimpan stok (§4).",
+      "?location_id/?product_id = pk MES (dropdown master), di-map ke odoo_id saat query Odoo.",
+      "available_qty = quantity dikurangi reserved_quantity (dihitung backend karena I7 tidak mengambil available_quantity).",
+      "Produk Odoo non-master tetap terlihat lewat summary.unmapped_product_count/unmapped_qty (transparansi) supaya total bisa direkonsiliasi.",
+      "Cache 300 dtk key reports:stock:<sha1(filter efektif)> + ?_nocache=1; cache hit = 0 RPC (jangan flood Odoo).",
+      "Fail-safe: ERP_ADAPTER null / Odoo down / tanpa lokasi internal → HTTP 200 rows=[] summary nol + warning log (pola I7/B11).",
+      "summary TANPA currency — H4.3 fokus quantity (fisik); nilai Rupiah / COGS = H4.4.",
+      "Export Excel/PDF ditunda ke H4.8 (openpyxl/reportlab belum ada; H4.3 read-only).",
+      "Tooling: workaround (a) Windows-temp → WSL python dipakai; retry (c) Remote-WSL sesi berikutnya."
+    ],
+    "gates": {
+      "typecheck": "0 error",
+      "lint": "0 error, 1 warning lama — 526 file",
+      "test": "1279 passed | 74 skipped (1353 test) — 0 failed",
+      "build": "hijau — chunk terbesar 336.18 kB / gzip 98.30 kB",
+      "css_gate": "PASS tanpa --update (566 rule; md5 d51e4a31… identik dengan baseline)",
+      "backend_suite": "2109 passed / 6 failed (7 daftar pre-existing; flake trace_bridge LULUS) / 1 skipped — 2091 + 18 test H4.3"
+    },
+    "non_breaking": "I7 + B30 + /inventory/stock-qty/ + H4.1 + H4.2 tetap hijau (222 test targeted)."
+  },
+
+  "h4_4_report_cogs": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "scope": "Modul 4 dari 8 FASE H4 (Laporan & Analytics) — READ-ONLY: laporan HPP/laba kotor (omzet − HPP simplified qty x Product.cost_price). Tanpa CRUD, tanpa push sync, tanpa migration baru, tanpa Odoo live.",
+    "endpoint": "GET /api/v1/reports/cogs/ (IsAuthenticated; anonim 403) — cache backend 300 dtk + escape hatch ?_nocache=1",
+    "filters": "?period=YYYY-MM (default bulan berjalan) > ?date_from/?date_to > ?from/?to; ?customer_id=, ?product_id=, ?order_type=EXPORT|CUSTOM|BRAND, ?group_by=period|customer|product, ?_nocache=1; nilai tak dikenal → 400",
+    "response": "{rows[], summary{total_sales,total_cogs,total_gross_profit,gross_margin_pct,order_count,line_count,qty_total,rows_with_missing_cost,currency}, group_by, filters{echo + resolved_from/resolved_to}, period{from,to}, generated_at, cached}",
+    "files": [
+      "src/types/report-cogs.ts (BARU: CogsGroupBy/CogsOrderType/CogsMissingCostReason, CogsReportRow/Summary/Filters/Response)",
+      "src/api/real/reportCogs.ts (BARU: REPORTS_COGS_PATH, buildReportsCogsPath, readCogsReport, readMissingCostReason, fetchCogsReport)",
+      "src/api/reports.ts (EXTEND barrel: fetchCogsReport + re-export tipe/konstanta)",
+      "src/api/_adapter.ts (MODE += reportCogs: real; 73→74 key)",
+      "src/pages/reports/CogsReportPage.tsx (BARU)"
+    ],
+    "page": [
+      "filter bar: Input type=month (periode), Select customer (fetchPartners is_customer=true), Select produk (fetchProducts active=true), Select order_type, Select group_by",
+      "KPI cards: Omzet, HPP (Simplified), Laba Kotor, Margin Kotor (%)",
+      "peringatan transparan bila ada baris tanpa HPP (rows_with_missing_cost) — COGS dihitung 0 dan tidak dikarang",
+      "tabel DenseTable (Grup/Order/Omzet/HPP/Laba Kotor/Margin) + penanda per baris (produk belum sinkron) atau (HPP belum diisi)",
+      "tombol Muat Ulang = ?_nocache=1 (force refresh) · tombol Export DISABLED + tooltip H4.8"
+    ],
+    "routes": ["/reports/cogs (REPORTS_ROLES — BARU)"],
+    "routes_utuh": "Route lama tidak diubah; topbar Reports += item HPP (COGS). Halaman /reports/sales (H4.1), /reports/purchases (H4.2), dan /reports/stock (H4.3) tetap.",
+    "tests": {
+      "frontend": "16 test (tests/unit/api/cogs-report.test.ts 8 + tests/unit/pages/cogs-report.test.ts 8) — semua hijau",
+      "backend": "18 test (django_app/tests/integration/test_reports_cogs.py)"
+    },
+    "test_registry_update": "tests/unit/api/_adapter.test.ts di-update: key real 73→74 + REAL_KEYS += reportCogs (gate canonical MODE, bukan regresi).",
+    "read_only_bukti": "Halaman tidak memakai client.post/client.request sama sekali (diuji); tidak ada mutation route; export ditunda ke H4.8; master harga Product.cost_price tidak disentuh.",
+    "decisions": [
+      "HPP simplified: cogs = qty x Product.cost_price; biaya tenaga kerja + overhead = sprint terpisah.",
+      "omzet = qty x OrderLine.price_unit (selalu ada); gross_profit = omzet − HPP; margin % = gross_profit / omzet x 100 (omzet 0 → 0, tanpa divide-by-zero).",
+      "cost_price = 0 atau product NULL → HPP 0 (tidak difabrikasi) + flag has_missing_cost/missing_cost_reason (no_product menang atas no_cost).",
+      "Basis periode = Order.created_at (accrual, konsisten H4.1); order CANCELLED dibuang.",
+      "currency = IDR (laporan uang), beda dari H4.3 (quantity) yang sengaja tanpa currency.",
+      "Cache 300 dtk key reports:cogs:<sha1(filter efektif)> + ?_nocache=1; cache hit = 0 query DB (diuji di backend).",
+      "Export Excel/PDF ditunda ke H4.8 (openpyxl/reportlab belum ada; H4.4 read-only).",
+      "Tooling: workaround (a) Windows-temp → WSL python dipakai; retry (c) Remote-WSL sesi berikutnya."
+    ],
+    "gates": {
+      "typecheck": "0 error",
+      "lint": "0 error, 1 warning lama — 531 file",
+      "test": "1295 passed | 74 skipped (1369 test) — 0 failed",
+      "build": "hijau — chunk terbesar 336.54 kB / gzip 98.35 kB",
+      "css_gate": "PASS tanpa --update (566 rule; md5 d51e4a31… identik dengan baseline)",
+      "backend_suite": "2126 passed / 7 failed (daftar pre-existing LENGKAP; flake trace_bridge FAILED run ini) / 1 skipped — 2109 + 18 test H4.4"
+    },
+    "non_breaking": "H4.1 + H4.2 + H4.3 + H3.5 (Product.cost_price) + H2.2 auto-fill + B11 + B30 + test_perf_queries tetap hijau (163 test targeted)."
+  },
+
+  "h4_5_report_pnl": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "scope": "Modul 5 dari 8 FASE H4 (Laporan & Analytics) — READ-ONLY: laporan laba-rugi (revenue − HPP simplified − opex jurnal H3.4). Tanpa CRUD, tanpa push sync, tanpa migration baru, tanpa Odoo live.",
+    "endpoint": "GET /api/v1/reports/pnl/ (IsAuthenticated; anonim 403) — cache backend 300 dtk + escape hatch ?_nocache=1",
+    "filters": "?period=YYYY-MM (default bulan berjalan) > ?date_from/?date_to > ?from/?to; ?group_by=period|quarter (bucket YYYY-MM / YYYY-Qn), ?_nocache=1; TANPA ?customer_id/?product_id (PnL = agregat bisnis); nilai tak dikenal → 400",
+    "response": "{rows[], summary{revenue,cogs,gross_profit,gross_margin_pct,opex,net_profit,net_margin_pct,opex_source,opex_account_types,opex_states,order_count,line_count,rows_with_missing_cost,currency}, group_by, filters{echo + resolved_from/resolved_to}, period{from,to}, generated_at, cached}",
+    "files": [
+      "src/types/report-pnl.ts (BARU: PnlGroupBy, PnlOpexSource, PnlMissingCostReason, PnlReportRow/Summary/Filters/Response)",
+      "src/api/real/reportPnl.ts (BARU: REPORTS_PNL_PATH, buildReportsPnlPath, readPnlReport, readPnlMissingReason, readStrList, fetchPnlReport)",
+      "src/api/reports.ts (EXTEND barrel: fetchPnlReport + re-export tipe/konstanta)",
+      "src/api/_adapter.ts (MODE += reportPnl: real; 74→75 key)",
+      "src/pages/reports/PnlReportPage.tsx (BARU)"
+    ],
+    "page": [
+      "filter bar: Input type=month (periode) + Select group_by (Bulan/Kuartal)",
+      "KPI cards: Revenue, HPP (Simplified), Laba Kotor, Margin Kotor, Opex (Jurnal), Laba Bersih, Margin Bersih",
+      "peringatan opex_source = unavailable (chart of accounts expense belum ada → opex n/a, laba bersih = laba kotor) + rows_with_missing_cost",
+      "tabel DenseTable (Periode/Revenue/HPP/Laba Kotor/Opex/Laba Bersih/Margin) + penanda per baris (produk belum sinkron) atau (HPP belum diisi)",
+      "tombol Muat Ulang = ?_nocache=1 (force refresh) · tombol Export DISABLED + tooltip H4.8"
+    ],
+    "routes": ["/reports/pnl (REPORTS_ROLES — BARU)"],
+    "routes_utuh": "Route lama tidak diubah; topbar Reports += item Laba-Rugi. Halaman /reports/sales, /reports/purchases, /reports/stock, dan /reports/cogs tetap.",
+    "tests": {
+      "frontend": "16 test (tests/unit/api/pnl-report.test.ts 9 + tests/unit/pages/pnl-report.test.ts 7) — semua hijau",
+      "backend": "18 test (django_app/tests/integration/test_reports_pnl.py)"
+    },
+    "test_registry_update": "tests/unit/api/_adapter.test.ts di-update: key real 74→75 + REAL_KEYS += reportPnl (gate canonical MODE, bukan regresi).",
+    "read_only_bukti": "Halaman tidak memakai client.post/client.request sama sekali (diuji); tidak ada mutation route; export ditunda ke H4.8; jurnal H3.4 tidak disentuh.",
+    "decisions": [
+      "Rantai: revenue − HPP = laba kotor; laba kotor − opex = laba bersih; margin % = laba / revenue x 100 (revenue 0 → 0, tanpa divide-by-zero).",
+      "opex = Sigma(debit − credit) jurnal expense H3.4, state CONFIRMED|SENT|DONE; kredit mengurangi opex.",
+      "expense_direct_cost (Cost of Revenue) ikut dihitung di opex sesuai keputusan; tidak double-count dengan HPP H4.4 (sumber berbeda) — bisa diaudit lewat opex_account_types.",
+      "opex_source 'unavailable' → opex null + net = gross + warning di UI; bukan 0 yang menyesatkan.",
+      "group_by=period|quarter; baris = union bucket penjualan dan bucket beban supaya beban tanpa penjualan tetap tampil (Sigma baris = summary).",
+      "TANPA filter customer/produk (agregat bisnis); basis Order.created_at (accrual); order CANCELLED dibuang.",
+      "Cache 300 dtk key reports:pnl:<sha1(filter efektif)> + ?_nocache=1; cache hit = 0 query DB (diuji di backend).",
+      "Export Excel/PDF ditunda ke H4.8 (openpyxl/reportlab belum ada; H4.5 read-only).",
+      "Tooling: workaround (a) Windows-temp → WSL python dipakai; retry (c) Remote-WSL sesi berikutnya."
+    ],
+    "gates": {
+      "typecheck": "0 error",
+      "lint": "0 error, 1 warning lama — 536 file",
+      "test": "1311 passed | 74 skipped (1385 test) — 0 failed",
+      "build": "hijau — chunk terbesar 336.90 kB / gzip 98.42 kB",
+      "css_gate": "PASS tanpa --update (566 rule; md5 d51e4a31… identik dengan baseline)",
+      "backend_suite": "2144 passed / 7 failed (daftar pre-existing LENGKAP) / 1 skipped — 2126 + 18 test H4.5"
+    },
+    "non_breaking": "H4.1 + H4.2 + H4.3 + H4.4 + H3.4 (JournalEntry) + H3.5 + H2.2 + B11 + B30 tetap hijau (193 test targeted)."
+  },
+
+  "h4_6_report_production": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "scope": "Modul 6 dari 8 FASE H4 (Laporan & Analytics) — READ-ONLY: laporan produksi (output, scrap, efisiensi, OTD) dengan dimensi PERIODE = superset B13/B16/B18-B21. Tanpa CRUD, tanpa push sync, tanpa migration baru, tanpa Odoo live.",
+    "endpoint": "GET /api/v1/reports/production/ (IsAuthenticated; anonim 403) — cache backend 300 dtk + escape hatch ?_nocache=1",
+    "filters": "?period=YYYY-MM (default bulan berjalan) > ?date_from/?date_to > ?from/?to; ?group_by=period|work_center|line, ?work_center_id=/?line_id= (pk MES), ?_nocache=1; nilai tak dikenal → 400",
+    "basis": "DUA sumber waktu (diekspos di filters.basis): output/efisiensi/OTD = BundleEvent.ts (realisasi); scrap = ScrapAccumulator.created_at (tidak ada event scrap)",
+    "response": "{rows[], summary{total_output_pcs,total_scrap_pcs,total_rework_pcs,total_end_loss_pcs,scrap_pct,avg_efficiency_pct,otd_pct,total_bundles,total_work_orders}, group_by, filters{echo + basis + resolved_from/resolved_to}, period{from,to}, generated_at, cached}",
+    "files": [
+      "src/types/report-production.ts (BARU: ProductionGroupBy, ProductionReportRow/Summary/Filters/Response)",
+      "src/api/real/reportProduction.ts (BARU: REPORTS_PRODUCTION_PATH, buildReportsProductionPath, readProductionReport, readStrRecord, fetchProductionReport)",
+      "src/api/reports.ts (EXTEND barrel: fetchProductionReport + re-export tipe/konstanta)",
+      "src/api/_adapter.ts (MODE += reportProduction: real; 75→76 key)",
+      "src/pages/reports/ProductionReportPage.tsx (BARU)"
+    ],
+    "page": [
+      "filter bar: Input type=month (periode), Select group_by (Bulan/Work Center/Line), Select work center + Select line (master MES)",
+      "KPI cards: Output (pcs + bundle/WO), Scrap (pcs + %), Rework / End-Loss (terpisah), Efisiensi Rata-rata, OTD (order-level), Cakupan",
+      "tabel DenseTable (Periode/Grup, Output, Scrap, Scrap %, Efisiensi %, OTD, Bundle) — OTD '-' untuk baris work center/line",
+      "catatan basis waktu per metrik dari filters.basis (transparansi) + penanda cache",
+      "tombol Muat Ulang = ?_nocache=1 (force refresh) · tombol Export DISABLED + tooltip H4.8"
+    ],
+    "routes": ["/reports/production (REPORTS_ROLES — BARU)"],
+    "routes_utuh": "Route lama tidak diubah; topbar Reports += item Produksi. Halaman /reports/sales, purchases, stock, cogs, pnl tetap.",
+    "tests": {
+      "frontend": "16 test (tests/unit/api/production-report.test.ts 9 + tests/unit/pages/production-report.test.ts 7) — semua hijau",
+      "backend": "20 test (django_app/tests/integration/test_reports_production.py)"
+    },
+    "test_registry_update": "tests/unit/api/_adapter.test.ts di-update: key real 75→76 + REAL_KEYS += reportProduction (gate canonical MODE, bukan regresi).",
+    "read_only_bukti": "Halaman tidak memakai client.post/client.request sama sekali (diuji); tidak ada mutation route; export ditunda ke H4.8; B13/B16/B18-B21 tidak disentuh.",
+    "decisions": [
+      "Basis ganda: output/efisiensi/OTD = BundleEvent.ts; scrap = ScrapAccumulator.created_at (tidak ada event scrap).",
+      "rework_qty & end_loss_qty terpisah dari scrap_pcs (3 konsep beda: rusak permanen / diperbaiki / sisa bahan).",
+      "otd_pct = metrik order-level (pola B20) → null untuk group_by=work_center|line.",
+      "H4.6 = kuantitas (pcs) + persentase → TANPA currency (pola H4.3).",
+      "H4.6 = superset B13/B16/B18-B21 (dimensi periode); endpoint existing tidak diubah.",
+      "output: satu bundle dihitung sekali (FINISH pertama) supaya rework-loop tidak menggandakan; bundle CANCELLED dibuang.",
+      "efisiensi baris period memakai rumus B13 dengan window bucket di-clamp ke rentang laporan (konsisten dengan output baris itu).",
+      "bucket = union(output, scrap) supaya bulan dengan scrap tanpa output tetap muncul (Σ baris = summary).",
+      "Export Excel/PDF ditunda ke H4.8 (openpyxl/reportlab belum ada; H4.6 read-only).",
+      "Tooling: workaround (a) Windows-temp → WSL python dipakai; retry (c) Remote-WSL sesi berikutnya."
+    ],
+    "gates": {
+      "typecheck": "0 error",
+      "lint": "0 error, 1 warning lama — 541 file",
+      "test": "1327 passed | 74 skipped (1401 test) — 0 failed",
+      "build": "hijau — chunk terbesar 337.36 kB / gzip 98.47 kB",
+      "css_gate": "PASS tanpa --update (566 rule; md5 d51e4a31… identik dengan baseline)",
+      "backend_suite": "2164 passed / 7 failed (daftar pre-existing SAMA) / 1 skipped — 2144 + 20 test H4.6"
+    },
+    "non_breaking": "B13/B16/B18-B21 + B2 + H2.3 + H2.4 + H4.1-H4.5 + test_perf_queries tetap hijau (243 test targeted)."
+  },
+
+  "h3_5_product_price": {
+    "status": "done",
+    "completed_at": "2026-10-12",
+    "scope": "Modul 1 dari 6 FASE H3: Product Price — penambahan audit trail harga + endpoint harga khusus + riwayat audit UI. Push + pull harga sudah ada sejak H1.1.",
+    "pages": [
+      "src/pages/master/ProductDetailPage.tsx (H1.1 ADITIF): kartu 'Harga terakhir diubah' + tombol Riwayat Harga",
+      "src/pages/master/ProductPriceHistoryPage.tsx (BARU): daftar riwayat perubahan harga + paging + keadaan kosong",
+      "src/pages/master/ProductFormPage.tsx (H1.1): tidak diubah"
+    ],
+    "api_files": [
+      "src/api/real/masterProducts.ts (EXTEND: masterProductPricePath/HistoryPath, updateProductPrice, fetchProductPriceHistory, price_updated_at)",
+      "src/api/masterProducts.ts (EXTEND re-export)",
+      "src/types/master-product.ts (EXTEND: price_updated_at, PriceInput, PriceHistoryRow/Page)",
+      "src/lib/master-product.ts (EXTEND: label field harga, priceSourceLabel, priceHistoryValues, priceHistoryItems)"
+    ],
+    "routes": [
+      "/master/products/:id/price-history (INVENTORY_ROLES — BARU, read-only)"
+    ],
+    "routes_utuh": "Route existing tidak diubah; tidak ada menu topbar baru.",
+    "tests_new": 17,
+    "tests_files": [
+      "tests/unit/api/product-price.test.ts (9)",
+      "tests/unit/pages/product-price-history.test.ts (8)"
+    ],
+    "tests_updated": [
+      "tests/unit/api/master-products.test.ts (fixture += price_updated_at)"
+    ],
+    "notes": [
+      "H3.5 = penyempurnaan, bukan fitur baru.",
+      "Arah pull: hanya mengisi bila harga MES masih 0.",
+      "Harga 0 diizinkan; negatif ditolak. Guard harga > 0 tetap hanya di baris order saat CONFIRMED."
+    ]
+  },
+
+  "h4_7_dashboard_executive": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "scope": "Modul 7 dari 8 FASE H4 (Laporan & Analytics) — READ-ONLY: dashboard eksekutif yang MENGORKESTRASI angka H4.1–H4.6 dalam satu periode + panel peringatan. Tanpa CRUD, tanpa push sync, tanpa migration baru, tanpa Odoo write.",
+    "endpoint": "GET /api/v1/dashboard/executive/ (IsAuthenticated; anonim 403) — cache backend 300 dtk + escape hatch ?_nocache=1",
+    "filters": "?period=YYYY-MM (default bulan berjalan) > ?date_from/?date_to > ?from/?to, ?_nocache=1; rentang tak valid → 400 (TANPA filter customer/product/vendor)",
+    "response": "{period{from,to}, filters{echo+nocache+resolved_from/resolved_to}, sales{}, purchases{}, stock{}|null, cogs{}, pnl{}, production{}, alerts[], generated_at, cached}",
+    "files": [
+      "src/types/dashboard-executive.ts (BARU: ExecutiveSales/Purchases/Stock/Cogs/Pnl/ProductionSection + Filters/Response)",
+      "src/api/real/executiveDashboard.ts (BARU: EXECUTIVE_DASHBOARD_PATH, buildExecutiveDashboardPath, readExecutiveDashboard, fetchExecutiveDashboard)",
+      "src/api/dashboard.ts (EXTEND barrel: fetchExecutiveDashboard + re-export tipe/konstanta; key B2 `dashboard` di atasnya TIDAK diubah)",
+      "src/api/_adapter.ts (MODE += executiveDashboard: real; 76→77 key)",
+      "src/pages/dashboard/ExecutiveDashboardPage.tsx (BARU)"
+    ],
+    "page": [
+      "filter bar: Input type=month (periode) + tombol Muat Ulang (?_nocache=1)",
+      "panel peringatan alerts[] (ikon terpisah; hanya tampil bila ada peringatan)",
+      "KPI penjualan/pembelian/stok: Omzet, Order, Belanja, Stok Tercatat, Produk Tanpa odoo_id",
+      "KPI HPP & laba-rugi: HPP (COGS), Laba Kotor, Opex (Jurnal), Laba Bersih (+margin)",
+      "KPI produksi: Output (bundle/WO), Scrap %, Efisiensi Rata-rata, OTD (order-level)",
+      "stock = null → 'n/a' (bukan 0) + trend 'stok tidak terbaca dari Odoo'; pnl.opex = null → 'n/a' + catatan laba bersih = laba kotor",
+      "penanda cache + rentang periode + catatan sumber angka (helper internal H4.1–H4.6)",
+      "tombol Export DISABLED + tooltip H4.8"
+    ],
+    "routes": [
+      "/dashboard/executive (SUPERVISOR_ROLES — BARU; paralel /dashboard B2)"
+    ],
+    "nav": "topbar app `reports` += item Executive (path /dashboard/executive) + alias LEGACY_APP_PATHS {prefix:'/dashboard/executive', appId:'reports'} — app `dashboard` SENGAJA tidak diubah supaya appLandingPath app Dashboard tetap '/' (route-fix test tetap hijau).",
+    "routes_utuh": "Route lama tidak diubah; /dashboard (SupervisorDashboardPage B2) + /reports/* tetap; /dashboard/executive PARALEL.",
+    "tests": {
+      "frontend": "16 test (tests/unit/api/executive-dashboard.test.ts 10 + tests/unit/pages/executive-dashboard.test.ts 6) — semua hijau",
+      "backend": "18 test (django_app/tests/integration/test_dashboard_executive.py)"
+    },
+    "test_registry_update": "tests/unit/api/_adapter.test.ts di-update: key real 76→77 + REAL_KEYS += executiveDashboard (gate canonical MODE, bukan regresi).",
+    "read_only_bukti": "Halaman tidak memakai client.post/client.request sama sekali (diuji); tidak ada mutation route; export ditunda ke H4.8; B2 + H4.1–H4.6 tidak disentuh.",
+    "decisions": [
+      "ORKESTRASI, bukan duplikasi: semua angka dari helper internal H4.1–H4.6 (backend tidak memanggil view HTTP, frontend tidak menghitung ulang) — satu sumber kebenaran per metrik.",
+      "Budget backend ≤ 15 query DB + 2 RPC Odoo (stock) — terukur 9 query DB (diuji CaptureQueriesContext); optimasi sales+cogs+pnl basis dari satu aggregate OrderLine.",
+      "Fail-safe PARTIAL: stock = null + alert bila Odoo tak terbaca; section lain tetap terisi → UI menampilkan 'n/a' (bukan 0).",
+      "alerts = list[str] (informatif) — beda dari B2 yang memakai objek {code,message,severity} (operasional).",
+      "Tanpa metrik top-N (top_customer/top_vendor) — drill-down ke halaman H4.1/H4.2.",
+      "B2 DashboardSummaryView (`/dashboard/summary/`) TIDAK disentuh: endpoint PARALEL.",
+      "Halaman read-only; Export DISABLED sampai H4.8; css:gate PASS tanpa update baseline (kelas baru dihindari: w-44→w-40, list-disc/pl-4 dihapus).",
+      "Tooling: `editor` tool kembali berfungsi di path UNC; workaround Windows-temp → WSL python tetap dicatat."
+    ],
+    "gates": {
+      "typecheck": "0 error",
+      "lint": "0 error, 1 warning lama — 546 file",
+      "test": "1343 passed | 74 skipped (1417 test) — 0 failed",
+      "build": "hijau — chunk terbesar 340.12 kB / gzip 99.29 kB",
+      "css_gate": "PASS tanpa --update (566 rule; md5 d51e4a31… identik baseline — kelas baru dihindari: w-44→w-40, list-disc/pl-4 dihapus)",
+      "backend_suite": "2182 passed / 7 failed (daftar pre-existing SAMA) / 1 skipped — 2164 + 18 test H4.7"
+    },
+    "non_breaking": "B2 (/dashboard/summary/) + H4.1–H4.6 + F2C.2 (dashboard.test.ts, f2c2-live) + route-fix + _adapter tetap hijau."
+  },
+
+  "h4_8_export_excel_pdf": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "scope": "Modul 8 dari 8 FASE H4 (Laporan & Analytics) — PENUTUP: unduh 7 laporan sebagai Excel/PDF (tombol Export di 7 halaman dari DISABLED menjadi aktif). Tanpa CRUD, tanpa push sync, tanpa migration baru, tanpa Odoo write.",
+    "endpoint": "POST /api/v1/export/<report>/ (IsAuthenticated; anonim 403) — respons BERKAS binary (Content-Disposition attachment)",
+    "filters": "body JSON = param laporan H4.x (period/date_from/date_to/from/to, group_by, customer_id/vendor_id/product_id/order_type/status/location_id/search/only_nonzero/work_center_id/line_id) + `format`; `?format=` juga diterima (body menang); default xlsx; report invalid → 404; format/rentang invalid → 400",
+    "files": [
+      "src/types/export.ts (BARU: ExportReport/ExportFormat/ExportFilters/ExportFile)",
+      "src/api/real/export.ts (BARU: EXPORT_PATH_PREFIX, buildExportPath, buildExportBody, exportReport, label UI)",
+      "src/api/export.ts (BARU: barrel `exportReport` = pickAdapter('export', ...) + re-export konstanta/tipe)",
+      "src/lib/download.ts (BARU: downloadBlob PURE-injectable + readFilenameFromDisposition)",
+      "src/integrations/api-client.ts (EXTEND: requestBlob — POST blob + filename dari Content-Disposition; request/get/post TIDAK berubah)",
+      "src/components/molecules/ExportButton.tsx (BARU: tombol Export + modal pilih format xlsx/pdf + error inline)",
+      "7 halaman laporan (Sales/Purchases/Stock/Cogs/Pnl/Production/Executive): blok Tooltip+disabled diganti `<ExportButton report=... filters={{...}} />`",
+      "src/api/_adapter.ts (MODE += export: real; 77 → 78 key)"
+    ],
+    "page": [
+      "tombol Export membuka modal: pilih format (Excel default / PDF) + tombol Unduh (loading saat mengunduh) + pesan error backend inline",
+      "berkas diunduh lewat `downloadBlob` (`<a download>` sementara + revoke object URL) — BUKAN `<a href>` ke endpoint (POST + cookie sesi)",
+      "filter halaman diteruskan apa adanya (period/group_by/customer/vendor/produk/status/lokasi/search/only_nonzero/WC/line)",
+      "read-only: halaman tidak memanggil client.post/client.request (unduhan lewat adapter `exportReport`) — diuji"
+    ],
+    "routes": [
+      "tidak ada route baru (aksi di halaman yang sudah ada)"
+    ],
+    "tests": {
+      "frontend": "22 test (tests/unit/api/export.test.ts 7 + tests/unit/lib/download.test.ts 3 + tests/unit/components/export-button.test.ts 12) — semua hijau",
+      "backend": "21 test (django_app/tests/integration/test_export.py)"
+    },
+    "test_registry_update": "tests/unit/api/_adapter.test.ts di-update: key real 77→78 + REAL_KEYS += export; 6 test halaman H4.1-H4.6 + H4.7 di-update dari 'Export DISABLED' menjadi 'Export AKTIF (ExportButton)' (bukan regresi — kontrak H4.8).",
+    "read_only_bukti": "Halaman tetap tanpa client.post/client.request (diuji); ExportButton memakai adapter `exportReport` → `ApiClient.requestBlob` (satu-satunya pintu HTTP). Tidak ada mutasi data MES/Odoo: endpoint export murni membaca.",
+    "decisions": [
+      "Satu endpoint POST /export/<report>/ untuk 7 laporan; report invalid → 404, format invalid → 400.",
+      "Reuse helper internal H4.1-H4.7 (backend lewat shim request) sehingga angka berkas = angka halaman laporan — UI tidak menghitung ulang.",
+      "`ApiClient.requestBlob` additive: blob POST tetap lewat satu pintu HTTP (aturan §12.1 melarang fetch di komponen); 17 test api-client tetap hijau.",
+      "`lib/download.ts` PURE-injectable (deps DOM disuntikkan) karena vitest `environment: 'node'` tanpa jsdom.",
+      "Molecule `ExportButton` dipakai 7 halaman (DRY) — modal pilih format, bukan 7 implementasi paralel.",
+      "Excel: 2 sheet (Summary+Data); dashboard eksekutif 7 sheet section; PDF landscape 6 laporan + portrait executive.",
+      "Nama berkas mengikuti periode: YYYY-MM / YYYY-Qn / YYYYMMDD-YYYYMMDD; stok (snapshot) → YYYYMMDD.",
+      "css:gate PASS tanpa `--update` (566 rule, md5 identik) — kelas Tailwind baru dihindari (pakai kelas yang sudah ada).",
+      "Tooling: `editor` + notify MCP normal; rebuild image django untuk openpyxl/reportlab (docker compose build django && up -d django)."
+    ],
+    "gates": {
+      "typecheck": "0 error",
+      "lint": "0 error, 1 warning lama — 554 file",
+      "test": "1365 passed | 74 skipped (1439 test) — 0 failed",
+      "build": "hijau — chunk terbesar 340.16 kB / gzip 99.28 kB",
+      "css_gate": "PASS tanpa --update (566 rule; md5 d51e4a31… identik baseline)",
+      "backend_suite": "2203 passed / 7 failed (daftar pre-existing SAMA) / 1 skipped — 2182 + 21 test H4.8"
+    },
+    "non_breaking": "B2 (/dashboard/summary/) + H4.1–H4.7 + F2C.2 + route-fix + api-client + 7 test halaman tetap hijau."
+  },
+
+  "h3_6_tax_config": {
+    "status": "done",
+    "completed_at": "2026-10-12",
+    "scope": "Modul 2 dari 6 FASE H3: Tax Config — halaman master pajak (list/form/detail/Set Default) + adapter untuk /master/taxes/; sekaligus menutup gap H2.1/H2.2 (dropdown pajak per baris di SO/PO).",
+    "pages": [
+      "src/pages/master/TaxesPage.tsx (list + filter jenis + search + Reset + Export CSV)",
+      "src/pages/master/TaxFormPage.tsx (form baru/edit — nama/kode/tarif/tipe nilai/jenis/checkbox)",
+      "src/pages/master/TaxDetailPage.tsx (read-only + tombol Jadikan Default)",
+      "src/pages/sales/OrderFormPage.tsx (H2.1 ADITIF): dropdown pajak penjualan per baris",
+      "src/pages/purchase/PurchaseOrderFormPage.tsx (H2.2 ADITIF): dropdown pajak pembelian per baris"
+    ],
+    "api_files": [
+      "src/types/master-tax.ts",
+      "src/api/real/masterTaxes.ts (fetch/create/update/delete/setDefault/fetchDefault)",
+      "src/api/masterTaxes.ts (barrel → MODE.masterTaxes='real')",
+      "src/lib/master-tax.ts (PURE: validasi, taxUseLabel, taxOptionLabel, taxDetailItems)"
+    ],
+    "routes": [
+      "/master/taxes (INVENTORY_ROLES)",
+      "/master/taxes/new (INVENTORY_ROLES)",
+      "/master/taxes/:id (INVENTORY_ROLES)",
+      "/master/taxes/:id/edit (INVENTORY_ROLES)"
+    ],
+    "routes_utuh": "Tidak ada route lama diubah. Nav: LEGACY_APP_PATHS + topbar 'Master Pajak'.",
+    "tests_new": 35,
+    "tests_files": [
+      "tests/unit/api/master-taxes.test.ts (15)",
+      "tests/unit/pages/master-taxes.test.ts (20)"
+    ],
+    "tests_updated": ["tests/unit/api/_adapter.test.ts (63→64 + masterTaxes)"],
+    "notes": [
+      "H3.6 menyentuh master (dua arah): SyncRecord master.tax/MASTER_PUSH + AuditLog + enqueue push_master_tax.",
+      "is_default = keputusan MES (tidak dikirim/ditarik dari Odoo).",
+      "PUT boleh hanya mengirim is_default (mes-only, sync_record_id: null).",
+      "Bonus dropdown pajak menutup catatan lama di docstring SO/PO."
+    ]
+  },
+
+  "f2c1_flip_subset": {
+    "status": "done",
+    "completed_at": "2026-10-09",
+    "flipped": ["inventoryProducts", "routing"],
+    "dropped_fields": [
+      "Product: type, uom",
+      "DagNode: capability, smv, maxWip, status"
+    ],
+    "files_created": [
+      "src/types/inventory-product.ts",
+      "src/api/real/inventoryProducts.ts",
+      "src/api/real/routing.ts",
+      "tests/unit/api/inventory-products.test.ts",
+      "tests/unit/api/routing.test.ts"
+    ],
+    "files_deleted": [],
+    "files_kept_dummy": [
+      "src/api/dummy/inventory.ts",
+      "src/api/dummy/routing.ts"
+    ],
+    "tests_new": 14,
+    "gates": {
+      "typecheck": "0",
+      "lint": "0 (1 warning lama use-offline-sync.ts)",
+      "test": "364 passed | 48 skipped",
+      "build": "hijau (483.63 kB < 500 kB)",
+      "md5_tailwind_css": "7e65992b0d97efab12a50e803f94444b (KOREKSI: nilai lama basi)"
+    }
+  },
+
+  "f2c2_flip_batch": {
+    "status": "done",
+    "completed_at": "2026-10-09",
+    "flipped": [
+      "dashboard",
+      "bufferQueue",
+      "qcLog",
+      "qcRework",
+      "inventoryOperations",
+      "purchaseVendors",
+      "purchaseOrders",
+      "purchaseReporting",
+      "reportsLineEfficiency",
+      "reportsWIP"
+    ],
+    "dropped_fields": [
+      "DashboardSummary: total_wip/bottleneck/line_efficiency + TrendPoint → wip_qty/fg_qty/alerts[]/line_efficiency{pct,delta}/trend{date,wip,fg}",
+      "BufferQueueRow per baris → BufferQueueWcRow per-WC + bundles[]",
+      "Vendor: email/phone/city DIBUANG",
+      "PurchaseReportingPage: vendorNames mapping dibuang",
+      "LineEfficiency/WIP: KPI series buatan dibuang",
+      "ConfigurationPage: master Warehouse & UoM dibuang"
+    ],
+    "files_created": [
+      "src/api/real/dashboard.ts",
+      "src/api/real/bufferQueue.ts",
+      "src/api/real/qcLog.ts",
+      "src/api/real/qcRework.ts",
+      "src/api/real/inventoryOperations.ts",
+      "src/api/real/purchaseVendors.ts",
+      "src/api/real/purchaseOrders.ts",
+      "src/api/real/purchaseReporting.ts",
+      "src/api/real/reportsLineEfficiency.ts",
+      "src/api/real/reportsWIP.ts",
+      "tests/unit/api/dashboard.test.ts",
+      "tests/unit/api/buffer-queue.test.ts",
+      "tests/unit/api/qc-defects-rework.test.ts",
+      "tests/unit/api/inventory-operations.test.ts",
+      "tests/unit/api/purchase-f2c2.test.ts",
+      "tests/unit/api/reports-f2c2.test.ts",
+      "tests/live/f2c2-live.test.ts"
+    ],
+    "files_deleted": [
+      "src/api/dummy/dashboard.ts",
+      "src/api/dummy/bufferQueue.ts",
+      "src/api/dummy/purchase.ts"
+    ],
+    "files_kept_dummy": [
+      "src/api/dummy/qc.ts",
+      "src/api/dummy/inventory.ts",
+      "src/api/dummy/reports.ts"
+    ],
+    "shared_component_changes": [
+      "DenseTable.tsx: generic T extends object + rowKey?",
+      "BufferQueueTable.tsx: dirender ulang untuk shape per-WC"
+    ],
+    "tests_new": 19,
+    "live_tests_new": 10,
+    "gates": {
+      "typecheck": "0",
+      "lint": "0 (1 warning lama)",
+      "test": "383 passed | 58 skipped",
+      "build": "hijau (484.00 kB < 500 kB)",
+      "md5_tailwind": "7e65992b0d97efab12a50e803f94444b (basi)"
+    }
+  },
+
+  "f3a_close_flip": {
+    "status": "done",
+    "completed_at": "2026-10-10",
+    "flipped": [
+      "qcAql",
+      "qcSubmit",
+      "reportsLineEfficiencyByWc",
+      "reportsLeadTime",
+      "reportsLeadTimeBundles",
+      "reportsOTD",
+      "reportsOnTimeDeliveryOrders",
+      "reportsWipByWc",
+      "settingsRouting",
+      "settingsBundling",
+      "settingsLineAllocation"
+    ],
+    "endpoints": [
+      "GET /quality/aql/ (B5)",
+      "POST /quality/defects/ (B7b)",
+      "GET /reports/line-efficiency/by-wc/ (B18)",
+      "GET /reports/lead-time/ (B19)",
+      "GET /reports/lead-time/bundles/ (B19b)",
+      "GET /reports/on-time-delivery/ (B20)",
+      "GET /reports/on-time-delivery/orders/ (B20b)",
+      "GET /reports/wip/by-wc/ (B21)",
+      "GET+POST /settings/routing/ (B22)",
+      "GET+POST /settings/bundling/ (B24)",
+      "GET+POST /settings/line-allocation/ (B25)"
+    ],
+    "dropped_fields": [
+      "AQLSummary → AqlRow{wc_code, wc_name, sample_qty, defect_qty, aql_pct, severity}",
+      "QCRecordInput → DefectSubmitInput{bundle_id, defect_type, qty, reason, action}",
+      "LeadTimeKPI + LeadTimeDetailRow → LeadTimeReport{rows, avg_hours}",
+      "OnTimeDeliveryKPI + DetailRow → OtdReport{rows, otd_pct}",
+      "LineEfficiencyDetailRow / WIPDetailRow → shape backend by-wc",
+      "BundlingRule state-lokal → BundlingRuleRow + POST nyata",
+      "LineAllocation state-lokal → LineAllocationRow + POST nyata",
+      "DashboardSummary.otd → OtdReport.otd_pct",
+      "RoutingConfig (editor DAG) TIDAK diubah tampilan"
+    ],
+    "files_created": [
+      "src/api/real/_shape.ts",
+      "src/api/real/qcAql.ts",
+      "src/api/real/qcSubmit.ts",
+      "src/api/real/reportsLineEfficiencyByWc.ts",
+      "src/api/real/reportsLeadTime.ts",
+      "src/api/real/reportsLeadTimeBundles.ts",
+      "src/api/real/reportsOnTimeDelivery.ts",
+      "src/api/real/reportsOnTimeDeliveryOrders.ts",
+      "src/api/real/reportsWipByWc.ts",
+      "src/api/real/settingsRouting.ts",
+      "src/api/real/settingsBundling.ts",
+      "src/api/real/settingsLineAllocation.ts",
+      "tests/unit/api/f3a-qc.test.ts",
+      "tests/unit/api/f3a-reports.test.ts",
+      "tests/unit/api/f3a-settings.test.ts",
+      "tests/live/f3a-live.test.ts"
+    ],
+    "files_deleted": ["src/api/dummy/qc.ts", "src/api/dummy/reports.ts"],
+    "files_changed": [
+      "src/api/_adapter.ts (11 MODE dummy → real; real 30→41, dummy 16→5)",
+      "src/api/qc.ts, src/api/reports.ts, src/api/settings.ts",
+      "src/pages/quality/AQLDashboardPage.tsx, src/pages/reports/LeadTimePage.tsx, src/pages/reports/OnTimeDeliveryPage.tsx",
+      "src/pages/settings/{RoutingConfigPage,BundlingRulesPage,LineAllocationPage}.tsx",
+      "src/pages/production/QCPage.tsx, src/pages/dashboard/SupervisorDashboardPage.tsx",
+      "tests/unit/api/{_adapter,qc}.test.ts"
+    ],
+    "tests_new": 26,
+    "live_tests_new": 11,
+    "gates": {
+      "typecheck": "0",
+      "lint": "0 (1 warning lama)",
+      "test": "409 passed | 69 skipped (49 file)",
+      "build": "hijau (483.96 kB < 500 kB)",
+      "md5_tailwind": "7e65992b0d97efab12a50e803f94444b (basi)"
+    }
+  },
+
+  "f54_close_flip": {
+    "status": "done",
+    "completed_at": "2026-10-10",
+    "flipped": [
+      "settingsUsers",
+      "settingsRoles",
+      "settingsDevices",
+      "hitl",
+      "inventoryReporting"
+    ],
+    "backend": [
+      "B26 GET|POST /settings/users/ + PUT|DELETE /settings/users/<id>/",
+      "B27 GET /settings/roles/ (label = Role.name)",
+      "B28 GET /settings/devices/ (katalog DeviceProfile)",
+      "B29 GET /ai/hitl/queue/ + POST /ai/hitl/<id>/approve|reject/",
+      "B30 GET /inventory/reporting/"
+    ],
+    "mapping": [
+      "User: role UPPERCASE ↔ union UI lowercase; full_name ↔ first_name+last_name; active ↔ is_active",
+      "Role: code UPPERCASE → lowercase; kode di luar 5 role default DILEWATI",
+      "DeviceProfile: code ← device_type, label ← name",
+      "HitlApproval: requester ← requested_by, action ← request_type, resource ← resource_type, status ← state.lowercase",
+      "LocationStockRow: {location_code, location_name, product_count, total_qty, last_updated}"
+    ],
+    "page_changes": [
+      "UserManagementPage: CRUD create/update/delete + kolom Email; DELETE = soft delete",
+      "DeviceProfilesPage: queryFn pakai API client",
+      "InventoryReportingPage: KPI/kolom = lokasi MES (filter periode dibuang)",
+      "ConfigurationPage: Locations dari GET /inventory/reporting/",
+      "AIChatPage: fetchAllApprovals + decideApproval",
+      "api-client.ts: AUTH_SCOPED_GET_PREFIXES + /settings/ + /ai/ + /inventory/"
+    ],
+    "files_created": [
+      "src/api/real/{settingsUsers,settingsRoles,settingsDevices,hitl,inventoryReporting}.ts",
+      "tests/unit/api/f54-close.test.ts",
+      "tests/live/f54-live.test.ts"
+    ],
+    "files_deleted": [
+      "src/api/dummy/settings.ts",
+      "src/api/dummy/roles.ts",
+      "src/api/dummy/hitl.ts"
+    ],
+    "tests_new": 22,
+    "live_tests_new": 5,
+    "gates": {
+      "typecheck": "0",
+      "lint": "0 (1 warning lama)",
+      "test": "432 passed | 74 skipped (61 file)",
+      "build": "hijau (475.37 kB < 500 kB)",
+      "md5_tailwind": "7e65992b0d97efab12a50e803f94444b (basi)"
+    },
+    "catatan": "Zero dummy — frontend 46/46 real"
+  },
+
+  "f6_2_login_ui": {
+    "status": "done",
+    "completed_at": "2026-10-10",
+    "files_created": [
+      "src/api/real/auth.ts + src/api/auth.ts",
+      "src/hooks/auth-context.ts + src/hooks/useAuth.tsx",
+      "src/components/organisms/AuthGuard.tsx",
+      "src/pages/auth/LoginPage.tsx (2 tab: admin + numpad operator)",
+      "src/components/molecules/ProfileMenu.tsx",
+      "src/lib/login-form.ts + src/lib/auth-guard.ts",
+      "tests/unit/api/auth.test.ts, tests/unit/components/{auth-guard,profile-menu}.test.ts, tests/unit/pages/login-page.test.ts"
+    ],
+    "files_updated": [
+      "src/App.tsx — route /login PUBLIK + AuthProvider sekali di root + AuthGuard",
+      "src/app/layouts/TopBar.tsx — pill user dummy → <ProfileMenu />",
+      "src/integrations/api-client.ts — /auth/ masuk AUTH_SCOPED_GET_PREFIXES + retryAfter + detail",
+      "src/api/_adapter.ts — MODE.auth = 'real' (47 real / 0 dummy)",
+      "tests/unit/api/_adapter.test.ts, tests/unit/app/role-route-audit.test.ts",
+      "tests/unit/pages/{qc-scrap-sync,bundle-sync-actions}.test.ts"
+    ],
+    "decisions": [
+      "AuthProvider dipasang SEKALI di App.tsx (TopBar di luar guard).",
+      "useAuth dipisah ke hooks/auth-context.ts + guardDecision ke lib/auth-guard.ts.",
+      "Login tidak memaksa CSRF saat cookie csrftoken belum ada.",
+      "'Ingat saya' = mengingat username di localStorage.",
+      "Operator login kirim subset field → useAuth panggil getMe() setelah login."
+    ],
+    "tests_new": 58,
+    "gates": {
+      "typecheck": "0",
+      "lint": "0 error",
+      "test": "490 passed | 74 skipped",
+      "build": "hijau (372.68 kB < 500 kB)",
+      "md5_tailwind": "7e65992b… (basi)"
+    }
+  },
+
+  "f6_4_device_binding": {
+    "status": "done",
+    "completed_at": "2026-10-10",
+    "files_created": [
+      "src/api/real/deviceBinding.ts",
+      "src/lib/device-mode.ts",
+      "src/hooks/useDeviceMode.ts",
+      "src/components/molecules/BindDeviceModal.tsx",
+      "tests/unit/hooks/use-device-mode.test.ts, tests/unit/components/bind-device-modal.test.ts, tests/unit/pages/device-profiles-page.test.ts"
+    ],
+    "files_updated": [
+      "src/api/devices.ts — barrel memakai real/deviceBinding.ts",
+      "src/pages/settings/DeviceProfilesPage.tsx — tombol Bind Device Baru + Unbind",
+      "src/components/organisms/AuthGuard.tsx — gerbang pakai useDeviceMode",
+      "src/app/layouts/TopBar.tsx — badge 'Device: <profil> @ <WC>'",
+      "src/pages/auth/LoginPage.tsx — info perangkat ter-bind",
+      "src/lib/auth-guard.ts — guardDecision terima deviceBound",
+      "tests: auth-guard.test.ts, login-page.test.ts, profile-menu.test.ts, devices-page.test.ts"
+    ],
+    "decisions": [
+      "GET /devices/me SELALU 200 → bound = source === 'device_binding'.",
+      "AuthGuard pakai useDeviceMode sebagai SATU sumber state.",
+      "LoginPage auto-redirect kecuali ?switch=1.",
+      "Nama Device TIDAK diminta (DeviceBinding tidak punya kolom nama).",
+      "Daftar binding SEMUA perangkat belum ditampilkan."
+    ],
+    "tests_new": 36,
+    "gates": {
+      "typecheck": "0",
+      "lint": "0 error",
+      "test": "553 passed | 74 skipped",
+      "build": "hijau (303.17 kB < 500 kB)",
+      "md5_tailwind": "7e65992b… (basi)"
+    }
+  },
+
+  "fix_route_bugs": {
+    "status": "done",
+    "completed_at": "2026-10-10",
+    "user_report": "1) buka /login → /dashboard KOSONG · 2) klik app di sidebar → halaman KOSONG · 3) buka / → masuk dashboard tanpa cek auth",
+    "root_causes": [
+      "Bukan route: /login sudah publik; browser pegang cookie device_token → LoginPage auto-skip.",
+      "7 NAV_APPS[].path hanya prefix, tidak punya <Route> → RoleGuardFallback.",
+      "DeviceTokenAuthentication return None untuk binding tanpa user → request anonim.",
+      "Tidak ada ErrorBoundary."
+    ],
+    "files_created": [
+      "src/app/AccessDenied.tsx",
+      "src/app/RootRoute.tsx",
+      "src/app/AppIndexRedirect.tsx",
+      "src/components/organisms/RouteErrorBoundary.tsx",
+      "tests/unit/app/route-fix.test.ts"
+    ],
+    "files_updated": [
+      "src/lib/auth-guard.ts — deviceBound dihapus",
+      "src/components/organisms/AuthGuard.tsx",
+      "src/pages/auth/LoginPage.tsx — auto-skip HANYA bila user !== null",
+      "src/lib/device-mode.ts — requiresLogin",
+      "src/app/RoleRoute.tsx — merender <AccessDenied/>",
+      "src/app/nav-config.ts — findAppById + appLandingPath",
+      "src/app/useRole.ts — firstAllowedPathForRole",
+      "src/App.tsx — / → RootRoute; 7 route AppIndexRedirect; 49 boundary"
+    ],
+    "verification_browser": {
+      "alat": "Chrome headless + probe HTML; 30 skenario",
+      "tanpa_sesi": "/ → /login?redirect=%2F · /login → form login · /dashboard → /login?redirect=%2Fdashboard",
+      "device_tanpa_user": "cookie device userless → /login?redirect=%2F — BUG ASLI TERATASI",
+      "dengan_sesi": "/ → Dashboard · /production → /production/scan · /settings(admin) → /settings/routing · /reports(supervisor) → /reports/line-efficiency · /purchase(purchasing) → /purchase/orders · /finance(admin) → /finance/invoices",
+      "rol_tidak_berhak": "/production/qc(role=inventory) → DENIED=true lalu /inventory/products (anti-loop terbukti)"
+    },
+    "data_cleanup": "22 baris DeviceBinding dihapus (1 userless + 21 loadtest-*); 0 binding user nyata dihapus.",
+    "tests_new": 20,
+    "gates": {
+      "typecheck": "0",
+      "lint": "0 error — 319 file",
+      "test": "573 passed | 74 skipped",
+      "build": "hijau (309.50 kB < 500 kB)",
+      "md5_tailwind": "7e65992b… (basi)"
+    }
+  },
+
+  "f7_1_quality_owner": {
+    "status": "done",
+    "completed_at": "2026-10-10",
+    "perubahan": "QUALITY_ROLES di src/App.tsx → ['qc','supervisor','admin','owner'] (owner = super-admin).",
+    "files_updated": [
+      "src/App.tsx",
+      "tests/unit/app/role-route-audit.test.ts",
+      "django_app/docs/known-limitations.md (F9 TERTUTUP)"
+    ],
+    "tests_new": 1,
+    "gates": {
+      "typecheck": "0 error",
+      "test": "574 passed | 74 skipped",
+      "md5_tailwind": "7e65992b… (basi)"
+    }
+  },
+
+  "backend_fase_4": {
+    "status": "done",
+    "changes": [
+      "4.1 Keamanan: 4 endpoint AllowAny → IsAuthenticated",
+      "4.2 Seed Data: management command seed_demo_bundles → 10 bundle DRAFT",
+      "4.3 Audit Trail: field body scrap disimpan ke BundleEvent.payload",
+      "4.4 Monitoring: +GET /sync/records/ +GET /finance/invoices/"
+    ]
+  },
+
+  "f1_contract_alignment_v43": {
+    "status": "done",
+    "scope": "Selaraskan kontrak & tipe (D1–D7) frontend ↔ backend v4.3",
+    "landing": [
+      "src/lib/action-runner.ts",
+      "src/types/api.ts",
+      "src/lib/schemas/action.schema.ts",
+      "src/integrations/conflict-plan.ts",
+      "src/integrations/api-client.ts",
+      "src/lib/chatter-merge.ts + ChatterBox.tsx + real/chatter.ts + useChatter.ts",
+      "src/api/orderLines.ts + real/orderLines.ts + types/order-line.ts"
+    ],
+    "tests": { "files": 8, "count": 63, "style": "react-dom/server + walker" }
+  },
+
+  "f1_5_cors_credentials_v43": {
+    "status": "done",
+    "scope": "backend config-only (dev)",
+    "files": [
+      "django_app/.env",
+      "django_app/.env.example",
+      "django_app/config/settings.py"
+    ],
+    "reason": "frontend :5173 kirim credentials:'include' ke backend :8000 lintas origin"
+  },
+
+  "f1_6_credentials_fix_v43": {
+    "status": "done",
+    "file": "src/integrations/api-client.ts",
+    "change": "guard needsCredentials && !isCrossOriginRequest → needsCredentials"
+  },
+
+  "f2_adapter_real_v43": {
+    "status": "done",
+    "realized": [
+      "bundles",
+      "workOrders",
+      "orderLines",
+      "qcRows",
+      "syncOdoo",
+      "syncMaster",
+      "syncScrap",
+      "readiness"
+    ],
+    "new_adapters": ["qc", "sync", "readiness"],
+    "tests": { "files": 13, "unit": 96, "live": "5 passed / 2 skipped" }
+  },
+
+  "f3_metadata_wiring_v43": {
+    "status": "skipped",
+    "reason": "frontend hand-coded; metadata tidak dikonsumsi UI"
+  },
+
+  "f4_chatter_ws_v43": {
+    "status": "done",
+    "created": [
+      "src/hooks/useChatterWs.ts",
+      "tests/unit/hooks/use-chatter-ws.test.ts (18)",
+      "tests/live/f4-live.test.ts"
+    ],
+    "changed": ["ChatterBox.tsx", "3 halaman pakai preview + useChatterWs"],
+    "hook": "useChatterWs — query param ?resource=<rest>&id=<id>, prepend+dedup+cap 5, no-op kalau WS_ENABLED!=true",
+    "tests": { "files": 16, "unit": 117, "live": "7 passed / 3 skipped" }
+  },
+
+  "f5_menu_bar_v43": {
+    "status": "done",
+    "created": [
+      "src/app/menu-config.ts",
+      "src/components/atoms/Dropdown.tsx",
+      "src/lib/dropdown-state.ts",
+      "src/components/organisms/AppMenuBar.tsx"
+    ],
+    "changed": ["TopBar.tsx (TopBarMenu → AppMenuBar)"],
+    "tests": { "files": 19, "unit": 146 }
+  },
+
+  "f6_sync_print_v43": {
+    "status": "done",
+    "created": [
+      "src/lib/sync-actions.ts",
+      "src/api/real/print.ts (kupon)",
+      "src/api/print.ts",
+      "src/components/molecules/SyncActionsCard.tsx"
+    ],
+    "changed": ["production/BundleDetailPage.tsx", "production/QCPage.tsx"],
+    "endpoints": [
+      "POST /sync/odoo/WIP/",
+      "POST /sync/odoo/FG/",
+      "POST /sync/scrap/",
+      "POST /print/kupon/"
+    ],
+    "tests": { "files": 22, "unit": 170, "live": "10 passed / 5 skipped" }
+  },
+
+  "f7_device_binding_v43": {
+    "status": "done",
+    "changed": [
+      "src/core/useDeviceProfile.ts",
+      "src/integrations/device-binding.ts",
+      "src/pages/settings/DeviceProfilesPage.tsx"
+    ],
+    "tests": { "files": 27, "unit": 197, "live": "13 passed / 6 skipped" }
+  },
+
+  "f8_material_readiness_v43": {
+    "status": "done",
+    "created": [
+      "src/pages/production/MaterialReadinessPage.tsx",
+      "src/components/molecules/ReadinessTable.tsx"
+    ],
+    "changed": ["real/readiness.ts", "lib/state-display.ts", "App.tsx"],
+    "tests": { "files": 30, "unit": 223, "live": "15 passed / 8 skipped" }
+  },
+
+  "f9_reconciliation_audit_v43": {
+    "status": "done",
+    "created": [
+      "src/api/real/reconciliation.ts + barrel",
+      "src/api/real/audit.ts + barrel",
+      "src/pages/reports/ReconciliationReportPage.tsx",
+      "src/pages/settings/ProductAuditPage.tsx"
+    ],
+    "tests": {
+      "new_files": 5,
+      "new_unit": 39,
+      "suite": "262 passed | 33 skipped"
+    }
+  },
+
+  "f10_invoice_sync_monitor_v43": {
+    "status": "revived_by_f15",
+    "blocked_reason": "Awalnya 404 (recon F10)"
+  },
+
+  "f11_scrap_qc_v43": {
+    "status": "done",
+    "created": ["src/pages/production/ScrapFormPage.tsx"],
+    "changed": [
+      "src/lib/action-runner.ts",
+      "src/pages/production/useOperatorActions.ts",
+      "src/pages/production/QCPage.tsx",
+      "src/components/molecules/ActionButton.tsx",
+      "src/App.tsx"
+    ],
+    "tests": {
+      "new_files": 4,
+      "new_unit": 25,
+      "suite": "295 passed | 37 skipped"
+    }
+  },
+
+  "f12_polish_hardening_v43": {
+    "status": "done",
+    "created": [
+      "tests/unit/app/role-route-audit.test.ts",
+      "tests/unit/app/a11y-buttons.test.ts"
+    ],
+    "audit": {
+      "role_filter": "4 temuan (ditutup F13)",
+      "colors": "0 hex/rgb di 244 file — OKLCH-only",
+      "dummy_isolation": "11/11 file @dummy",
+      "a11y": "0 icon-only tanpa aria-label"
+    },
+    "live": "24 passed | 13 skipped (7 file)"
+  },
+
+  "f13_role_route_cleanup_v43": {
+    "status": "done",
+    "decisions": {
+      "admin_production": "A2 — admin tidak lihat readiness",
+      "dashboard_operator": "D1 — operator/qc dapat dashboard, '/' tanpa guard"
+    },
+    "changed": ["src/app/nav-config.ts", "src/App.tsx", "src/app/useRole.ts"],
+    "findings_closed": "4/4",
+    "tests": {
+      "updated": "role-route-audit 5→10",
+      "suite": "300 passed | 37 skipped"
+    }
+  },
+
+  "f14_print_legacy_cleanup_v43": {
+    "status": "done",
+    "deleted": ["src/integrations/print-tag.ts"],
+    "created": [
+      "printBundleTag di real/print.ts",
+      "tests/unit/components/print-tag-button.test.ts (5)"
+    ],
+    "changed": ["PrintTagButton.tsx", "api/print.ts"],
+    "tests": { "suite": "311 passed | 39 skipped" }
+  },
+
+  "f15_monitoring_pages_v43": {
+    "status": "done",
+    "revive_of": "F10",
+    "created": [
+      "src/api/real/invoice.ts + barrel",
+      "src/api/real/syncMonitor.ts + barrel",
+      "src/pages/finance/InvoiceQueuePage.tsx",
+      "src/pages/settings/SyncMonitorPage.tsx"
+    ],
+    "changed": [
+      "_adapter.ts (+invoiceQueue, +syncMonitor)",
+      "lib/state-display.ts (+syncStatusTone)",
+      "app/nav-config.ts",
+      "app/menu-config.ts",
+      "app/useRole.ts",
+      "App.tsx (+2 route)",
+      "8 assertion LIVE di-update ke 403"
+    ],
+    "endpoints": [
+      "GET /finance/invoices/?state=&limit=",
+      "GET /sync/records/?stage=&status=&limit="
+    ],
+    "tests": {
+      "unit_new": 34,
+      "live_new": 8,
+      "suite": "345 passed | 48 skipped"
+    }
+  },
+
+  "f16_topbar_menu_fix_v43": {
+    "status": "done",
+    "problem": "TopBar menampilkan DAFTAR APP (duplikat Sidebar), bukan menu DALAM app aktif.",
+    "fix": [
+      "TopBar.tsx — const items = app?.topbar ?? []; → <AppMenuBar items={items} …/>",
+      "AppMenuBar.tsx — kontrak menus: MenuApp[] → items: readonly MenuItem[]",
+      "menu-config.ts — MenuItem.id opsional + children?; helper findMenuItemPath/isMenuItemActive",
+      "nav-config.ts — NavMenuItem.children?"
+    ],
+    "tests": {
+      "updated": "app-menu-bar.test.ts (5→13)",
+      "suite_after": "350 passed | 48 skipped (398)"
+    },
+    "gate": {
+      "typecheck": "0 error",
+      "build": "hijau — 895ms; chunk 483.68 kB < 500 kB",
+      "test": "hijau — 350 passed | 48 skipped",
+      "md5_tailwind": "7e65992b… (basi)"
+    }
+  },
+
+  "v3_frontend_track": {
+    "status": "contract_v43_done + monitoring + H1–H3",
+    "phases_contract_v43": [
+      { "id": "F1", "status": "done" },
+      { "id": "F1.5", "status": "done" },
+      { "id": "F1.6", "status": "done" },
+      { "id": "F2", "status": "done" },
+      { "id": "F3", "status": "skipped" },
+      { "id": "F4", "status": "done" },
+      { "id": "F5", "status": "done" },
+      { "id": "F6", "status": "done" },
+      { "id": "F7", "status": "done" },
+      { "id": "F8", "status": "done" },
+      { "id": "F9", "status": "done" },
+      { "id": "F10", "status": "revived_by_f15" },
+      { "id": "F11", "status": "done" },
+      { "id": "F12", "status": "done" },
+      { "id": "F13", "status": "done" },
+      { "id": "F14", "status": "done" },
+      { "id": "F15", "status": "done" },
+      { "id": "F16", "status": "done" }
+    ],
+    "stats": {
+      "routes": "~60 (bertambah dari H1–H3)",
+      "pages_tsx": "~60",
+      "atoms": 12,
+      "molecules": 30,
+      "organisms": 3,
+      "hooks": 15,
+      "adapters_real": 70,
+      "adapters_dummy": 0,
+      "chunk_main_kb": 335
+    }
+  },
+
+  "structure": {
+    "src": {
+      "app": [
+        "config.ts",
+        "nav-config.ts",
+        "menu-config.ts",
+        "useRole.ts",
+        "RoleRoute.tsx",
+        "RootRoute.tsx",
+        "AccessDenied.tsx",
+        "AppIndexRedirect.tsx",
+        "layouts/{AppShell,TopBar,Sidebar,BottomNav}.tsx"
+      ],
+      "components": {
+        "atoms/": "12 (Button, Input, Select, Badge, Card, Spinner, Toast, Modal, Textarea, Checkbox, Tabs, Tooltip, Dropdown)",
+        "molecules/": "~30",
+        "organisms/": "AppMenuBar, AuthGuard, RouteErrorBoundary"
+      },
+      "pages/": "bundles, production, quality, inventory, purchase, reports, settings, master, sales, finance, ai, dashboard, auth",
+      "api/": "_adapter.ts, {resource}.ts (barrel), real/ (~70), dummy/ (0)",
+      "hooks/": "useApiClient, useAuth, useDeviceMode, useChatterWs, useBundles, useOperatorActions, useMetadata",
+      "integrations/": "api-client, offline-queue, use-offline-sync, ws-chatter, device-binding, conflict-plan, resource-data",
+      "lib/": "action-runner, chatter-merge, dropdown-state, sync-actions, state-display, feedback",
+      "types/": "api, bundle, work-order, qc, qc-row, order-line, readiness, purchase-order, vendor-bill, payment, journal-entry",
+      "styles/": ["tailwind.css (LOCKED md5 — 211df84a…)"],
+      "App.tsx": "router + lazy per route + RoleRoute + AuthGuard + RootRoute",
+      "main.tsx": "entry"
+    }
+  },
+
+  "scripts": {
+    "dev": "bun run dev",
+    "build": "bun x --bun vite build",
+    "test": "bun --bun run test (vitest run)",
+    "typecheck": "bun run typecheck (tsc -b --force)",
+    "lint": "bun run lint (oxlint)",
+    "css:gate": "bun --bun run css:gate"
+  },
+
+  "env_frontend": {
+    "VITE_API_BASE_URL": "http://localhost:8000/api/v1",
+    "VITE_WS_URL": "ws://localhost:8000/ws",
+    "VITE_WS_ENABLED": "true",
+    "VITE_DEFAULT_MODE": "management"
+  },
+
+  "known_tech_debt": [
+    {
+      "id": "css-gate-ci-integration",
+      "status": "open",
+      "note": "Pindahkan gate CSS ke CI/pre-commit. Gate manual sudah ada: `bun --bun run css:gate` di frontend_app_v2/scripts/css-gate.sh + css-gate.baseline. Perlu panggil otomatis di pipeline."
+    }
+  ],
+
+  "blockers_for_production": [
+    {
+      "id": "widget-renderer-missing",
+      "status": "open",
+      "note": "lookupWidget belum dipanggil view"
+    },
+    {
+      "id": "list-cursor-keyset",
+      "status": "open",
+      "note": "backend offset-based; UI pakai offset-cursor"
+    }
+  ],
+
+  "next_phase_proposal": {
+    "next": "H4 (Laporan & Analytics): H4.1–H4.6 SELESAI → H4.7 Dashboard Eksekutif (menunggu instruksi)",
+    "then": "H5 (Settings: Company, Currency, Sequence CRUD, Permission, Audit, Integration, Printer, WA)",
+    "after": "Fase J (AI Agent Layer)",
+    "ops": "UAT 2 klien + live deploy (Docker + Nginx + SSL + backup + monitoring)"
+  },
+
+  "notes": {
+    "test_environment": "jsdom tidak jalan di bun → react-dom/server + walker",
+    "runtime_versions": "bun 1.4.2; vitest 5; tsc 6.0; oxlint 1.81; node v18 (via bun --bun)",
+    "openapi_note": "WS /ws/events/ tidak muncul di OpenAPI (beda protokol)",
+    "known_limitation": "Legacy v2 routes (/workshop, /bundles, /work-orders) dipertahankan + PRODUCTION_ROLES",
+    "pytest_warning": "JANGAN jalankan dua sesi pytest bersamaan (test-DB sama ⇒ error palsu).",
+    "build_quirk": "bun --bun run build (plain gagal di Node 18) · bun di ~/.bun/bin/bun."
+  }
+}

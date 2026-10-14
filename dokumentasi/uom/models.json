@@ -1,0 +1,98 @@
+{
+  "uom_category": {
+    "nama": "Kategori UoM",
+    "deskripsi": "Mengelompokkan unit of measure yang bisa dikonversi satu sama lain",
+    "field_utama": {
+      "name": "Nama kategori (contoh: Length, Weight, Volume)",
+      "uom_ids": "Daftar UoM dalam kategori ini (One2many ke uom.uom)",
+      "reference_uom_id": "UoM referensi (dummy field)"
+    },
+    "method_penting": {
+      "_onchange_uom_ids": "Saat ada perubahan UoM, otomatis set reference dan update factor"
+    },
+    "fitur_utama": [
+      "1 kategori = 1 grup konversi",
+      "Wajib ada 1 reference UoM per kategori",
+      "Semua UoM dalam kategori bisa dikonversi"
+    ]
+  },
+
+  "uom_uom": {
+    "nama": "Unit of Measure",
+    "deskripsi": "Satuan ukur untuk produk (pcs, kg, meter, jam, dll)",
+    "field_utama": {
+      "name": "Nama UoM (contoh: Kilogram, Piece, Meter)",
+      "category_id": "Kategori UoM (Many2one ke uom.category) - wajib",
+      "factor": "Faktor konversi ke reference UoM (1 * reference = factor * this)",
+      "factor_inv": "Kebalikan factor (compute)",
+      "rounding": "Presisi pembulatan (default 0.01)",
+      "active": "Aktif? (boolean, default True)",
+      "uom_type": "Tipe: reference/bigger/smaller",
+      "ratio": "Rasio gabungan (compute)",
+      "color": "Warna untuk UI (compute)"
+    },
+    "method_penting": {
+      "_compute_quantity": "Konversi quantity antar UoM",
+      "_compute_price": "Konversi harga antar UoM",
+      "create": "Override untuk handle factor_inv",
+      "write": "Override untuk handle factor_inv",
+      "_onchange_critical_fields": "Warning saat ubah factor/rounding pada UoM yang sudah dipakai",
+      "_filter_protected_uoms": "Cek UoM yang dilindungi (tidak boleh dihapus)",
+      "name_create": "Buat UoM baru saat import dengan category default"
+    },
+    "fitur_utama": [
+      "Konversi antar UoM dalam 1 kategori",
+      "3 tipe: reference (acuan), bigger (lebih besar), smaller (lebih kecil)",
+      "Rounding untuk presisi (misal 0.01 untuk kg, 1 untuk pcs)",
+      "Protected UoM tidak bisa dihapus (jam, dozen)",
+      "Validasi: factor != 0, rounding > 0, reference factor = 1"
+    ],
+    "sql_constraints": [
+      "factor_gt_zero: factor != 0",
+      "rounding_gt_zero: rounding > 0",
+      "factor_reference_is_one: reference UoM harus factor = 1"
+    ]
+  },
+
+  "contoh_penggunaan": {
+    "kategori_weight": {
+      "name": "Weight",
+      "uom_ids": [
+        {"name": "kg", "uom_type": "reference", "factor": 1, "rounding": 0.01},
+        {"name": "g", "uom_type": "smaller", "factor": 1000, "rounding": 0.001},
+        {"name": "ton", "uom_type": "bigger", "factor": 0.001, "rounding": 0.001}
+      ]
+    },
+    "konversi": {
+      "kg_ke_g": "1 kg = 1000 g (factor 1000)",
+      "g_ke_kg": "1000 g = 1 kg (1/1000)",
+      "kg_ke_ton": "1 kg = 0.001 ton (1/1000)"
+    }
+  },
+
+  "tips_penting": [
+    "1 kategori = 1 jenis ukuran (panjang, berat, volume, dll)",
+    "Reference UoM adalah acuan dengan factor = 1",
+    "UoM dengan uom_type='bigger' memiliki factor < 1 (contoh: ton)",
+    "UoM dengan uom_type='smaller' memiliki factor > 1 (contoh: g)",
+    "Rounding menentukan presisi: 0.01 = 2 desimal, 1 = integer",
+    "UoM yang sudah dipakai (create_date > 1 hari) tidak boleh diubah factor/rounding tanpa warning",
+    "UoM protected (jam, dozen) tidak bisa dihapus, hanya diarchive",
+    "Buat custom UoM dengan prefix x_ untuk menghindari konflik"
+  ],
+
+  "konsep_dasar": {
+    "apa_itu_uom": "Satuan ukur untuk produk (pcs, kg, meter, liter, jam, dll)",
+    "kenapa_penting": "Untuk konversi otomatis antar satuan (misal 1 kg = 1000 g)",
+    "bagaimana_kerja": "Odoo menggunakan factor untuk konversi antar UoM dalam 1 kategori",
+    "contoh_real": "Beli 1 kg gula = 1000 g, Odoo konversi otomatis pakai factor 1000"
+  },
+
+  "protected_uom": {
+    "xml_ids": [
+      "product_uom_hour (jam - dilindungi jika hr_timesheet terinstall)",
+      "product_uom_dozen (lusin - dilindungi)"
+    ],
+    "kenapa_dilindungi": "Karena digunakan oleh sistem (timesheet, dll) dan tidak boleh dihapus"
+  }
+}

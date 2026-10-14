@@ -1,0 +1,17 @@
+{
+  "python.autoComplete.extraPaths": [
+    "./django_app",
+    "./odoo_source/odoo/addons",
+    "./odoo_source/addons",
+    "./custom_addons"
+  ],
+  "python.analysis.extraPaths": [
+    "./django_app",
+    "./odoo_source/odoo/addons",
+    "./odoo_source/addons",
+    "./custom_addons"
+  ],
+  "python.analysis.typeCheckingMode": "basic",
+  "python.languageServer": "None"
+}
+

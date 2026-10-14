@@ -1,0 +1,200 @@
+@import 'tailwindcss';
+
+/* ============================================================
+   THEME TOKENS — OKLCH
+   Sumber kebenaran warna, radius, shadow, font.
+   JANGAN UBAH TANPA PERSETUJUAN.
+   ============================================================ */
+
+@theme {
+  /* ---------- LIGHT MODE (default) ---------- */
+  --color-background: oklch(0.95 0.01 240);
+  --color-foreground: oklch(0.2 0.03 260);
+
+  --color-card: oklch(1 0 0 / 0.5);
+  --color-card-border: oklch(1 0 0 / 0);
+  --color-card-foreground: oklch(0.2 0.03 260);
+
+  --color-popover: oklch(1 0 0 / 0.95);
+  --color-popover-foreground: oklch(0.2 0.03 260);
+
+  --color-primary: oklch(0.2 0.03 260);
+  --color-primary-foreground: oklch(0.98 0 0);
+
+  --color-secondary: oklch(0.92 0.015 240 / 0.6);
+  --color-secondary-foreground: oklch(0.3 0.03 250);
+
+  --color-muted: oklch(0.94 0.01 240);
+  --color-muted-foreground: oklch(0.38 0.025 250);
+
+  --color-border: oklch(0.88 0.01 240 / 0.6);
+  --color-input: oklch(0.88 0.01 240);
+  --color-ring: oklch(0.2 0.03 260);
+
+  --color-accent-blue: oklch(0.62 0.19 255);
+  --color-accent-coral: oklch(0.68 0.18 25);
+
+  /* ---------- STATE (success / warning / danger / info) ---------- */
+  --color-success: oklch(0.55 0.14 155);
+  --color-success-foreground: oklch(0.99 0 0);
+
+  --color-warning: oklch(0.8 0.14 80);
+  --color-warning-foreground: oklch(0.25 0.04 80);
+
+  --color-danger: oklch(0.55 0.19 27);
+  --color-danger-foreground: oklch(0.99 0 0);
+
+  --color-info: oklch(0.55 0.17 255);
+  --color-info-foreground: oklch(0.99 0 0);
+
+  /* ---------- RADIUS ---------- */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) * 2);
+  --radius-card: calc(var(--radius) * 2.33);
+  --radius-pill: 9999px;
+
+  /* ---------- SHADOW ---------- */
+  --shadow-pill: 0 4px 14px 0 oklch(0 0 0 / 0.1);
+  --shadow-soft-card: 0 8px 24px -8px oklch(0 0 0 / 0.12);
+
+  /* ---------- SPACING SCALE (eksplisit; nilai = default Tailwind v4) ---------- */
+  --spacing: 0.25rem;
+
+  /* ---------- FONT ---------- */
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+}
+
+/* ============================================================
+   ROOT VARIABLES (non-@theme) — dipakai via var() di CSS custom
+   ============================================================ */
+
+:root {
+  --radius: 0.75rem;
+
+  --accent-blue-gradient: linear-gradient(
+    180deg,
+    oklch(68.458% 0.16718 252.758) 0%,
+    oklch(51.76% 0.14939 254.105) 100%
+  );
+
+  --bg-gradient-center: oklch(84.068% 0.03313 249.732);
+  --bg-gradient-outer: oklch(94.996% 0.01528 241.978);
+
+  /* CATATAN: `--shadow-soft-card` sudah dipindah & aktif di blok @theme di atas.
+     (Versi lama dikomentari di sini dan mengandalkan "fallback Tailwind" yang
+     sebenarnya tidak ada — `shadow-soft-card` bukan utility bawaan Tailwind v4.) */
+}
+
+/* ============================================================
+   DARK MODE — override token saat <html class="dark">
+   ============================================================ */
+
+.dark {
+  --color-background: oklch(0.12 0.02 260);
+  --color-foreground: oklch(0.96 0.005 240);
+
+  --color-card: oklch(0.18 0.02 260 / 0.6);
+  --color-card-border: oklch(0.26 0.02 260 / 0.5);
+  --color-card-foreground: oklch(0.96 0.005 240);
+
+  --color-popover: oklch(0.18 0.02 260 / 0.95);
+  --color-popover-foreground: oklch(0.96 0.005 240);
+
+  --color-primary: oklch(0.96 0.005 240);
+  --color-primary-foreground: oklch(0.14 0.02 260);
+
+  --color-secondary: oklch(0.24 0.025 260 / 0.5);
+  --color-secondary-foreground: oklch(0.9 0.01 250);
+
+  --color-muted: oklch(0.22 0.02 260);
+  --color-muted-foreground: oklch(0.65 0.02 250);
+
+  --color-border: oklch(0.26 0.02 260 / 0.6);
+  --color-input: oklch(0.26 0.02 260);
+  --color-ring: oklch(0.96 0.005 240);
+
+  --color-accent-blue: oklch(0.68 0.18 250);
+  --color-accent-coral: oklch(0.72 0.18 25);
+
+  /* state — dinaikkan lightness-nya agar kontras di surface gelap */
+  --color-success: oklch(0.68 0.15 155);
+  --color-success-foreground: oklch(0.16 0.02 155);
+
+  --color-warning: oklch(0.82 0.14 80);
+  --color-warning-foreground: oklch(0.2 0.04 80);
+
+  --color-danger: oklch(0.66 0.19 27);
+  --color-danger-foreground: oklch(0.16 0.02 27);
+
+  --color-info: oklch(0.68 0.17 255);
+  --color-info-foreground: oklch(0.16 0.02 255);
+
+  --bg-gradient-center: oklch(27.63% 0.06461 256.572);
+  --bg-gradient-outer: oklch(0.1 0.02 260);
+}
+
+/* ============================================================
+   BASE — background radial mesh di body
+   ============================================================ */
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-foreground);
+  background-image: radial-gradient(
+    circle at 50% 160%,
+    var(--bg-gradient-center) 50%,
+    var(--bg-gradient-outer) 80%
+  );
+  background-attachment: fixed;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================================
+   CUSTOM CLASS — .glass-card & .scrollbar-hide
+   ============================================================ */
+
+.glass-card {
+  background-color: var(--color-card);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--color-card-border);
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================================
+   ANIMASI — ring pulse untuk aksi optimistic (ActionBar §9.3)
+   Hanya memakai token `--color-success` (tanpa warna baru / hex).
+   ============================================================ */
+
+@keyframes ring-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px var(--color-success);
+  }
+  50% {
+    box-shadow: 0 0 0 6px var(--color-success);
+  }
+}
+
+.ring-pulse {
+  animation: ring-pulse 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring-pulse {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--color-success);
+  }
+}

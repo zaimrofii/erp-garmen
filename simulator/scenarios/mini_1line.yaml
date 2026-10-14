@@ -1,0 +1,61 @@
+# Skenario minimum (blueprint §8) — 1 lini, 5 operator, 1 shift 07:00-17:00
+# dikompresi 60x. Semua angka bisa diubah tanpa menyentuh kode Python.
+scenario: "mini_1line"
+description: "Skenario mini: 1 lini, 5 operator, 1 QC, shift 07:00-17:00 (60x)."
+
+factory:
+  lines: 1
+  operators_per_line: 5
+  qc_per_line: 1
+  cutting: 1
+  inventory: 1
+  supervisor: 1
+  ppic: 1
+
+clock:
+  duration: "07:00-17:00"
+  speed: 60
+
+llm:
+  provider: "ollama"
+  model: "qwen2.5:7b"
+  base_url: "http://ollama:11434"
+  temperature: 0.2
+  roles_using_llm: ["operator", "qc"]
+
+anomaly:
+  downtime_prob: 0.05
+  defect_prob: 0.03
+  urgent_order_prob: 0.02
+  cancel_order_prob: 0.01
+  bundle_assigned_prob: 0.30
+
+fatigue:
+  slowdown_hours: ["11:00", "15:00"]
+  slowdown_factor: 0.7
+
+django:
+  base_url: "http://django:8000"
+  api_prefix: "/api/v1"
+
+recording:
+  output: "runs/{scenario}_{timestamp}.jsonl"
+  telemetry: true
+
+# Whitelist endpoint per peran — "METHOD path" harus cocok persis dengan yang
+# dipakai agent (M5). cutting/inventory dinonaktifkan (tool_set kosong → idle):
+# bundle dibuat Django, bukan via API.
+tool_set:
+  cutting: []                 # disabled — bundle dibuat Django, bukan via API
+  inventory: []               # disabled dulu (skip, bukan prioritas)
+  ppic:
+    - "POST /sync/odoo/WIP/"
+  operator:
+    - "POST /garmen/bundles/{id}/BUNDLE_START/"
+    - "POST /garmen/bundles/{id}/BUNDLE_ADVANCE/"
+    - "POST /garmen/bundles/{id}/BUNDLE_QC/"
+    - "POST /garmen/bundles/{id}/BUNDLE_FINISH/"
+    - "POST /garmen/bundles/{id}/BUNDLE_SCRAP/"
+  qc:
+    - "POST /garmen/bundles/{id}/BUNDLE_QC/"
+    - "POST /garmen/bundles/{id}/BUNDLE_SCRAP/"

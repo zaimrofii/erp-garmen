@@ -1,0 +1,342 @@
+{
+  "produk": {
+    "pengantar": {
+      "tujuan": "Modul product adalah inti dari manajemen produk di Odoo. Modul ini mengelola semua data terkait produk, varian, kategori, dan satuan ukur (UoM).",
+      "struktur_utama": {
+        "product.template": "Model untuk produk utama (template) yang berisi atribut produk dan menghasilkan varian",
+        "product.product": "Model untuk varian produk (turunan dari template dengan atribut spesifik)",
+        "product.category": "Model untuk kategori produk (hierarkis)",
+        "product.pricelist": "Model untuk daftar harga (tidak dijelaskan dalam file ini)",
+        "product.supplierinfo": "Model untuk informasi pemasok (tidak dijelaskan dalam file ini)"
+      },
+      "konsep_dasar": {
+        "template_vs_variant": "Template adalah produk umum (contoh: Kaos), Varian adalah produk spesifik (contoh: Kaos Merah L)",
+        "atribut": "Template memiliki atribut (warna, ukuran) yang menghasilkan varian",
+        "harga": "Template memiliki harga dasar, varian memiliki harga tambahan (extra price)"
+      }
+    },
+
+    "product_template": {
+      "nama": "Template Produk",
+      "deskripsi": "Model utama untuk produk yang berisi atribut dasar dan menghasilkan varian",
+      "field_utama": {
+        "name": "Nama produk (required, translateable)",
+        "type": "Tipe: consu (konsumsi) / service (jasa)",
+        "detailed_type": "Sub-tipe lebih detail",
+        "categ_id": "Kategori produk (Many2one ke product.category)",
+        "list_price": "Harga jual (catalog price)",
+        "standard_price": "Harga pokok/biaya (compute, inverse)",
+        "uom_id": "Satuan ukur default (Many2one ke uom.uom)",
+        "uom_po_id": "Satuan ukur pembelian (harus kategori sama dengan uom_id)",
+        "seller_ids": "Daftar pemasok (One2many ke product.supplierinfo)",
+        "attribute_line_ids": "Atribut produk (One2many ke product.template.attribute.line)",
+        "product_variant_ids": "Daftar varian produk (One2many ke product.product)",
+        "weight": "Berat (kompute dari varian)",
+        "volume": "Volume (kompute dari varian)",
+        "barcode": "Barcode (kompute dari varian)",
+        "default_code": "Kode internal/referensi (kompute dari varian)",
+        "active": "Aktif? (boolean)",
+        "company_id": "Perusahaan (Many2one ke res.company)",
+        "product_properties": "Properties produk (dinamis)"
+      },
+      "method_penting": {
+        "create": "Buat template, otomatis buat varian pertama",
+        "write": "Update template, sync ke varian jika perlu",
+        "_create_variant_ids": "Generate varian berdasarkan atribut",
+        "_get_variant_for_combination": "Cari varian berdasarkan kombinasi atribut",
+        "_create_product_variant": "Buat varian baru jika kombinasi valid",
+        "_is_combination_possible": "Cek apakah kombinasi valid",
+        "_get_possible_combinations": "Generator semua kombinasi yang mungkin",
+        "_get_closest_possible_combinations": "Generator kombinasi terdekat"
+      },
+      "fitur_utama": [
+        "Multi-varian (warna, ukuran, dll)",
+        "Atribut dinamis (create_variant = dynamic/no/always)",
+        "Automatic variant generation",
+        "Komputasi dari varian (weight, volume, barcode, default_code)",
+        "Validasi UoM (uom_id dan uom_po_id harus 1 kategori)",
+        "Pencarian produk berdasarkan default_code, barcode, name"
+      ]
+    },
+
+    "product_product": {
+      "nama": "Varian Produk",
+      "deskripsi": "Model untuk varian spesifik dari template produk",
+      "field_utama": {
+        "product_tmpl_id": "Template produk (Many2one ke product.template)",
+        "product_template_attribute_value_ids": "Kombinasi atribut (Many2many)",
+        "price_extra": "Harga tambahan dari atribut (compute)",
+        "lst_price": "Harga jual (list_price + price_extra)",
+        "barcode": "Barcode varian",
+        "default_code": "Kode internal varian",
+        "active": "Aktif? (boolean)",
+        "standard_price": "Harga pokok (company_dependent)",
+        "weight": "Berat varian",
+        "volume": "Volume varian",
+        "image_variant_1920": "Gambar varian (bisa berbeda dari template)"
+      },
+      "method_penting": {
+        "_compute_display_name": "Format display: [default_code] name (attribute values)",
+        "_name_search": "Pencarian dengan heuristik (default_code, barcode, name, supplier info)",
+        "_check_barcode_uniqueness": "Validasi barcode unik per company (termasuk packaging)",
+        "_unlink_or_archive": "Archive/delete varian dengan fallback",
+        "toggle_active": "Archive/activate varian dan template terkait"
+      },
+      "fitur_utama": [
+        "Mewarisi field dari template",
+        "Gambar varian (fallback ke template jika kosong)",
+        "Barcode unik per company",
+        "Display name: [default_code] name (variant)",
+        "Pencarian supplier info",
+        "Validasi barcode dengan packaging"
+      ]
+    },
+
+    "product_category": {
+      "nama": "Kategori Produk",
+      "deskripsi": "Model untuk kategori produk (hierarkis)",
+      "field_utama": {
+        "name": "Nama kategori (required)",
+        "complete_name": "Nama lengkap (parent / child)",
+        "parent_id": "Kategori induk (Many2one)",
+        "child_id": "Sub-kategori (One2many)",
+        "product_count": "Jumlah produk (compute)",
+        "product_properties_definition": "Definisi properties (PropertiesDefinition)"
+      },
+      "method_penting": {
+        "_compute_complete_name": "Buat nama lengkap: parent / child",
+        "_compute_product_count": "Hitung produk di kategori dan sub-kategori",
+        "_check_category_recursion": "Cegah siklus",
+        "_unlink_except_default_category": "Cegah hapus kategori default"
+      },
+      "fitur_utama": [
+        "Hierarki kategori (tree view)",
+        "Parent-child relationship",
+        "Auto-complete name",
+        "Product count per kategori (termasuk sub)",
+        "Kategori default tidak bisa dihapus"
+      ]
+    },
+
+    "konsep_penting": {
+      "atribut_dan_varian": {
+        "create_variant": {
+          "always": "Selalu buat varian untuk semua kombinasi",
+          "dynamic": "Buat varian on-demand (saat dibutuhkan)",
+          "no": "Tidak buat varian (atribut hanya informasi)"
+        },
+        "display_type": {
+          "select": "Pilihan tunggal (radio)",
+          "multi": "Pilihan ganda (checkbox)",
+          "color": "Pilihan warna"
+        },
+        "price_extra": "Harga tambahan untuk nilai atribut tertentu"
+      },
+      "image_fallback": {
+        "variant_has_image": "Pakai gambar varian",
+        "variant_no_image": "Pakai gambar template"
+      },
+      "barcode_uniqueness": "Barcode unik per company (termasuk packaging)",
+      "display_name_format": "[default_code] name (attribute values)"
+    },
+
+    "tips_penting": [
+      "Template = produk umum, Variant = produk spesifik",
+      "Atribut dengan create_variant='always' akan generate semua kombinasi (bisa banyak!)",
+      "Atribut create_variant='dynamic' lebih efisien untuk produk dengan banyak kombinasi",
+      "Harga dasar di template, harga tambahan di nilai atribut",
+      "Gambar varian fallback ke template jika kosong",
+      "Barcode harus unik per company (cek dengan packaging)",
+      "UoM pembelian (uom_po_id) harus 1 kategori dengan uom_id",
+      "Kategori produk bisa nested (parent-child)",
+      "Product properties: field dinamis yang bisa diisi per kategori",
+      "Pencarian produk: default_code, barcode, name, supplier info"
+    ],
+
+    "contoh_penggunaan": {
+      "kaos": {
+        "template": {
+          "name": "Kaos Polos",
+          "categ_id": "Pakaian",
+          "list_price": 100000,
+          "uom_id": "unit"
+        },
+        "atribut": [
+          {"attribute": "Warna", "values": ["Merah", "Biru", "Hitam"]},
+          {"attribute": "Ukuran", "values": ["S", "M", "L", "XL"]}
+        ],
+        "varian": [
+          {"Kaos Merah S": {"price_extra": 0}},
+          {"Kaos Biru L": {"price_extra": 5000}},
+          {"Kaos Hitam XL": {"price_extra": 10000}}
+        ]
+      }
+    }
+  },
+  
+  "produk_atribut": {
+    "product_attribute": {
+      "nama": "Atribut Produk",
+      "deskripsi": "Model untuk atribut produk (warna, ukuran, bahan, dll) yang digunakan untuk membuat varian",
+      "field_utama": {
+        "name": "Nama atribut (required, translateable)",
+        "create_variant": "Mode pembuatan varian: always (instan) / dynamic (dinamis) / no_variant (tidak pernah)",
+        "display_type": "Tipe tampilan: radio / pills / select / color / multi (checkbox)",
+        "sequence": "Urutan tampilan (default 20)",
+        "value_ids": "Daftar nilai atribut (One2many ke product.attribute.value)",
+        "product_tmpl_ids": "Produk terkait (compute, Many2many)"
+      },
+      "method_penting": {
+        "write": "Cegah perubahan create_variant jika sudah dipakai produk",
+        "_unlink_except_used_on_product": "Cegah hapus atribut jika sudah dipakai produk"
+      },
+      "fitur_utama": [
+        "3 mode varian: always (semua kombinasi dibuat), dynamic (on-demand), no_variant (opsi saja)",
+        "5 tipe display: radio, pills, select, color, multi-checkbox",
+        "Validasi: multi-checkbox hanya bisa dengan no_variant",
+        "Cegah hapus jika sudah dipakai produk"
+      ]
+    },
+
+    "product_attribute_value": {
+      "nama": "Nilai Atribut",
+      "deskripsi": "Model untuk nilai dari atribut (Merah, Biru, S, M, L, dll)",
+      "field_utama": {
+        "name": "Nilai (required, translateable)",
+        "attribute_id": "Atribut induk (Many2one ke product.attribute)",
+        "sequence": "Urutan tampilan",
+        "default_extra_price": "Harga tambahan default",
+        "is_custom": "Apakah nilai custom (bisa diisi user)",
+        "html_color": "Warna HTML (untuk display_type=color)",
+        "image": "Gambar untuk nilai (untuk display_type=color)",
+        "color": "Index warna (integer)",
+        "is_used_on_products": "Apakah sudah dipakai produk? (compute)"
+      },
+      "method_penting": {
+        "_compute_display_name": "Format: 'Attribute: Value' (jika show_attribute=True)",
+        "write": "Cegah ubah attribute_id jika sudah dipakai produk",
+        "_unlink_except_used_on_product": "Cegah hapus jika sudah dipakai produk"
+      },
+      "fitur_utama": [
+        "Nilai unik per atribut",
+        "Bisa punya harga tambahan (price_extra)",
+        "Bisa custom (user input)",
+        "Bisa punya gambar/warna",
+        "Cegah hapus/ubah jika sudah dipakai"
+      ]
+    },
+
+    "pricelist": {
+      "nama": "Daftar Harga",
+      "deskripsi": "Model untuk daftar harga (pricelist) yang digunakan untuk menentukan harga jual",
+      "field_utama": {
+        "name": "Nama pricelist (required, translateable)",
+        "active": "Aktif? (boolean)",
+        "sequence": "Urutan (default 16)",
+        "currency_id": "Mata uang (required)",
+        "company_id": "Perusahaan",
+        "country_group_ids": "Group negara (Many2many ke res.country.group)",
+        "discount_policy": "Kebijakan diskon: with_discount / without_discount",
+        "item_ids": "Aturan pricelist (One2many ke product.pricelist.item)"
+      },
+      "method_penting": {
+        "_get_product_price": "Dapatkan harga untuk 1 produk",
+        "_get_products_price": "Dapatkan harga untuk banyak produk",
+        "_get_product_price_rule": "Dapatkan harga + rule yang dipakai",
+        "_compute_price_rule": "Low-level: cari rule yang sesuai",
+        "_get_partner_pricelist_multi": "Dapatkan pricelist untuk partner (prioritas: property → country → fallback)"
+      },
+      "fitur_utama": [
+        "Multi-currency support",
+        "Prioritas: property partner → country group → fallback",
+        "2 kebijakan diskon: included (harga final) / show (harga sebelum diskon)",
+        "Aturan berdasarkan: produk, kategori, global",
+        "Mendukung base price dari: sales price, cost, other pricelist"
+      ]
+    },
+
+    "pricelist_item": {
+      "nama": "Aturan Pricelist",
+      "deskripsi": "Model untuk aturan dalam pricelist (satu pricelist bisa punya banyak aturan)",
+      "field_utama": {
+        "pricelist_id": "Pricelist induk (Many2one)",
+        "applied_on": "Terapkan pada: 3_global / 2_product_category / 1_product / 0_product_variant",
+        "categ_id": "Kategori produk (jika applied_on=category)",
+        "product_tmpl_id": "Template produk (jika applied_on=product)",
+        "product_id": "Varian produk (jika applied_on=product_variant)",
+        "min_quantity": "Min. quantity (default 0)",
+        "date_start": "Tanggal mulai berlaku",
+        "date_end": "Tanggal akhir berlaku",
+        "base": "Base price: list_price / standard_price / pricelist",
+        "base_pricelist_id": "Pricelist lain (jika base=pricelist)",
+        "compute_price": "Metode: fixed (fixed price) / percentage (discount) / formula",
+        "fixed_price": "Harga tetap",
+        "percent_price": "Diskon persentase",
+        "price_discount": "Diskon (formula)",
+        "price_surcharge": "Biaya tambahan (formula)",
+        "price_round": "Pembulatan",
+        "price_min_margin": "Margin minimum",
+        "price_max_margin": "Margin maksimum"
+      },
+      "method_penting": {
+        "_compute_price": "Hitung harga berdasarkan aturan",
+        "_compute_base_price": "Hitung base price (list_price / cost / other pricelist)",
+        "_is_applicable_for": "Cek apakah aturan berlaku untuk produk & qty"
+      },
+      "fitur_utama": [
+        "4 level: global, category, product, variant",
+        "3 metode: fixed, percentage (discount), formula",
+        "3 base price: sales price, cost, other pricelist",
+        "Support: min quantity, date range, margin, rounding, surcharge",
+        "Validasi: margin min ≤ max, date range valid, no recursion"
+      ]
+    },
+
+    "contoh_penggunaan": {
+      "kasus_harga": {
+        "pricelist_retail": {
+          "name": "Harga Retail",
+          "currency_id": "IDR",
+          "discount_policy": "with_discount"
+        },
+        "aturan_retail": {
+          "applied_on": "1_product",
+          "product_tmpl_id": "Kaos Polos",
+          "min_quantity": 1,
+          "base": "list_price",
+          "compute_price": "percentage",
+          "percent_price": 10
+        },
+        "aturan_grosir": {
+          "applied_on": "1_product",
+          "product_tmpl_id": "Kaos Polos",
+          "min_quantity": 10,
+          "base": "list_price",
+          "compute_price": "percentage",
+          "percent_price": 20
+        }
+      },
+      "kasus_atribut": {
+        "atribut": {"name": "Warna", "create_variant": "always", "display_type": "color"},
+        "nilai": [
+          {"name": "Merah", "html_color": "#FF0000", "default_extra_price": 0},
+          {"name": "Biru", "html_color": "#0000FF", "default_extra_price": 5000},
+          {"name": "Hitam", "html_color": "#000000", "default_extra_price": 10000}
+        ]
+      }
+    },
+
+    "tips_penting": [
+      "Atribut dengan create_variant='always' akan generate semua kombinasi (bisa banyak!)",
+      "Gunakan create_variant='dynamic' untuk produk dengan banyak kombinasi (lebih efisien)",
+      "Multi-checkbox display_type hanya bisa dengan create_variant='no_variant'",
+      "Pricelist rule dengan min_quantity memungkinkan diskon bertingkat (qty-based)",
+      "Pricelist bisa saling referensi (base='pricelist') untuk diskon bertingkat",
+      "Aturan pricelist diurutkan berdasarkan: applied_on, min_quantity, category, id",
+      "Harga tambahan atribut (price_extra) ditambahkan ke list_price",
+      "Atribut/nilai yang sudah dipakai produk tidak bisa dihapus/diubah type-nya",
+      "Pricelist dicari dengan prioritas: property partner → country group → fallback",
+      "Untuk multi-company, pricelist hanya berlaku di company-nya"
+    ]
+  }
+}

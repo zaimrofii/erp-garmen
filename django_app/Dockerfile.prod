@@ -1,0 +1,88 @@
+# syntax=docker/dockerfile:1
+# ============================================================
+# F3-B.2.1 — Dockerfile PRODUCTION (ASGI/daphne)
+#
+# Beda dari `Dockerfile` (DEV):
+#   * CMD = `daphne ... config.asgi:application` (ASGI) — bukan gunicorn WSGI,
+#     supaya WebSocket `/ws/events/` (channels) hidup.
+#   * COPY selektif: `tests/`, `logs/`, `runs/`, `docs/`, `venv/`, `.env`,
+#     `simulator/`, `trace_bridge/` TIDAK ikut ke image.
+#   * Sama: base python:3.11-slim, multi-stage, user non-root.
+#
+# Build (via compose prod):
+#   docker compose -f docker-compose.prod.yml build django
+# ============================================================
+
+# ---------------------------------------------------------------------------
+# Stage 1 — builder (compile dependency)
+# ---------------------------------------------------------------------------
+FROM python:3.11-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /app
+
+COPY requirements.txt /app/requirements.txt
+RUN pip install --upgrade pip setuptools wheel \
+    && pip install -r /app/requirements.txt
+
+# ---------------------------------------------------------------------------
+# Stage 2 — runtime (tanpa compiler; hanya libpq + curl)
+# ---------------------------------------------------------------------------
+FROM python:3.11-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    DJANGO_SETTINGS_MODULE=config.settings \
+    PATH="/opt/venv/bin:$PATH"
+
+# libpq5 = runtime psycopg3, curl = HEALTHCHECK.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libpq5 \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG APP_UID=1000
+ARG APP_GID=1000
+RUN groupadd --gid "${APP_GID}" appuser \
+    && useradd --uid "${APP_UID}" --gid "${APP_GID}" \
+               --create-home --shell /bin/bash appuser
+
+COPY --from=builder --chown=appuser:appuser /opt/venv /opt/venv
+
+WORKDIR /app
+
+# COPY selektif (TANPA tests/logs/runs/docs/venv/.env/simulator/trace_bridge).
+COPY --chown=appuser:appuser manage.py ./manage.py
+COPY --chown=appuser:appuser config ./config
+COPY --chown=appuser:appuser core ./core
+COPY --chown=appuser:appuser apps_industry ./apps_industry
+COPY --chown=appuser:appuser integrations ./integrations
+COPY --chown=appuser:appuser master ./master
+COPY --chown=appuser:appuser scripts ./scripts
+COPY --chown=appuser:appuser tools ./tools
+
+RUN mkdir -p /app/staticfiles /app/media /app/logs \
+    && chown -R appuser:appuser /app
+
+USER appuser
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -fsS http://localhost:8000/api/health/ || exit 1
+
+# ASGI runtime (channels + daphne). Di-override oleh compose bila perlu.
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "config.asgi:application"]

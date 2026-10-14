@@ -1,0 +1,1255 @@
+{
+  "project": {
+    "name": "odoo-garmen-project",
+    "blueprint": "v4.3",
+    "architecture": "Modular Monolith: config/ + core/ + apps_industry/garment/ + integrations/ + master/",
+    "current_phase": "H5 SELESAI (8/8 — H5.4 Permission Matrix + H5.7 Printer Config + H5.5 Audit Log Viewer + H5.8 WA Gateway Config + H5.6 Integration Config + H5.1 Company Profile + H5.2 Currency CRUD + H5.3 Number Sequence CRUD) + H4 SELESAI (8/8: H4.1 Penjualan + H4.2 Pembelian + H4.3 Stok + H4.4 HPP + H4.5 Laba-Rugi + H4.6 Produksi + H4.7 Dashboard Eksekutif + H4.8 Export Excel/PDF) + H3 SELESAI (Finance 6/6) + H1 SELESAI (Master 9/9) + H2 SELESAI (Transaksi 6/6) + Sprint C (Number Sequence). H5 (Settings & Admin) SELESAI: 8/8 (H5.1–H5.8) — fase ditutup; menunggu arahan fase berikutnya.",
+    "concept": "MES = ERP Produksi (single point of input). Odoo = back-office pasif. Sync: master dua arah, transaksi satu arah (MES → Odoo).",
+    "frontend_repo": "frontend_app_v2/ (hand-coded React); arsip: frontend_app/ (v1 metadata-driven)",
+    "last_updated": "2026-10-14",
+    "test_count_total": 2348,
+    "test_pre_existing_failures": 7,
+    "test_note": "Pre-existing: 3× test_sync_endpoint (patch .delay vs apply_async), test_audit_integration, test_e2e_bundle_flow, test_invoice_listener (urutan registry), flake test_trace_bridge_e2e. BUKAN regresi. H4.1 menambah 20 test (tests/integration/test_reports_sales.py) → 2050 + 20 = 2070. H4.2 menambah 20 test (tests/integration/test_reports_purchases.py) → 2070 + 20 = 2090; run penuh H4.2 = 2091 passed / 6 failed / 1 skipped (flake test_trace_bridge_e2e LULUS run ini sehingga daftar 7 pre-existing menyisakan 6 — BUKAN regresi). H4.3 menambah 18 test (tests/integration/test_reports_stock.py) → 2091 + 18 = 2109; run penuh H4.3 = 2109 passed / 6 failed / 1 skipped (set pre-existing SAMA). H4.4 menambah 18 test (tests/integration/test_reports_cogs.py) → 2109 + 18 = 2127; run penuh H4.4 = 2126 passed / 7 failed (flake test_trace_bridge_e2e FAILED run ini sehingga daftar 7 pre-existing LENGKAP) / 1 skipped. H4.5 menambah 18 test (tests/integration/test_reports_pnl.py) → 2126 + 18 = 2144; run penuh H4.5 = 2144 passed / 7 failed (daftar pre-existing yang sama) / 1 skipped. H4.6 menambah 20 test (tests/integration/test_reports_production.py) → 2144 + 20 = 2164; run penuh H4.6 = 2164 passed / 7 failed (daftar pre-existing SAMA) / 1 skipped. H5.3 menambah 18 test (tests/integration/test_master_sequences_crud.py) → 2203 + 18 = 2221; run penuh H5.3 = 2222 passed / 6 failed (flake test_trace_bridge_e2e LULUS run ini sehingga daftar 7 pre-existing menyisakan 6 — BUKAN regresi) / 1 skipped. H5.2 menambah 20 test (tests/integration/test_currencies_crud.py) → 2221 + 20 = 2241; run penuh H5.2 = 2241 passed / 7 failed (daftar pre-existing LENGKAP — flake test_trace_bridge_e2e FAILED run ini) / 1 skipped. H5.1 menambah 14 test (tests/integration/test_company_crud.py) → 2241 + 14 = 2255; run penuh H5.1 = 2255 passed / 7 failed (flake test_trace_bridge_e2e FAILED run ini sehingga daftar 7 pre-existing LENGKAP — BUKAN regresi) / 1 skipped. H5.6 menambah 18 test (tests/integration/test_integration_config_crud.py) → 2255 + 18 = 2273; run penuh H5.6 = 2273 passed / 7 failed (flake test_trace_bridge_e2e FAILED run ini sehingga daftar 7 pre-existing LENGKAP — BUKAN regresi) / 1 skipped. H5.8 menambah 18 test (tests/integration/test_wa_config_crud.py) → 2273 + 18 = 2291; run penuh H5.8 = 2291 passed / 7 failed (daftar pre-existing SAMA: 3× test_sync_endpoint, test_audit_integration, test_e2e_bundle_flow, test_invoice_listener, flake test_trace_bridge_e2e) / 1 skipped. Catatan H5.8: 1 test kontrak enum (test_sync_record_model) diupdate ADITIF karena SyncResource +MASTER_WA_CONFIG. H5.5 menambah 20 test (tests/integration/test_audit_log_viewer.py) → 2291 + 20 = 2311; run penuh H5.5 = 2312 passed / 6 failed (flake test_trace_bridge_e2e LULUS run ini sehingga daftar 7 pre-existing menyisakan 6 — BUKAN regresi) / 1 skipped. Catatan H5.5: TIDAK ada migrasi/model baru (AuditLog append-only dibaca apa adanya) + path frontend /settings/audit-log (hindari bentrok F9 /settings/audit). H5.7 menambah 19 test (tests/integration/test_printer_config_crud.py) → 2311 + 19 = 2330; run penuh H5.7 = 2330 passed / 7 failed (flake test_trace_bridge_e2e FAILED run ini sehingga daftar 7 pre-existing LENGKAP — BUKAN regresi) / 1 skipped. Catatan H5.7: 1 test kontrak enum (test_sync_record_model) diupdate ADITIF karena SyncResource +MASTER_PRINTER_CONFIG; integration-config.md += §1.5b PRINTER + .env.example += blok PRINTER_*. H5.4 menambah 18 test (tests/integration/test_permission_matrix_crud.py) → 2330 + 18 = 2348; run penuh H5.4 = 2348 passed / 7 failed (flake test_trace_bridge_e2e FAILED run ini sehingga daftar 7 pre-existing LENGKAP — BUKAN regresi) / 1 skipped. Catatan H5.4: 1 test kontrak enum diupdate ADITIF karena SyncResource +ROLE_PERMISSION_MATRIX; TIDAK ada guard/perilaku izin yang diubah (overlay murni).",
+    "test_h4_1": "tests/integration/test_reports_sales.py — 20 test hijau (default bulan berjalan, prioritas param, filter, group_by, summary piutang/kas, cache/nocache, 400, non-breaking B13/B16).",
+    "test_h4_2": "tests/integration/test_reports_purchases.py — 20 test hijau (default bulan berjalan, prioritas param, filter vendor/product/status, group_by=period|vendor|product, summary utang bill/kas keluar, cache/nocache, 400, non-breaking B11/H4.1).",
+    "test_h4_3": "tests/integration/test_reports_stock.py — 18 test hijau (snapshot group_by=product/location, filter MES pk location/product, search, only_nonzero, 400, cache 1-RPC, fail-safe tanpa client/Odoo error/tanpa lokasi, non-breaking I7/B30/H4.1/H4.2).",
+    "test_h4_4": "tests/integration/test_reports_cogs.py — 18 test hijau (default bulan, ?period/?date range/alias, filter customer/product/order_type, CANCELLED dibuang, group_by=period|customer|product, cost_price=0 & product NULL → COGS 0 + flag no_cost/no_product, margin 0 saat omzet 0, cache hit 0 query, 400, non-breaking H4.1/H4.3/cost_price).",
+    "test_h4_5": "tests/integration/test_reports_pnl.py — 18 test hijau (default bulan, ?period/range/alias, group_by=period|quarter, formula revenue/cogs/gross, opex jurnal CONFIRMED|SENT|DONE (kredit mengurangi, non-expense & DRAFT/CANCELLED dikecualikan), bucket opex-only muncul + Sigma baris == summary, CANCELLED dibuang, margin 0 saat revenue 0, opex unavailable → opex null + net = gross + warning, cache hit 0 query, 400, non-breaking H4.1–H4.4 + H3.4).",
+    "test_h4_6": "tests/integration/test_reports_production.py — 20 test hijau (default bulan, ?period/range/alias, group_by=period|work_center|line, filter work_center_id/line_id, union bucket output+scrap, output/CANCELLED, scrap_pct + rework/end_loss terpisah, denominator 0, efisiensi B13 (period & WC), OTD order-level + null di WC/line, bundle_count/wo_count, cache 0 query, 400, non-breaking B13/B16/B18–B21 + H2.3/H2.4 + H4.1–H4.5)."
+  },
+
+  "sprint_progress": {
+    "note": "FASE H1 (9/9), H2 (6/6), H3 (6/6), Sprint C selesai; FASE H4 SELESAI 8/8 (H4.1–H4.8).",
+    "sprint_C_number_sequence": "done — model NumberSequence + service + seed 7 prefix (SO/PO/WO/INV/VB/PAY/JE); MES-only SKIPPED; 16 test backend + 12 frontend",
+    "sprint_H4_1_report_sales": "done — GET /api/v1/reports/sales/ (read-only agregat Order/OrderLine + CustomerInvoice + Payment INBOUND; cache 300 dtk + ?_nocache=1); 20 test backend + 16 test frontend",
+    "sprint_H4_2_report_purchases": "done — GET /api/v1/reports/purchases/ (read-only agregat PurchaseOrder/PurchaseOrderLine + VendorBillLine + Payment OUTBOUND; cache 300 dtk + ?_nocache=1); 20 test backend + 16 test frontend",
+    "sprint_H4_3_report_stock": "done — GET /api/v1/reports/stock/ (snapshot Odoo stock.quant LIVE via I7 = 2 RPC; rows product/location + reserved/available; cache 300 dtk + ?_nocache=1; tanpa tabel stok); 18 test backend + 16 test frontend",
+    "sprint_H4_4_report_cogs": "done — GET /api/v1/reports/cogs/ (read-only omzet vs HPP simplified qty x cost_price → laba kotor + margin %; flag rows_with_missing_cost; cache 300 dtk + ?_nocache=1); 18 test backend + 16 test frontend",
+    "sprint_H4_5_report_pnl": "done — GET /api/v1/reports/pnl/ (read-only revenue - HPP simplified - opex jurnal H3.4 = laba bersih + margin %; opex_source journal_entry|unavailable; cache 300 dtk + ?_nocache=1); 18 test backend + 16 test frontend",
+    "sprint_H4_6_report_production": "done — GET /api/v1/reports/production/ (read-only output/scrap/efisiensi/OTD per periode|work_center|line; basis ganda BundleEvent.ts + ScrapAccumulator.created_at; cache 300 dtk + ?_nocache=1); 20 test backend + 16 test frontend",
+    "sprint_H4_7_dashboard_executive": "done — GET /api/v1/dashboard/executive/ (read-only ORKESTRASI helper internal H4.1–H4.6 — tanpa duplikasi rumus; nested per laporan + alerts list[str]; fail-safe partial; ≤ 15 query DB (terukur 9) + 2 RPC Odoo; cache 300 dtk + ?_nocache=1); 18 test backend + 16 test frontend",
+    "sprint_H4_8_export_excel_pdf": "done — POST /api/v1/export/<report>/ (read-only ORKESTRASI helper internal H4.1–H4.7 lewat shim request; 7 laporan x 2 format; berkas binary + Content-Disposition; 21 test backend + 22 test frontend)",
+    "next": "**FASE H5 SELESAI (8/8)** — semua modul Settings & Admin tuntas (H5.1–H5.8). Tidak ada modul H5 tersisa; menunggu arahan user untuk fase berikutnya (mis. enforcement matrix izin / sprint baru)."
+  },
+
+  "h1_progress": {
+    "status": "complete",
+    "H1.1": "Product CRUD (fields baru: category, uom FK, sale_price, cost_price, weight, image_url)",
+    "H1.2": "UoM CRUD (category, uom_type, factor, rounding) + dropdown UoM di form produk",
+    "H1.3": "Warehouse CRUD (reception_steps, delivery_steps); push Odoo create + update",
+    "H1.4": "Location CRUD (usage 7 nilai, parent self-FK, warehouse FK); push create + update",
+    "H1.5": "BOM CRUD (header + lines inline; validasi siklus + self-reference 400)",
+    "H1.6": "Partner CRUD (is_customer, is_vendor, is_company, email, phone, city, address, npwp, rank) + push/pull kontak",
+    "H1.7": "Work Center CRUD (wc_type, capability_tags, capacity_per_hour) — MES-only SKIPPED",
+    "H1.8": "Production Line CRUD (capability_tags, M2M work_centers) — MES-only SKIPPED",
+    "H1.9": "Routing DAG CRUD (extend B22 di tempat + CRUD step/node + validasi siklus) — MES-only SKIPPED"
+  },
+
+  "h2_progress": {
+    "status": "complete (6/6)",
+    "H2.1": "Sales Order + OrderLine (nested CRUD + transisi §14; push sale.order saat CONFIRMED; nomor next_number('SO'))",
+    "H2.2": "Purchase Order + PO Line (greenfield; push purchase.order; nomor 'PO' → partner_ref; baris pakai taxes_id)",
+    "H2.3": "Work Order (extend F2/F3: create/PUT/DELETE hibrida/split/batch generate-wo; MES-only SKIPPED)",
+    "H2.4": "Bundle (extend: CRUD objek + split/merge; MES-only SKIPPED sebagai objek; pergerakan stok tetap WIP/FG)",
+    "H2.5": "Inventory Adjustment (LOG + snapshot qty Odoo; push stock.quant action_apply_inventory; guard usage internal; lot/serial ditolak)",
+    "H2.6": "Stock Transfer (LOG; push stock.picking button_validate; guard kedua lokasi internal; lot/serial ditolak)",
+    "note": "H2 = transaksi satu arah MES → Odoo. State machine §14. H2.3 & H2.4 pengecualian MES-only (SKIPPED ledger)."
+  },
+
+  "h3_progress": {
+    "status": "complete (6/6)",
+    "H3.5": "Product Price (pull harga isi-bila-0, audit master.update_price, endpoint price/price-history, UI kartu + riwayat)",
+    "H3.6": "Tax Config (extend master.Tax: amount/amount_type/type_tax_use/price_include/is_default; seed PPN 11%; CRUD + push + pull; UI + dropdown pajak di SO/PO)",
+    "H3.1": "Customer Invoice (greenfield + resource customer_invoice + stage INVOICE reuse; push account.move out_invoice draft; guard price_unit > 0)",
+    "H3.2": "Vendor Bill (greenfield + resource vendor_bill + STAGE BARU VENDOR_BILL; push account.move in_invoice draft; guard price_unit ≥ 0)",
+    "H3.3": "Payment (greenfield Payment INBOUND/OUTBOUND; resource payment + STAGE BARU PAYMENT; guard anti-overpay 400; push account.payment draft)",
+    "H3.4": "Journal Entry Manual (greenfield JournalEntry/JournalEntryLine double-entry; resource journal_entry + STAGE BARU JOURNAL_ENTRY; push account.move entry draft; action_post TIDAK dipanggil)"
+  },
+
+  "h4_progress": {
+    "status": "complete (8/8) — FASE H4 SELESAI",
+    "H4.1": "Sales Report (READ-ONLY): GET /reports/sales/ — agregat Order/OrderLine (basis Order.created_at, akrual) + piutang CustomerInvoiceLine + kas masuk Payment INBOUND; ?period/?date_from/?date_to/?from/?to, ?customer_id, ?product_id, ?order_type, ?group_by=period|customer|product, ?_nocache=1; cache 300 dtk",
+    "H4.2": "done — Purchases Report (READ-ONLY): GET /reports/purchases/ — agregat PurchaseOrder/PurchaseOrderLine (basis PurchaseOrder.created_at, akrual) + utang VendorBillLine + kas keluar Payment OUTBOUND; ?period/?date_from/?date_to/?from/?to, ?vendor_id, ?product_id, ?status, ?group_by=period|vendor|product, ?_nocache=1; cache 300 dtk",
+    "H4.3": "done — Stock Report (READ-ONLY, SNAPSHOT): GET /reports/stock/ — Odoo stock.quant LIVE via I7 (fetch_internal_locations + fetch_stock_quants child_of=True = 2 RPC); quantity/reserved_quantity + available dihitung MES; ?location_id (pk MES, internal), ?product_id, ?search, ?group_by=product|location, ?only_nonzero=1, ?_nocache=1; TANPA rentang; cache 300 dtk; tanpa tabel stok/§4",
+    "H4.4": "done — COGS/HPP Report (READ-ONLY): GET /reports/cogs/ — omzet (qty x price_unit) vs HPP simplified (qty x Product.cost_price) → laba kotor + margin %; basis Order.created_at (accrual), CANCELLED dibuang; ?period/?date_from/?date_to/?from/?to, ?customer_id, ?product_id, ?order_type, ?group_by=period|customer|product, ?_nocache=1; cost_price=0 / product NULL → HPP 0 + flag; cache 300 dtk",
+    "H4.5": "done — PnL/Laba-Rugi Report (READ-ONLY): GET /reports/pnl/ — revenue (qty x price_unit) - HPP simplified (qty x cost_price) = laba kotor; - opex (JournalEntryLine expense H3.4, state CONFIRMED|SENT|DONE, entry_date) = laba bersih; ?period/?date_from/?date_to/?from/?to, ?group_by=period|quarter (YYYY-MM/YYYY-Qn), ?_nocache=1; opex_source journal_entry|unavailable (opex null + net = gross bila chart of accounts expense belum ada); cache 300 dtk; TANPA customer/product",
+    "H4.6": "done — Production Report (READ-ONLY, SUPERSET B13/B16/B18–B21 + dimensi periode): GET /reports/production/ — output = Sigma Bundle.qty_done (FINISH BundleEvent.ts, state != CANCELLED, 1 bundle 1x), scrap = Sigma ScrapAccumulator.qty (created_at), efisiensi = rumus B13, OTD = pola B20 (order-level); ?period/?date_from/?date_to/?from/?to, ?group_by=period|work_center|line, ?work_center_id, ?line_id, ?_nocache=1; rework/end_loss terpisah; bucket union output+scrap; cache 300 dtk; TANPA currency",
+    "H4.7": "done — Executive Dashboard (READ-ONLY, ORKESTRASI 6 laporan): GET /dashboard/executive/ — sales/purchases/stock/cogs/pnl/production dalam satu periode + alerts[]; angka dari helper internal H4.1–H4.6 (bukan view HTTP, bukan rumus baru); ?period/?date_from/?date_to/?from/?to, ?_nocache=1; stock = null bila Odoo tak terbaca (fail-safe PARTIAL) + alert; ≤ 15 query DB (terukur 9); cache 300 dtk",
+    "H4.8": "done — Export Excel/PDF (READ-ONLY, ORKESTRASI): POST /export/<report>/ — report ∈ {sales,purchases,stock,cogs,pnl,production,executive}, format ∈ {xlsx,pdf} (default xlsx); body = param laporan H4.x + format (query ?format= juga diterima, body menang); respons berkas binary + Content-Disposition attachment <report>-<periode|range>.<ext> (stok snapshot = tanggal); Excel 2 sheet (Summary+Data) / 7 sheet executive; PDF A4 landscape 6 laporan + portrait executive; fail-safe stok; tanpa cache (selalu hitung ulang)",
+    "note": "FASE H4 SELESAI (8/8): 6 laporan + dashboard eksekutif + export Excel/PDF — read-only (tanpa CRUD/sync push). Endpoint report lama (B13/B16/B18–B21) TIDAK diubah."
+  },
+
+  "h5_progress": {
+    "status": "complete",
+    "H5.4": "done — Permission Matrix (`/api/v1/settings/permissions/`, **Opsi A′**): model BARU `core_auth.RolePermission` (role FK CASCADE + resource + action + allowed, unique role+resource+action; migrasi core_auth/0005) sebagai **overlay profil** + GET amplop `{matrix, effective, diverges, resources, actions, roles, banner}` + PUT `…/<role_id>/` bulk atomic (ADMIN/OWNER, ledger SKIPPED + AuditLog); **enforcement TIDAK diubah** (guard tetap hardcoded: `_require_admin` 27×, `OPERATOR_CODE_ROLES`, 16 daftar role frontend); `effective` = snapshot `ROLE_CAPABILITIES` (cermin kode, bukan sumber kebenaran) + banner wajib di UI; 18 test backend + 17 test frontend",
+    "H5.7": "done — Printer Config (`/api/v1/settings/printer/`, SINGLETON, Opsi B): GET/PUT amplop `{config, effective, diverges, needs_restart, restart_command}` (create-on-first-PUT) + POST `…/test-connection/` (**tidak pernah mencetak**); model BARU `master.PrinterConfig` (6 field: backend mock|usb|network, 2 USB id, host, port, mock dir) + is_active (migrasi master/0025); guard kondisional usb ⇒ vendor+product, network ⇒ host+port 1..65535; **tanpa mask** (bukan rahasia — beda H5.6/H5.8); ledger `SKIPPED` (enum `master.printer_config`); test-connection: mock = cek folder, usb = ok:false pesan stub + vendor/product, network = TCP connect host:port tanpa kirim bytes; docs: integration-config.md §1.5b + .env.example blok PRINTER_*; 19 test backend + 16 test frontend",
+    "H5.5": "done — Audit Log Viewer (`/api/v1/settings/audit/`, READ-ONLY): daftar + filter + paging ListPage `{rows,total_count,has_more,next_cursor}` + detail `/<id>/` (payload/metadata lengkap). **TANPA model/migrasi baru** (AuditLog Fase 6 dibaca apa adanya, append-only); reader di `core/audit/services.py` (mask rekursif `api_key|password|secret|token|key`, metadata preview 100 char, filter user_id/action exact|prefix-titik/resource(+alias resource_type)/resource_id/result/date_from-date_to inklusif/search); guard **ADMIN/OWNER** (anonim & operator 403; beda dari F9 audit produk yang IsAuthenticated); UI: filter 8 field + tabel + klik baris → modal detail (payload/metadata masked) + pagination; route frontend `/settings/audit-log` (hindari bentrok F9 `/settings/audit`); 20 test backend + 16 test frontend",
+    "H5.8": "done — WA Gateway Config (greenfield **singleton** `master.WAConfig`, model TERPISAH dari IntegrationConfig — SRP; migrasi master/0024): GET/PUT `/api/v1/settings/wa/` (amplop `config` + `effective` + `diverges` + `needs_restart` + `restart_command`; create-on-first-PUT) + POST `…/test-connection/` (read-only via `get_wa_gateway().health_check()`, tanpa kirim pesan); **3 field** (wa_backend mock|real|api, wa_api_url, wa_api_key) + is_active; **Opsi B** — DB menyimpan profil, konsumen baca `.env` (nol risiko regresi: 3 konsumen WA); API key plaintext + mask `***`; guard `real`/`api` ⇒ url+key wajib; ledger `SKIPPED` (enum `master.wa_config`); UI 2 bagian (WA Gateway + Status) + tombol Test Koneksi; 18 test backend + 15 test frontend",
+    "H5.6": "done — Integration Config (greenfield **singleton** `master.IntegrationConfig`; migrasi master/0023): GET/PUT `/api/v1/settings/integration/` (amplop `config` + `effective` + `diverges` + `needs_restart` + `restart_command`; create-on-first-PUT) + POST `…/test-connection/` (read-only via `adapter.health_check()`); **16 field** (adapter/URL/db/user/API key/timeout, 7 id Odoo, 3 rekonsiliasi); **Opsi B** — DB menyimpan profil, konsumen tetap baca `.env` (nol risiko regresi: 8 konsumen + 113 referensi test); API key plaintext + mask `***`; ledger `SKIPPED` (enum `master.integration_config`); UI 5 bagian (Odoo/Lokasi/Advanced/Rekonsiliasi/Status) + tombol Test Koneksi; 18 test backend + 15 test frontend",
+    "H5.1": "done — Company Profile (greenfield **singleton** `master.Company`; migrasi master/0022): GET `/api/v1/settings/company/` → `{company: {…}|null}` (tanpa seed) + PUT **create-on-first-PUT** (2× PUT = 1 baris); 13 field bisnis (name, legal_name, address, city, country ISO-2, phone, email, npwp H1.6, website, logo_url, currency FK H5.2 PROTECT, timezone, is_active) + created_at/updated_at; ledger `SKIPPED` (MES-only, enum `master.company`); UI form tunggal + dropdown mata uang H5.2; 14 test backend + 12 test frontend",
+    "H5.2": "done — Currency CRUD (mirror `res.currency` Odoo + CRUD MES): model `master.Currency` +symbol/+rate/+is_default (migrasi master/0021); service BARU master/currency_services.py; 4 endpoint `/api/v1/settings/currencies/` (+`/default/`, `/<id>/`, `/<id>/set-default/`); DELETE soft delete 200 + body dengan **3 guard** (is_default / kode IDR–USD / baris pull `odoo_id`); ledger `SKIPPED` (MES-only, enum `master.currency`); UI list + modal create/edit + Set Default + Hapus; 20 test backend + 15 test frontend",
+    "H5.3": "done — Number Sequence CRUD (extend Sprint C): POST create (ADMIN/OWNER 201; code ^[A-Z0-9]{2,16}$ auto-upper, prefix ^[A-Z0-9-]{1,16}$ opsional) + DELETE soft delete (204; guard 9 kode seed / last_seq>0 → 400) + filter ?search=&active=&year=; UI tombol Buat + Hapus (window.confirm) + filter tahun + modal preview/ubah existing; 18 test backend + 8 test frontend",
+    "note": "FASE H5 (Settings & Admin) SELESAI 8/8: H5.1 Company Profile, H5.2 Currency CRUD, H5.3 Number Sequence CRUD, H5.4 Permission Matrix (overlay profil — enforcement tetap guard kode), H5.5 Audit Log Viewer, H5.6 Integration Config, H5.7 Printer Config, H5.8 WA Gateway Config. Fase ditutup — menunggu arahan user untuk fase berikutnya."
+  },
+
+  "known_tech_debt": [
+    {
+      "id": "odoo-api-stock-manager-group",
+      "status": "open",
+      "owner": "admin Odoo klien",
+      "note": "User API Odoo (api_bot, uid=8) belum punya stock.group_stock_manager ⇒ push inventory adjustment akan FAILED (UserError 'Only a stock manager can validate inventory adjustment'). Fix: admin set grup Inventory/Manager di Odoo. TIDAK diubah dari kode."
+    },
+    {
+      "id": "css-gate-ci-integration",
+      "status": "open",
+      "note": "Pindahkan gate CSS ke CI/pre-commit (ditunda atas instruksi pemilik). Gate manual sudah ada: `bun --bun run css:gate` di frontend_app_v2/scripts/css-gate.sh + css-gate.baseline. Perlu panggil otomatis di pipeline."
+    },
+    {
+      "id": "css-gate-md5-stale",
+      "status": "closed",
+      "closed_at": "2026-10-12",
+      "note": "md5 tailwind lama 7e65992b… BASI (disalin identik 23× dari F2 s/d H2.2). Baseline baru: 211df84a… / 565 rule. Gate otomatis sudah diuji sensitivitas."
+    },
+    {
+      "id": "warehouse-create-mapping",
+      "status": "closed",
+      "closed_at": "2026-10-11",
+      "note": "OPSI B: Odoo sendiri yang membuat view_location_id/lot_stock_id/company_id saat create stock.warehouse ⇒ MES tidak perlu mengirim; create kini diizinkan."
+    }
+  ],
+
+  "sprint_C_number_sequence": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "module": "Number Sequence (MES-only)",
+    "model": "master.NumberSequence — code, name, prefix, year, last_seq, padding, is_active. Unique (code, year) + index.",
+    "format": "<PREFIX>-<YEAR>-<SEQ:04d> dengan reset per tahun",
+    "seed": "7 prefix: SO, PO, WO, INV, VB, PAY, JE (data-only migration, get_or_create idempoten)",
+    "endpoints": [
+      "GET /api/v1/settings/sequences/ (list + filter)",
+      "GET /api/v1/settings/sequences/<code>/preview/ (nomor berikutnya tanpa increment)",
+      "PUT /api/v1/settings/sequences/<code>/ (ubah name/prefix/padding/active)"
+    ],
+    "service": "master/sequence_services.py — current_year, format_number, get_or_create_current_year, next_number (atomic select_for_update + retry), preview_number (read-only)",
+    "test": "16 backend + 12 frontend",
+    "decisions": [
+      "MES-only FINAL: nomor MES tidak dikirim ke Odoo (Odoo ir.sequence = counter internal sendiri).",
+      "Unique = (code, year), bukan code global (karena reset per tahun).",
+      "API di garment/api/settings/views.py (path /settings/…) — konsisten B22/B24/B25/B26.",
+      "TANPA POST/DELETE (code baru) — itu H5.3. Order.code existing tidak diubah."
+    ]
+  },
+
+  "sprint_H5_4_permission_matrix": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "module": "H5.4 — Permission Matrix (**Opsi A′**: profil tersimpan + viewer efektif; modul 8/8 FASE H5 — PENUTUP)",
+    "endpoints": [
+      "GET /api/v1/settings/permissions/ → {matrix, effective, diverges, resources, actions, roles, banner} (IsAuthenticated)",
+      "PUT /api/v1/settings/permissions/<role_id>/ → amplop yang sama + {role_id, updated_count, sync_record_id, sync_status} (ADMIN/OWNER)"
+    ],
+    "service": "core/auth/permission_services.py (BARU) — RESOURCES/ACTIONS statis, ROLE_CAPABILITIES (snapshot cermin kode), profile_matrix, effective_matrix, divergences, envelope, get_envelope, parse_updates, update_role_permissions (+ ledger SKIPPED + AuditLog) + BANNER",
+    "model": "core_auth.RolePermission (greenfield, multi-row overlay: role FK CASCADE + resource + action + allowed + UniqueConstraint role+resource+action) + created_at/updated_at — migrasi core_auth/0005_rolepermission_and_more.py",
+    "enum": "SyncResource.ROLE_PERMISSION_MATRIX ('core_auth.role_permission') — migrasi erp_sync/0030_alter_syncrecord_resource.py; kontrak enum test_sync_record_model diupdate ADITIF",
+    "test": "18 backend (tests/integration/test_permission_matrix_crud.py) + 17 frontend (api 9 + page 8); non-breaking: Role model + B26/B27 + `_require_admin` (27×) + 16 daftar role frontend + H5.1–H5.8 tetap hijau; full suite 2348 passed / 7 pre-existing failed / 1 skipped",
+    "decisions": [
+      "Opsi A′ = **overlay profil**. Enforcement backend **TIDAK diubah** (non-breaking total): guard tetap hardcoded (`_require_admin` 27×, `OPERATOR_CODE_ROLES`, 16 daftar role frontend) dan TIDAK ADA konsumen kode yang membaca `core_auth.role_permission`.",
+      "`ROLE_CAPABILITIES` = **snapshot cermin kode** (bukan sumber kebenaran): disusun hanya dari fakta guard existing (SETTINGS_ROLES=['admin'], ADMIN/OWNER untuk tulis Settings, operator/QC, PRODUCTION/QUALITY/INVENTORY/PURCHASING/REPORTS/FINANCE/SALES role frontend). Kalau guard berubah, snapshot di-update manual.",
+      "**Banner UI wajib**: halaman menampilkan peringatan bahwa perubahan = PROFIL (audit trail) dan `enforcement belum berubah`; teks datang dari backend (`banner`) dengan fallback konstanta frontend supaya tidak pernah hilang.",
+      "Resource/action list **statis** (`RESOURCES` 13 resource dari namespace URL existing, `ACTIONS` read/create/update/delete) — JANGAN auto-generate supaya kontrak UI stabil; resource/aksi di luar daftar ditolak 400.",
+      "**Sprint enforcement terpisah** akan menghubungkan matrix ke guard (mengubah 27 pemakaian `_require_admin` + daftar role frontend) — di luar scope H5.4.",
+      "`diverges` berbentuk `{role_id: {resource: {action: {profile, effective}}}}` dan HANYA berisi sel yang beda (profil tersimpan vs snapshot kode).",
+      "PUT bulk **atomic + idempotent**: `get_or_create` per sel (unique role+resource+action) → 2× PUT nilai sama = 1 baris TANPA ledger/audit baru; validasi gagal sebelum menulis (tidak ada baris tersisa).",
+      "Body PUT menerima dua bentuk (boleh digabung): `{updates: [{resource, action, allowed}]}` dan `{matrix: {resource: {action: bool}}}`; `allowed` wajib boolean.",
+      "Izin endpoint: GET `IsAuthenticated` (transparansi baca matrix, anonim 403) + PUT **ADMIN/OWNER** (`_require_admin`) — bukan memakai `auth.Permission` Django (sistem itu memang tidak dipakai MES).",
+      "UI: pilih role + grid checkbox per resource × aksi + indikator efektif + badge 'beda' + tombol Simpan/Batalkan (hanya sel berubah yang dikirim) + banner; tanpa kelas Tailwind baru (css:gate md5 identik, 566 rule)."
+    ]
+  },
+
+  "sprint_H5_7_printer_config": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "module": "H5.7 — Printer Config (greenfield `master.PrinterConfig`, SINGLETON, model TERPISAH, Opsi B; modul 7/8 FASE H5)",
+    "endpoints": [
+      "GET /api/v1/settings/printer/ → {config, effective, diverges, needs_restart, restart_command} (IsAuthenticated)",
+      "PUT /api/v1/settings/printer/ → amplop yang sama (create-on-first-PUT; ADMIN/OWNER)",
+      "POST /api/v1/settings/printer/test-connection/ → {ok, backend, message} (read-only, TIDAK mencetak; ADMIN/OWNER)"
+    ],
+    "service": "master/printer_config_services.py (BARU, mirror H5.6/H5.8) — get_config, get_or_create_config, validate_config_payload, update_config, config_row, effective_row, divergences, needs_restart, test_connection (+ _test_mock/_test_usb/_test_network) + ledger SKIPPED + AuditLog",
+    "model": "master.PrinterConfig (greenfield, 6 field env + is_active: printer_backend('mock'|'usb'|'network'), printer_usb_vendor_id, printer_usb_product_id, printer_network_host, printer_network_port, printer_mock_dir) + created_at/updated_at — migrasi master/0025_printerconfig.py",
+    "enum": "SyncResource.MASTER_PRINTER_CONFIG ('master.printer_config') — migrasi erp_sync/0029_alter_syncrecord_resource.py; kontrak enum test_sync_record_model diupdate ADITIF",
+    "docs": "docs/integration-config.md +§1.5b Printer thermal ESC/POS (tabel 6 env + catatan H5.7) + blok PRINTER_* di contoh .env; django_app/.env.example +blok PRINTER_* (6 var)",
+    "test": "19 backend (tests/integration/test_printer_config_crud.py) + 16 frontend (api 8 + page 8); non-breaking: `integrations/printing` (90 test) + PrintJob + H5.1/H5.2/H5.3/H5.5/H5.6/H5.8 tetap hijau; full suite 2330 passed / 7 pre-existing failed / 1 skipped",
+    "decisions": [
+      "Model PrinterConfig TERPISAH dari IntegrationConfig (H5.6) & WAConfig (H5.8) — SRP: H5.6 = profil Odoo, H5.8 = gateway WA, H5.7 = printer thermal.",
+      "Field KONDISIONAL + guard: backend 'usb' ⇒ printer_usb_vendor_id + printer_usb_product_id wajib; 'network' ⇒ printer_network_host + printer_network_port (1..65535) wajib; 'mock' ⇒ printer_mock_dir opsional (kosong = default /tmp/print_mock). Semua validasi kembalikan 400 dgn pesan jelas.",
+      "TANPA mask: host/port/USB id/folder printer BUKAN kredensial (berbeda dari odoo_api_key H5.6 & wa_api_key H5.8) — response & ledger menampilkan nilai apa adanya.",
+      "Konsumen TIDAK disentuh (Opsi B H5.6): `integrations/printing/backends/__init__.get_backend()` (dipakai `printing/api.py` untuk bundle tag + kupon) tetap membaca `settings.PRINTER_*` dari `.env`; aktivasi = salin ke .env + restart django/celery_worker/celery_beat.",
+      "test-connection TANPA mencetak: `mock` ⇒ os.makedirs(mock_dir, exist_ok=True) (folder siap / pesan error); `usb` ⇒ ok:false + pesan stub ('butuh python-escpos + libusb') + vendor/product (hex bila angka); `network` ⇒ socket.create_connection(host, port, timeout=5) TANPA mengirim bytes ESC/POS (kirim bytes = mencetak kertas nyata). Backend tak dikenal ⇒ diperiksa sebagai mock + pesan menyebut fallback (perilaku fail-safe factory).",
+      "Sinkronisasi docs: `django_app/.env.example` +blok PRINTER_* (6 var) dan `docs/integration-config.md` +§1.5b PRINTER (tabel env + catatan halaman TIDAK meng-override .env) — konsisten H5.6/H5.8.",
+      "Kontrak enum SyncResource diupdate ADITIF (+MASTER_PRINTER_CONFIG) di integrations/erp_sync/tests/test_sync_record_model.py — 1 test kontrak diperbarui, bukan dilonggarkan.",
+      "UI: blok field kondisional per backend (USB/Network/Mock) + bagian Status read-only (effective/diverges/needs_restart + Test Koneksi + restart_command); nav Settings 'Printer' di urutan AKHIR setelah Audit Log (landing app tetap /settings/routing); assertion urutan nav H5.5 diubah RELATIF (tahan modul berikutnya); tanpa kelas Tailwind baru (css:gate md5 identik, 566 rule)."
+    ]
+  },
+
+  "sprint_H5_5_audit_log_viewer": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "module": "H5.5 — Audit Log Viewer (READ-ONLY, append-only; modul 6/8 FASE H5)",
+    "endpoints": [
+      "GET /api/v1/settings/audit/ → ListPage {rows, total_count, has_more, next_cursor} (ADMIN/OWNER)",
+      "GET /api/v1/settings/audit/<id>/ → {audit: {…row, payload, metadata, user_agent}} (ADMIN/OWNER; 404 bila tak ada)"
+    ],
+    "service": "core/audit/services.py (ADITIF pada modul existing) — mask_sensitive (rekursif), metadata_preview (100 char), audit_row, audit_detail, parse_datetime_param, filter_audit_logs, list_audit_logs; `AuditLogger` (penulis) TIDAK diubah",
+    "model": "TIDAK ada model/migrasi baru — `core_audit.AuditLog` (Fase 6) dibaca apa adanya (append-only; tanpa write endpoint; POST/PUT/DELETE → 405)",
+    "filter": "?user_id (angka ≥1) · ?action (exact, atau PREFIX bila diakhiri titik mis. `master.`) · ?resource (alias ?resource_type) · ?resource_id · ?result (OK|FAILED|CONFLICT|DENIED, nilai lain 400) · ?date_from/?date_to (YYYY-MM-DD atau ISO-8601; tanggal-saja date_to inklusif sampai akhir hari) · ?search (user__username + nama depan/belakang + action + resource; maks 100 char) · paging ?limit (1..200, default 50) + ?cursor (offset)",
+    "test": "20 backend (tests/integration/test_audit_log_viewer.py) + 16 frontend (api 9 + page 7); non-breaking: F9 `/audit/products-missing-odoo-id/` + H5.1/H5.2/H5.3/H5.6/H5.8 + penulis AuditLog (AuditLogger) tetap hijau; full suite 2312 passed / 6 pre-existing failed / 1 skipped",
+    "decisions": [
+      "Backend path `/api/v1/settings/audit/` (sesuai brief); frontend route `/settings/audit-log` + nav label 'Audit Log' — `/settings/audit` & nav 'Audit' SUDAH dipakai F9 (audit produk tanpa odoo_id) sehingga WAJIB tidak bentrok.",
+      "Guard ADMIN/OWNER (`_require_admin`) untuk daftar & detail — audit log SENSITIF (siapa mengubah apa), berbeda karakter dari F9 yang memang untuk operator (`IsAuthenticated`). Anonim & operator → 403.",
+      "Mask rekursif defensif: key JSON yang namanya MENGANDUNG api_key|password|secret|token|key (case-insensitive, termasuk nested dict/list) → '***'. Penulis H5.6/H5.8 sudah mem-mask payload-nya, reader tetap mem-mask untuk penulis lain di masa depan.",
+      "Daftar = metadata PREVIEW (JSON dipotong 100 karakter) supaya halaman ringan; detail `/<id>/` = payload+metadata LENGKAP (tetap di-mask).",
+      "TANPA index baru (volume audit dev < 100k; ordering `-timestamp,-id` sudah memakai index timestamp eksisting) — index (action,timestamp) = sprint terpisah bila perlu.",
+      "TANPA model/migrasi: AuditLog append-only tidak diubah (dibuktikan test yang memeriksa ordering + nama index lama tetap sama) dan viewer tidak pernah menambah/mengubah baris (test hitung baris sebelum/sesudah GET).",
+      "Filter `?action` prefix memakai titik akhir (master. → master.create/master.update) agar UI bisa 'semua aksi master' tanpa endpoint tambahan; tanpa titik = exact (case-insensitive).",
+      "Filter `?search` mencakup user__username + nama depan/belakang (jadi 'Sari Admin' juga ketemu) + action + resource; ?resource_type = alias ramah frontend untuk field `resource`.",
+      "Tanggal-saja `?date_to` digeser ke awal hari berikutnya (inklusif sampai akhir hari); karena parse_datetime Django juga menerima YYYY-MM-DD, tanggal-saja dideteksi lebih dulu dengan regex strict.",
+      "UI: filter 8 field + tabel dense (klik baris → modal detail) + PaginationBar; 2 kelas utilitas teks baru (pemenggalan kata + pertahankan baris) DIGANTI kelas 'pre-line' yang sudah dipakai halaman lain supaya css:gate tetap PASS tanpa update baseline."
+    ]
+  },
+
+  "sprint_H5_8_wa_gateway_config": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "module": "H5.8 — WA Gateway Config (greenfield `master.WAConfig`, SINGLETON, model TERPISAH, Opsi B; modul 5/8 FASE H5)",
+    "endpoints": [
+      "GET /api/v1/settings/wa/ → {config, effective, diverges, needs_restart, restart_command} (IsAuthenticated)",
+      "PUT /api/v1/settings/wa/ → amplop yang sama (create-on-first-PUT; ADMIN/OWNER)",
+      "POST /api/v1/settings/wa/test-connection/ → {ok, backend, url, mock, message} (read-only; ADMIN/OWNER)"
+    ],
+    "service": "master/wa_config_services.py (BARU) — get_config, get_or_create_config, validate_config_payload, update_config, config_row, effective_row, divergences, needs_restart, test_connection + ledger SKIPPED + AuditLog (mirror H5.6)",
+    "model": "master.WAConfig (greenfield, 3 field env + is_active: wa_backend('mock'|'real'|'api'), wa_api_url, wa_api_key, is_active) + created_at/updated_at — migrasi master/0024_waconfig.py",
+    "enum": "SyncResource.MASTER_WA_CONFIG ('master.wa_config') — migrasi erp_sync/0028_alter_syncrecord_resource.py; kontrak enum test_sync_record_model diupdate ADITIF",
+    "docs": "docs/integration-config.md disinkronkan: catatan H5.8 di §1.5 WhatsApp (halaman TIDAK meng-override .env) + baris 'Lain-lain' §verifikasi deploy",
+    "test": "18 backend (tests/integration/test_wa_config_crud.py) + 15 frontend (api 8 + page 7); non-breaking: `integrations/wa_bot` (22 test) + `tasks_reconciliation` (12 test) + `ai` (5 test) + H5.1/H5.2/H5.3/H5.6 tetap hijau; full suite 2291 passed / 7 pre-existing failed / 1 skipped",
+    "decisions": [
+      "Model WAConfig TERPISAH dari IntegrationConfig (SRP: H5.6 = profil Odoo, H5.8 = gateway WA). Nomor penerima alert (RECONCILIATION_ALERT_WA_TO) tetap milik H5.6 — tidak diduplikasi (satu sumber kebenaran).",
+      "Amplop LENGKAP konsisten H5.6: {config, effective, diverges, needs_restart, restart_command}; effective dari settings.WA_BACKEND/WA_API_URL/WA_API_KEY; restart_command 'docker compose restart django celery_worker celery_beat'.",
+      "Test-connection via get_wa_gateway().health_check() (factory EXISTING, tidak diubah): mock selalu siap tanpa jaringan; backend tak dikenal → fallback mock + warning (perilaku lama, dibuktikan test non-breaking).",
+      "Konsumen TIDAK disentuh (Opsi B H5.6): integrations/wa_bot/services.py, tasks_reconciliation.py, ai/hitl_views.py tetap membaca `.env`. Aktivasi = salin ke .env + restart worker (UI menampilkan instruksinya).",
+      "wa_api_key plaintext + mask '***': PUT '***' = tidak ubah; nilai baru = update; '' = clear. diverges membandingkan nilai MENTAH tetapi MELAPORKAN yang ter-mask (test membuktikan 'kunci-db'/'kunci-env' tidak bocor ke response).",
+      "Guard backend: 'real'/'api' ⇒ wa_api_url + wa_api_key wajib (400 bila kurang); 'mock' bebas kredensial. URL divalidasi http/https + host via _is_http_url (hostname internal tanpa TLD seperti http://wa-gateway:8080 diterima; URLValidator Django menolaknya).",
+      "test-connection read-only: TIDAK mengirim pesan WA (hanya health_check) dan tidak membuat baris profil; gagal gateway dilaporkan ok=false (bukan HTTP 500).",
+      "Kontrak enum SyncResource diupdate ADITIF (+MASTER_WA_CONFIG) di integrations/erp_sync/tests/test_sync_record_model.py — 1 test kontrak diperbarui, bukan dilonggarkan.",
+      "UI: 2 bagian (WA Gateway (backend+kredensial) + Status read-only) + tombol Test Koneksi; nav Settings 'WA Gateway' di urutan AKHIR setelah Integration (landing app tetap /settings/routing); tanpa kelas Tailwind baru (css:gate md5 identik, 566 rule).",
+      "docs/integration-config.md disinkronkan (catatan H5.8 di §1.5 WhatsApp + baris Lain-lain) supaya operator tahu halaman ini TIDAK meng-override env."
+    ]
+  },
+
+  "sprint_H5_6_integration_config": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "module": "H5.6 — Integration Config (greenfield `master.IntegrationConfig`, SINGLETON, Opsi B; modul 4/8 FASE H5)",
+    "endpoints": [
+      "GET /api/v1/settings/integration/ → {config, effective, diverges, needs_restart, restart_command} (IsAuthenticated)",
+      "PUT /api/v1/settings/integration/ → amplop yang sama (create-on-first-PUT; ADMIN/OWNER)",
+      "POST /api/v1/settings/integration/test-connection/ → {ok, adapter, url, server_version, message} (read-only; ADMIN/OWNER)"
+    ],
+    "service": "master/integration_config_services.py (BARU) — get_config, get_or_create_config, validate_config_payload, update_config, config_row, effective_row, divergences, needs_restart, test_connection + ledger SKIPPED + AuditLog",
+    "model": "master.IntegrationConfig (greenfield, 16 field: erp_adapter, odoo_url/db/user/api_key/timeout, 4 id lokasi + uom_id + payment_journal_id + picking_type_internal_id, tolerance_units/pct, alert_wa_to JSON) + created_at/updated_at — migrasi master/0023_integrationconfig.py",
+    "enum": "SyncResource.MASTER_INTEGRATION_CONFIG ('master.integration_config') — migrasi erp_sync/0027; kontrak enum test_sync_record_model diupdate ADITIF",
+    "settings": "config/settings.py +ODOO_PICKING_TYPE_INTERNAL_ID (aditif; sebelumnya hanya getattr(settings, …, None) di adapters/odoo.py — nilai default sama ⇒ perilaku identik)",
+    "docs": "docs/integration-config.md disinkronkan: §1.3b ODOO_PICKING_TYPE_INTERNAL_ID + contoh .env + catatan H5.6 (halaman TIDAK meng-override .env)",
+    "test": "18 backend (tests/integration/test_integration_config_crud.py) + 15 frontend (api 8 + page 7); non-breaking: adapter Odoo existing (8 konsumen) + 113 referensi setting + H5.1/H5.2/H5.3 tetap hijau",
+    "decisions": [
+      "Sumber config = Opsi B (tersimpan + viewer efektif). Konsumen TIDAK disentuh → nol risiko regresi (8 konsumen + 113 referensi test). Aktivasi = salin ke .env + restart django/celery_worker/celery_beat.",
+      "API key plaintext + mask (***). PUT *** = tidak ubah; nilai baru = update; '' = clear. Fernet/enkripsi = V2 sprint terpisah (butuh dependency cryptography + rebuild image).",
+      "Field = 16. ODOO_USER (bukan ODOO_USERNAME — nama env asli). ODOO_PICKING_TYPE_INTERNAL_ID resmi di settings.py (aditif). WA + Printer dikecualikan (H5.8/H5.7).",
+      "URLValidator Django tolak hostname tanpa TLD (mis. http://odoo:8069 — nilai default project sendiri). Fix: _is_http_url (cek http/https + host) di backend & frontend.",
+      "test-connection POST read-only via adapter.health_check() (ping common.version, tanpa login); kredensial dari .env (konsisten Opsi B); test pakai adapter mock (tanpa Odoo nyata).",
+      "docs/integration-config.md disinkronkan (tabel + contoh .env + catatan Opsi B).",
+      "is_active ditambahkan sebagai flag profil (bukan bagian 16 field env) — dipakai UI sebagai penanda referensi aktif.",
+      "diverges membandingkan nilai MENTAH (supaya beda API key terdeteksi) tetapi MELAPORKAN nilai ter-mask (***) — tidak ada rahasia yang bocor ke response/ledger.",
+      "UI: 5 bagian (Odoo/Lokasi/Advanced/Rekonsiliasi/Status read-only) + tombol Test Koneksi; nav Settings 'Integration' di urutan AKHIR supaya landing app tetap /settings/routing (dijaga route-fix test); tanpa kelas Tailwind baru (css:gate md5 identik)."
+    ]
+  },
+
+  "sprint_H5_1_company_profile": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "module": "H5.1 — Company Profile (greenfield `master.Company`, SINGLETON; modul 3/8 FASE H5)",
+    "endpoints": [
+      "GET /api/v1/settings/company/ → {company: {…}|null} (null = belum diisi; tanpa seed; IsAuthenticated)",
+      "PUT /api/v1/settings/company/ → {company: {…}} (create-on-first-PUT; ADMIN/OWNER)"
+    ],
+    "service": "master/company_services.py (BARU) — get_company, get_or_create_company, validate_company_payload, update_company, company_row + ledger SKIPPED (SyncIdempotency + mark_skipped) + AuditLog",
+    "model": "master.Company (greenfield) — 13 field bisnis (name, legal_name, address, city, country ISO-2 teks, phone, email, npwp, website, logo_url, currency FK→master.Currency PROTECT, timezone, is_active) + created_at/updated_at; migrasi master/0022_company.py",
+    "enum": "SyncResource.MASTER_COMPANY ('master.company') — migrasi erp_sync/0026; test kontrak test_sync_record_model.test_choices_values diupdate ADITIF (pola repo)",
+    "singleton": "GET memakai get_company() (tanpa efek samping); PUT memakai get_company + create-once ⇒ 2× PUT = 1 baris (diuji); get_or_create_company() tersedia untuk konsumen yang butuh identitas perusahaan tanpa payload",
+    "test": "14 backend (tests/integration/test_company_crud.py) + 12 frontend (api 6 + page 6); non-breaking: H5.2/H5.3 + pull I1 tetap hijau",
+    "decisions": [
+      "Company MES-only (SKIPPED). Alasan: 0 konsumen; res.company = konfigurasi akuntansi sensitif; tidak ada transport; push/pull baru = risiko tanpa manfaat. Preseden H5.2/Sprint C.",
+      "GET company → 200 {company: null} kalau belum ada. Tidak ada seed — user isi via UI (pola /master/taxes/default/ H3.6).",
+      "Field company = 13 bisnis + created_at/updated_at. country = CharField ISO 2 huruf (BUKAN FK — master.Country tidak ada); currency = FK→master.Currency (PROTECT, null); NPWP reuse H1.6 (normalize_npwp + NPWP_LENGTHS 15/16).",
+      "TIDAK menambah fax/street2/province/postal_code/company_registry/default_language — sprint terpisah bila perlu.",
+      "PUT company = create-on-first-PUT (get_or_create di service). Tanpa POST. Singleton: 2× PUT = 1 record (diuji).",
+      "greenfield: tidak ada model/konsumen/res.company/task company sebelumnya (probe STEP 0: grep class Company + res.company + sync_master_company = nol).",
+      "UI: form tunggal di /settings/company (guard SETTINGS_ROLES) dengan dropdown mata uang dari H5.2 (fetchCurrencies active); nav Settings += 'Company' (setelah Line Allocation supaya landing app tetap /settings/routing — perilaku route-fix diuji).",
+      "Tanpa kelas Tailwind mentah baru: css:gate md5 identik (566 rule, tanpa update baseline)."
+    ]
+  },
+
+  "sprint_H5_2_currency_crud": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "module": "H5.2 — Currency CRUD (master.Currency mirror res.currency; modul 2/8 FASE H5)",
+    "endpoints": [
+      "GET|POST /api/v1/settings/currencies/ (list ?search=&active= ; create ADMIN/OWNER → 201)",
+      "GET|PUT|DELETE /api/v1/settings/currencies/<id>/ (detail ; update ; soft delete → 200 + body)",
+      "GET /api/v1/settings/currencies/default/ (mata uang default MES)",
+      "POST /api/v1/settings/currencies/<id>/set-default/ (atomik, maksimal 1 default)"
+    ],
+    "service": "master/currency_services.py (BARU) — currency_row, validate_currency_payload, create_currency, update_currency, deactivate_currency, set_default_currency, get_default_currency; reuse pola ledger (SyncIdempotency + mark_skipped) + AuditLog",
+    "model": "master.Currency +symbol (Char 8) +rate (Decimal 20,6 null) +is_default (bool) — migrasi master/0021; TANPA hapus field lama",
+    "enum": "SyncResource.MASTER_CURRENCY ('master.currency') — migrasi erp_sync/0025; test kontrak test_sync_record_model.test_choices_values diupdate ADITIF (pola repo)",
+    "guard_delete": "3 lapis → 400: (a) is_default (default MES) ; (b) code in PROTECTED_CURRENCY_CODES {IDR,USD} ; (c) odoo_id is not None (baris hasil pull I1)",
+    "test": "20 backend (tests/integration/test_currencies_crud.py) + 15 frontend (api 8 + page 7); non-breaking: pull I1 + Payment.currency + H5.3 tetap hijau",
+    "decisions": [
+      "Path = /api/v1/settings/currencies/ + route /settings/currencies + SETTINGS_ROLES (BUKAN /master/*): Currency masuk Settings — konsisten H5-series (H5.3 Number Sequence juga model master.* di /settings/*).",
+      "Sync = MES-only (ledger SyncRecord 'master.currency'/MASTER_PUSH status SKIPPED) — TANPA push task/adapter Odoo. Alasan: tidak ada konsumen MES yang mengirim currency ke Odoo (Payment.currency = CharField teks bebas; invoice/journal/order sadar TIDAK mengirim currency_id — Odoo menghitungnya), rate di-maintain Odoo, res.currency = konfigurasi akuntansi/company sensitif, pull harian sync_master_currencies berpotensi menimpa. Preseden Sprint C/H1.7–H1.9.",
+      "Guard DELETE Currency = 3 lapis (is_default / kode terlindungi IDR–USD / odoo_id baris pull) — guard (c) paling efektif: kode hasil pull I1 = 'ODOO-<id>' (bukan IDR) sehingga baris mirror dijamin tidak bisa dinonaktifkan dari MES.",
+      "DELETE Currency = 200 + body (pola Tax H3.6), bukan 204 (H5.3). Alasan: audit trail info (deleted, sync_record_id) langsung tersedia ke UI tanpa refetch.",
+      "code rule (baris baru) = ^[A-Z]{3}$ auto-upper + unik (iexact) → 400 duplikat; pada PUT code hanya divalidasi KALAU berubah (echo 'ODOO-12' tidak 400) supaya baris hasil pull I1 tetap editable.",
+      "is_default = keputusan MES (bukan field Odoo, pola Tax.is_default) — dijaga tunggal secara atomik oleh _apply_default; tidak pernah dikirim ke Odoo.",
+      "Pull I1 (sync_master_currencies/_currency_defaults/fetch_currencies) TIDAK diubah (brief: cek hanya) — konsekuensi: baris hasil pull tetap ber-symbol kosong & rate null (model hanya +field aditif).",
+      "UI: list + modal create/edit + tombol Set Default + tombol Hapus (window.confirm) di /settings/currencies; MODE.masterCurrencies='real' (78 → 79 key); tanpa kelas Tailwind mentah baru (css:gate md5 identik, 566 rule)."
+    ]
+  },
+
+  "sprint_H5_3_number_sequence_crud": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "module": "H5.3 — Number Sequence CRUD (extend Sprint C; modul 1/8 FASE H5)",
+    "endpoints": [
+      "POST /api/v1/settings/sequences/ (create; ADMIN/OWNER → 201)",
+      "DELETE /api/v1/settings/sequences/<code>/ (soft delete is_active=False → 204)",
+      "GET /api/v1/settings/sequences/ (filter ?search=&active=&year= — sudah lengkap di Sprint C, diverifikasi)"
+    ],
+    "service": "master/sequence_services.py — create_sequence + deactivate_sequence + validate_new_sequence_payload (+ PROTECTED_SEQUENCE_CODES, CODE_PATTERN, PREFIX_PATTERN); reuse _record_and_audit → ledger SKIPPED + AuditLog master.create/master.delete",
+    "guard_delete": "PROTECTED_SEQUENCE_CODES (9) → 400 'protected seed'; ATAU last_seq > 0 → 400 'last_seq=N'; baris TIDAK dihapus dari DB (soft delete)",
+    "test": "18 backend (tests/integration/test_master_sequences_crud.py) + 8 frontend (api 5 + page 3); non-breaking: 16 test Sprint C + 12 test frontend Sprint C TETAP HIJAU",
+    "decisions": [
+      "Extend Sprint C (bukan reinvent): model master.NumberSequence + service + 3 endpoint TIDAK diubah bentuknya.",
+      "Protected codes = 9 (bukan 7 brief): + ADJ (H2.5, migrasi 0015) + TRF (H2.6, migrasi 0016). Brief outdated.",
+      "Code rule: ^[A-Z0-9]{2,16}$, auto-upper, unique per (code, year) → 400 duplikat.",
+      "Prefix rule: ^[A-Z0-9-]{1,16}$, auto-upper, opsional (default = code).",
+      "PROTECTED_SEQUENCE_CODES HANYA guard DELETE — create ulang kode terlindungi TETAP BOLEH (restore seed yang hilang di tenant baru); yang dijaga hanya keunikan (code, year).",
+      "Guard DELETE: code in PROTECTED_SEQUENCE_CODES → 400 'masih dipakai (protected seed)'; ATAU last_seq > 0 → 400 'masih dipakai (last_seq=N)'.",
+      "deactivate_sequence menerima instance (view me-resolve code + ?year= → baris) — konsisten update_sequence/deactivate_routing/deactivate_product.",
+      "DELETE membalas 204 TANPA body → adapter frontend TIDAK memakai unwrap() (unwrap mensyaratkan data !== undefined); cukup cek ok + teruskan pesan backend.",
+      "SKIPPED ledger: tiap tulis (create/delete/dll) menulis SyncRecord master.number_sequence/MASTER_PUSH ber-status SKIPPED (MES-only, tanpa odoo_id) + AuditLog — tanpa task push/pull.",
+      "next_number() untuk 9 kode (SO/PO/WO/ADJ/TRF/INV/VB/PAY/JE) TIDAK diubah → non-breaking H2.1–H2.6 & H3.1–H3.4.",
+      "UI: tombol Buat (modal) + Hapus (window.confirm, pola BundleFormPage/WorkOrderDetailPage) + filter tahun (Select) — tanpa kelas Tailwind mentah baru (css:gate md5 identik)."
+    ]
+  },
+
+  "sprint_H1_1_product_crud": {
+    "status": "done",
+    "completed_at": "2026-10-10",
+    "module": "H1.1 — Product CRUD",
+    "endpoints": [
+      "GET/POST /api/v1/master/products/",
+      "GET/PUT/DELETE /api/v1/master/products/<id>/"
+    ],
+    "migrations": [
+      "master/0007_product_h1_fields",
+      "erp_sync/0004_sync_stage_master",
+      "core_auth/0004_seed_purchasing_role"
+    ],
+    "fields_baru": [
+      "category",
+      "uom FK",
+      "sale_price",
+      "cost_price",
+      "weight",
+      "image_url"
+    ],
+    "sync": "resource=master.product, stage=MASTER_PUSH, task=erp_sync.push_master_product",
+    "test": 15,
+    "decisions": [
+      "Opsi A+: 3 migration (field H1 + stage MASTER_PUSH/MASTER_PULL + seed role PURCHASING).",
+      "stage SyncRecord max_length 8→16 (MASTER_PUSH = 11 char).",
+      "Nama FK uom (bukan uom_id) mengikuti konvensi repo.",
+      "active di JSON = is_active model. odoo_id tidak diubah (unique=True sudah ber-indeks).",
+      "DELETE = soft delete (is_active=False)."
+    ]
+  },
+
+  "sprint_H1_5_bom_crud": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "module": "H1.5 — BOM CRUD (header + lines inline)",
+    "endpoints": [
+      "GET/POST /api/v1/master/boms/",
+      "GET/PUT/DELETE /api/v1/master/boms/<id>/"
+    ],
+    "migrations": [
+      "master/0011_bom_h1_fields",
+      "erp_sync/0008_master_bom_resource"
+    ],
+    "fields_baru": [
+      "output_qty",
+      "uom FK",
+      "notes",
+      "line: uom FK, sequence, notes"
+    ],
+    "sync": "resource=master.bom, stage=MASTER_PUSH, task=erp_sync.push_master_bom (header + lines atomic)",
+    "test": 26,
+    "decisions": [
+      "Push header memakai product_tmpl_id (bukan product_id) — Odoo 17 mrp.bom wajib product_tmpl_id.",
+      "BOMLine.product_qty dipakai (bukan qty baru) — sudah dipakai material_readiness.",
+      "PUT lines = replace berbasis pencocokan id→odoo_id→baru; baris lama di-soft-delete supaya odoo_id hilang.",
+      "Validasi siklus rekursif (max 10 level) + self-reference 400.",
+      "Code auto: BOM-<kode produk> + suffix -2, -3 kalau duplikat."
+    ]
+  },
+
+  "sprint_H1_6_partner_crud": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "module": "H1.6 — Partner CRUD (customer + vendor satu model)",
+    "endpoints": [
+      "GET/POST /api/v1/master/partners/",
+      "GET/PUT/DELETE /api/v1/master/partners/<id>/"
+    ],
+    "migrations": [
+      "master/0012_partner_h1_fields",
+      "erp_sync/0009_master_partner_resource"
+    ],
+    "fields_baru": [
+      "is_customer",
+      "is_vendor",
+      "is_company",
+      "email",
+      "phone",
+      "city",
+      "address",
+      "npwp",
+      "customer_rank",
+      "supplier_rank"
+    ],
+    "sync": "resource=master.partner, stage=MASTER_PUSH, task=erp_sync.push_master_partner",
+    "test": 24,
+    "decisions": [
+      "is_company field mandiri (tidak derive dari NPWP) — probe buktikan vendor nyata bisa perusahaan tanpa vat.",
+      "Rank hanya dikirim saat CREATE (1/0); update tidak, supaya hitungan Odoo tidak turun.",
+      "NPWP dinormalisasi digit 15/16 (400 kalau invalid); npwp → Odoo vat.",
+      "address (TextField) ↔ Odoo street; pull gabung street+street2 newline.",
+      "Teks kosong tidak dikirim (tidak mengosongkan Odoo).",
+      "Guard peran: is_customer & is_vendor tidak boleh keduanya false."
+    ]
+  },
+
+  "sprint_H1_7_work_center_crud": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "module": "H1.7 — Work Center CRUD (MES-only)",
+    "endpoints": [
+      "GET/POST /api/v1/master/work-centers/",
+      "GET/PUT/DELETE /api/v1/master/work-centers/<id>/"
+    ],
+    "migrations": [
+      "garment/0012_work_center_h1_fields",
+      "erp_sync/0010_master_work_center_resource"
+    ],
+    "fields_baru": ["wc_type", "capability_tags", "capacity_per_hour"],
+    "ledger": "SyncRecord(resource=master.work_center, stage=MASTER_PUSH) status=SKIPPED (MES-only)",
+    "test": 26,
+    "decisions": [
+      "MES-only: mrp.workcenter Odoo wajib resource_id (tanpa default) + tidak punya padanan wc_type/capability_tags.",
+      "SyncStatus.SKIPPED BARU = 'Dilewati (MES-only)' + SyncIdempotency.mark_skipped.",
+      "Tidak tambah FK production_line (ProductionLine sudah punya M2M work_centers).",
+      "wc_type free-form CharField 64 (tanpa enum).",
+      "capability_tags list: array string ≤20×≤32, dedupe case-insensitive.",
+      "DELETE = soft delete + guard bundle aktif (WCQueue.EXCLUDED_STATES).",
+      "code wajib (tidak auto-generate) — identitas operasional."
+    ]
+  },
+
+  "sprint_H1_8_production_line_crud": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "module": "H1.8 — Production Line CRUD (MES-only)",
+    "endpoints": [
+      "GET/POST /api/v1/master/production-lines/",
+      "GET/PUT/DELETE /api/v1/master/production-lines/<id>/"
+    ],
+    "migrations": [
+      "garment/0013_production_line_h1_fields",
+      "erp_sync/0011_master_production_line_resource"
+    ],
+    "fields_baru": ["capability_tags"],
+    "ledger": "SyncRecord(resource=master.production_line, stage=MASTER_PUSH) status=SKIPPED",
+    "test": 28,
+    "decisions": [
+      "MES-only: Odoo 17 tidak punya wadah lini (mrp.routing dihapus; mrp.routing.workcenter = Operation per BoM).",
+      "M2M work_centers satu jalur tulis (ProductionLine.work_centers); reverse read-only.",
+      "Replace M2M atomic: validasi id WC dulu, lalu work_centers.set() dalam transaction.atomic.",
+      "Guard DELETE = hanya bundle aktif (LineAllocationRule CASCADE tapi soft delete tidak menghapus).",
+      "capability_tags helper dipakai ulang dari H1.7 (normalize_tags)."
+    ]
+  },
+
+  "sprint_H1_9_routing_dag": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "module": "H1.9 — Process Routing + DAG CRUD (MES-only + extend B22)",
+    "endpoints": [
+      "GET /api/v1/settings/routing/<id>/ (detail: header + capability_tags + nodes/edges shape routing-graph)",
+      "PUT /api/v1/settings/routing/<id>/ (ubah header, ADMIN/OWNER)",
+      "DELETE /api/v1/settings/routing/<id>/ (soft delete + guard Rule tag-router aktif)",
+      "POST /api/v1/settings/routing/<id>/steps/ (tambah step)",
+      "PUT /api/v1/settings/routing/<id>/steps/<step_id>/ (ubah step + edge)",
+      "DELETE /api/v1/settings/routing/<id>/steps/<step_id>/ (hapus step structural)"
+    ],
+    "migrations": [
+      "garment/0014_process_routing_h1_fields",
+      "erp_sync/0012_master_process_routing_resource"
+    ],
+    "fields_baru": ["capability_tags"],
+    "ledger": "SyncRecord(resource=master.process_routing, stage=MASTER_PUSH) status=SKIPPED",
+    "test": 32,
+    "decisions": [
+      "Extend B22 di tempat (TIDAK bikin /master/routings/) — satu sumber kebenaran.",
+      "Shape GET list B22 TIDAK diubah (16 test F3A hijau tanpa edit).",
+      "Izin tulis endpoint BARU = ADMIN/OWNER; POST B22 lama tetap IsAuthenticated (disengaja).",
+      "Step pakai id backend (depends_on_step_ids/next_step_ids) supaya editor bisa ubah edge.",
+      "Validasi DAG: siklus (DFS max 10) → 400; self-reference/lintas-routing → 400.",
+      "DELETE step = structural (RoutingStep tidak punya is_active).",
+      "Guard DELETE routing = 400 bila Rule tag-router aktif menunjuk kode routing."
+    ]
+  },
+
+  "sprint_H2_1_sales_order": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "module": "H2.1 — Sales Order + OrderLine (modul 1 H2)",
+    "endpoints": [
+      "GET/POST /api/v1/garmen/orders/",
+      "GET/PUT/DELETE /api/v1/garmen/orders/<id>/",
+      "POST /api/v1/garmen/orders/<id>/confirm|done|cancel/"
+    ],
+    "migrations": [
+      "garment/0015_order_h2_fields",
+      "erp_sync/0014_sale_order_push_stage"
+    ],
+    "fields_baru": [
+      "Order.client_order_ref",
+      "OrderLine.price_unit",
+      "OrderLine.tax_ids M2M master.Tax"
+    ],
+    "sync": "resource=order, stage=SALE_ORDER_PUSH, task=erp_sync.push_sale_order (push saat CONFIRMED, create sale.order draft di Odoo)",
+    "test": 34,
+    "permissions": "baca=IsAuthenticated; tulis & transisi=ADMIN/OWNER",
+    "decisions": [
+      "Push saat CONFIRMED (create draft di Odoo); action_confirm SENGAJA tidak dipanggil (memicu picking).",
+      "DONE murni MES (Odoo 17 tidak punya state done untuk sale.order); butuh semua WO DONE/CANCELLED.",
+      "Lines NESTED dalam transaction.atomic; PUT lines = replace penuh.",
+      "Nomor MES ≠ nomor Odoo: next_number('SO') → code + client_order_ref; Odoo menomori sendiri (S00033).",
+      "Guard aditif di pull I2: client_order_ref berbentuk nomor MES tidak ditimpa nama Odoo.",
+      "price_unit Decimal di backend, string 2 desimal di API.",
+      "Stage ledger BARU SALE_ORDER_PUSH dengan resource existing order.",
+      "5 test lama pakai /garmen/orders/ sebagai 'resource tak dikenal' diganti ke tidak-ada."
+    ]
+  },
+
+  "sprint_H2_2_purchase_order": {
+    "status": "done",
+    "completed_at": "2026-10-11",
+    "module": "H2.2 — Purchase Order + PO Line (greenfield)",
+    "endpoints": [
+      "GET/POST /api/v1/garmen/purchase-orders/",
+      "GET/PUT/DELETE /api/v1/garmen/purchase-orders/<id>/",
+      "POST /api/v1/garmen/purchase-orders/<id>/confirm|done|cancel/",
+      "POST /api/v1/garmen/purchase-orders/<id>/sync-odoo-state/ (read-only)"
+    ],
+    "migrations": [
+      "garment/0016_purchase_order_h2",
+      "erp_sync/0015_purchase_order_push_stage"
+    ],
+    "sync": "resource=purchase_order, stage=PURCHASE_ORDER_PUSH, task=erp_sync.push_purchase_order",
+    "test": 30,
+    "permissions": "baca=IsAuthenticated; tulis & transisi=PURCHASING/ADMIN/OWNER",
+    "path_decision": "Path BARU /api/v1/garmen/purchase-orders/ (bukan extend B10 /api/v1/purchase/orders/ yang dipakai monitoring read-only).",
+    "decisions": [
+      "Push saat CONFIRMED (draft di Odoo); action_confirm SENGAJA tidak dipanggil.",
+      "qty = Decimal(18,2) (Odoo product_qty float, mis. benang 0.3).",
+      "Baris pakai taxes_id (BUKAN tax_id — beda dari sale.order.line).",
+      "partner_ref = code MES; Odoo menomori sendiri (P00013).",
+      "Gap I3: PO yang kita push tetap draft di Odoo ⇒ belum dihitung readiness. Solusi: purchasing harus confirm PO di UI Odoo + endpoint read-only sync-odoo-state untuk cek state."
+    ]
+  },
+
+  "sprint_H2_3_work_order": {
+    "status": "done",
+    "completed_at": "2026-10-12",
+    "module": "H2.3 — Work Order CRUD + Split + Generate (MES-only)",
+    "endpoints": [
+      "GET/POST /api/v1/garmen/work-orders/",
+      "GET/PUT/DELETE /api/v1/garmen/work-orders/<id>/",
+      "POST /api/v1/garmen/work-orders/<id>/split/",
+      "POST /api/v1/garmen/orders/<id>/generate-wo/"
+    ],
+    "migrations": [
+      "erp_sync/0016_work_order_push_stage (stage baru WORK_ORDER_PUSH)"
+    ],
+    "ledger": "SyncRecord(resource=work_order, stage=WORK_ORDER_PUSH) status=SKIPPED",
+    "test": 28,
+    "decisions": [
+      "MES-only: mrp.workorder Odoo = operasi per MO (production_id required), bukan WO per order penjualan.",
+      "State existing dipakai apa adanya (TIDAK ada RELEASED — beda dari brief).",
+      "Nomor next_number('WO') → WO-2026-0001 (kalau code tidak dikirim).",
+      "Delete hibrida: DRAFT tanpa bundle = hard delete; ada Bundle/bukan DRAFT = soft delete CANCELLED.",
+      "Split: sum = qty_planned sumber, WO asli jadi bagian pertama.",
+      "Batch generate: 1 OrderLine = 1 WO, idempoten (skipped kalau sudah ada).",
+      "Izin tulis = IsAuthenticated tanpa role (konsisten F2/simulator)."
+    ]
+  },
+
+  "sprint_H2_4_bundle": {
+    "status": "done",
+    "completed_at": "2026-10-12",
+    "module": "H2.4 — Bundle CRUD + Split/Merge (MES-only sebagai objek)",
+    "endpoints": [
+      "GET/POST /api/v1/garmen/bundles/",
+      "POST /api/v1/garmen/bundles/preview/",
+      "GET/PUT/DELETE /api/v1/garmen/bundles/<id>/",
+      "POST /api/v1/garmen/bundles/<id>/split/",
+      "POST /api/v1/garmen/bundles/<id>/merge/"
+    ],
+    "migrations": ["erp_sync/0017_bundle_push_stage (stage baru BUNDLE_PUSH)"],
+    "ledger": "SyncRecord(resource=bundle, stage=BUNDLE_PUSH) status=SKIPPED sebagai objek; pergerakan stok tetap WIP/FG",
+    "test": 34,
+    "decisions": [
+      "MES-only sebagai objek (Odoo tidak punya model bundle); pergerakan stok tetap lewat push_wip_issue/push_fg_receipt.",
+      "Stage BUNDLE_PUSH dipisah dari WIP/FG (beda konsep: objek vs pergerakan).",
+      "Delete hibrida: DRAFT tanpa BundleEvent & tanpa WIP/FG & tanpa ScrapAccumulator → hard; selain itu 409.",
+      "Split: sum parts = qty sumber; bundle asli = bagian pertama.",
+      "Merge: WO + size + SKU wajib sama; bundle sumber dihapus.",
+      "Kode anti-tabrakan: fallback {work_order}-{SIZE}-{seq} lalu naikkan seq.",
+      "Bundle.version SHA-256 tidak diubah (optimistic lock F3 tetap sah).",
+      "Izin tulis = IsAuthenticated tanpa role."
+    ]
+  },
+
+  "sprint_H2_5_inventory_adjustment": {
+    "status": "done",
+    "completed_at": "2026-10-12",
+    "module": "H2.5 — Inventory Adjustment (LOG)",
+    "endpoints": [
+      "POST /api/v1/inventory/adjust/",
+      "GET /api/v1/inventory/adjustments/",
+      "GET /api/v1/inventory/adjustments/<id>/",
+      "POST /api/v1/inventory/adjustments/<id>/commit/",
+      "GET /api/v1/inventory/stock-qty/"
+    ],
+    "migrations": [
+      "garment/0017_inventory_adjustment",
+      "erp_sync/0018_inventory_adjust_stage",
+      "master/0015_seed_adj_sequence"
+    ],
+    "ledger": "SyncRecord(resource=inventory_adjustment, stage=INVENTORY_ADJUST) siklus penuh PENDING→SENT/FAILED",
+    "state": "DRAFT → COMMITTED → SYNCED/FAILED",
+    "test": 47,
+    "guard": [
+      "lokasi usage='internal'",
+      "qty_delta ≠ 0, |qty_delta| ≤ 1.000.000",
+      "reason wajib (≤500 char)",
+      "produk tracking lot/serial DITOLAK",
+      "commit wajib product.odoo_id + location.odoo_id; state ≠ DRAFT → 409"
+    ],
+    "decisions": [
+      "Rule utama CHANGES-DETAIL §4: MES TIDAK simpan stok; model = LOG/audit.",
+      "Jalur quant-path (stock.quant inventory_mode=True + action_apply_inventory) — satu-satunya jalur publik yang bisa via RPC.",
+      "odoo_move_id didapat DARI Odoo, bukan dibuat MES.",
+      "Nomor next_number('ADJ') → ADJ-<YEAR>-<SEQ:04d>.",
+      "Prasyarat: user API Odoo harus punya stock.group_stock_manager (utang teknis dicatat)."
+    ]
+  },
+
+  "sprint_H2_6_stock_transfer": {
+    "status": "done",
+    "completed_at": "2026-10-12",
+    "module": "H2.6 — Stock Transfer (LOG) — PENUTUP FASE H2",
+    "endpoints": [
+      "POST /api/v1/inventory/transfer/",
+      "GET /api/v1/inventory/transfers/",
+      "GET /api/v1/inventory/transfers/<id>/",
+      "POST /api/v1/inventory/transfers/<id>/commit/"
+    ],
+    "migrations": [
+      "garment/0018_stock_transfer",
+      "erp_sync/0019_stock_transfer_stage",
+      "master/0016_seed_trf_sequence"
+    ],
+    "ledger": "SyncRecord(resource=stock_transfer, stage=STOCK_TRANSFER) siklus penuh PENDING→SENT/FAILED",
+    "state": "DRAFT → COMMITTED → SYNCED/FAILED",
+    "test": 35,
+    "guard": [
+      "kedua lokasi usage='internal'",
+      "from != to",
+      "qty > 0 dan ≤ 1.000.000",
+      "produk tracking lot/serial DITOLAK",
+      "commit wajib product.odoo_id + 2 location.odoo_id; state ≠ DRAFT → 409"
+    ],
+    "decisions": [
+      "Jalur picking-path (stock.picking button_validate) — publik, di dalamnya confirm+auto-isi+picked+done.",
+      "skip_backorder=True untuk determinisme; verifikasi state == 'done'.",
+      "Tipe picking di-resolve tanpa hardcode: settings ODOO_PICKING_TYPE_INTERNAL_ID → fallback cari code='internal'.",
+      "user API SUDAH punya stock.group_stock_multi_locations ⇒ tidak ada utang baru (beda dari H2.5).",
+      "Nomor next_number('TRF')."
+    ]
+  },
+
+  "sprint_H3_1_customer_invoice": {
+    "status": "done",
+    "completed_at": "2026-10-12",
+    "module": "H3.1 — Customer Invoice (greenfield)",
+    "endpoints": [
+      "GET/POST /api/v1/finance/customer-invoices/",
+      "GET/PUT/DELETE /api/v1/finance/customer-invoices/<id>/",
+      "POST /api/v1/finance/customer-invoices/<id>/confirm|done|cancel/"
+    ],
+    "migrations": [
+      "garment/0019_customer_invoice",
+      "erp_sync/0021_customer_invoice_resource"
+    ],
+    "sync": "resource=customer_invoice, stage=INVOICE (reuse dari I5), task=erp_sync.push_customer_invoice",
+    "test": 39,
+    "state": "DRAFT → CONFIRMED → SENT → DONE + CANCELLED",
+    "guard": "minimal 1 baris; SEMUA price_unit > 0; customer.odoo_id; tiap product.odoo_id; tiap tax.odoo_id",
+    "decisions": [
+      "Coexist dengan jalur I5 (resource=order, stage=INVOICE, harga 0): resource beda ⇒ tidak tabrakan unique (resource, resource_id, stage).",
+      "Push saat CONFIRMED → account.move out_invoice draft; action_post tidak dipanggil.",
+      "Kegagalan push bukan state model → SyncRecord.status=FAILED.",
+      "Satu order boleh >1 invoice (termin/DP); duplicate_warning + AuditLog, tanpa unique."
+    ]
+  },
+
+  "sprint_H3_2_vendor_bill": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "module": "H3.2 — Vendor Bill (greenfield)",
+    "endpoints": [
+      "GET/POST /api/v1/finance/vendor-bills/",
+      "GET/PUT/DELETE /api/v1/finance/vendor-bills/<id>/",
+      "POST /api/v1/finance/vendor-bills/<id>/confirm|done|cancel/"
+    ],
+    "migrations": [
+      "garment/0020_vendor_bill",
+      "erp_sync/0022_vendor_bill_resource"
+    ],
+    "sync": "resource=vendor_bill, stage=VENDOR_BILL (BARU), task=erp_sync.push_vendor_bill",
+    "test": 36,
+    "state": "DRAFT → CONFIRMED → SENT → DONE + CANCELLED",
+    "guard": "minimal 1 baris; qty > 0; price_unit ≥ 0; vendor.odoo_id; tiap product.odoo_id; tiap tax.odoo_id",
+    "decisions": [
+      "Stage BARU VENDOR_BILL (dokumen = in_invoice, beda konsep dari INVOICE/out_invoice).",
+      "ref best-effort (Odoo account.move.ref required=False, tanpa constraint duplikasi).",
+      "purchase_order nullable (bill tanpa PO = biaya jasa) & tidak unique (termin/partial).",
+      "File task terpisah dari I6 (tasks_vendor_bill_push.py vs tasks_vendor_bill.py).",
+      "purchase_line_id tidak dikirim (PO MES masih draft di Odoo)."
+    ]
+  },
+
+  "sprint_H3_3_payment": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "module": "H3.3 — Payment (greenfield, satu model dua arah)",
+    "endpoints": [
+      "GET/POST /api/v1/finance/payments/",
+      "GET/PUT/DELETE /api/v1/finance/payments/<id>/",
+      "POST /api/v1/finance/payments/<id>/confirm|done|cancel/"
+    ],
+    "migrations": [
+      "garment/0021_customer_invoice_amount_total",
+      "garment/0022_vendor_bill_amount_total",
+      "garment/0023_payment",
+      "erp_sync/0023_payment_resource"
+    ],
+    "sync": "resource=payment, stage=PAYMENT (BARU), task=erp_sync.push_payment",
+    "test": 31,
+    "state": "DRAFT → CONFIRMED → SENT → DONE + CANCELLED",
+    "concept": "payment_type INBOUND (customer bayar kita, sumber CustomerInvoice) / OUTBOUND (kita bayar vendor, sumber VendorBill). Relasi Opsi A: 2 FK nullable + CheckConstraint tepat satu sumber.",
+    "guard": "anti-overpay BLOKIR 400: Σ amount payment aktif (state ≠ CANCELLED) + amount baru ≤ amount_total dokumen",
+    "decisions": [
+      "amount_total BARU (Decimal 18,2) di CustomerInvoice & VendorBill — guard overpay deterministik.",
+      "journal_id OPSIONAL via env ODOO_PAYMENT_JOURNAL_ID (kosong ⇒ Odoo pilih sendiri).",
+      "payment_method_line_id/currency_id TIDAK dikirim (computed Odoo).",
+      "MES TIDAK merekonsiliasi (reconciled_* readonly).",
+      "memo/communication tidak ada di Odoo 17."
+    ]
+  },
+
+  "sprint_H3_4_journal_entry": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "module": "H3.4 — Journal Entry Manual (greenfield, double-entry) — PENUTUP FASE H3",
+    "endpoints": [
+      "GET/POST /api/v1/finance/journal-entries/",
+      "GET/PUT/DELETE /api/v1/finance/journal-entries/<id>/",
+      "POST /api/v1/finance/journal-entries/<id>/confirm|done|cancel/",
+      "GET /api/v1/master/accounts/ + /<id>/ (read-only)",
+      "GET /api/v1/master/journals/ + /<id>/ (read-only)",
+      "POST /api/v1/sync/master/accounts/"
+    ],
+    "migrations": [
+      "garment/0024_journalentry_journalentryline_and_more",
+      "erp_sync/0024_alter_syncrecord_resource_alter_syncrecord_stage",
+      "master/0020_account_journal_journal_type"
+    ],
+    "sync": "resource=journal_entry, stage=JOURNAL_ENTRY (BARU), task=erp_sync.push_journal_entry",
+    "test": 38,
+    "state": "DRAFT → CONFIRMED → SENT → DONE + CANCELLED",
+    "guard": [
+      "journal wajib odoo_id + journal_type='general' (kosong = longgar)",
+      "minimal 2 baris",
+      "tiap baris debit XOR credit (CheckConstraint DB)",
+      "semua account.odoo_id ada",
+      "Σ debit = Σ kredit, toleransi 0.01 (disimpan total_debit/total_credit)"
+    ],
+    "decisions": [
+      "Posting & rekonsiliasi = akuntan Odoo. action_post TIDAK PERNAH dipanggil; MES hanya kirim draft.",
+      "Journal general saja (sale/purchase/bank/cash dipakai Odoo untuk invoice/bill/payment).",
+      "move_type='entry' eksplisit (probe: default_get bisa beda).",
+      "master.Account TANPA field active (Odoo 17 tidak punya; is_active = not deprecated).",
+      "master.Journal.journal_type field aditif (pull account.journal.type).",
+      "Chart of accounts & journal read-only (405 untuk tulis); pull via task erp_sync.sync_master_accounts."
+    ]
+  },
+
+  "bugfix_master_403_credentials": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "kind": "bugfix (frontend) + pin test backend",
+    "finding": "GET /api/v1/master/* balas 403 di UI karena klien frontend tidak kirim cookie sessionid (allowlist credentials di api-client.ts belum memuat /master/). Backend BENAR: anonim 403, ber-sesi 200.",
+    "backend_test": "tests/integration/test_master_cors_credentials.py (BARU, 4 test)",
+    "frontend_fix": "Gerbang credentials default-aman (PUBLIC_GET_PREFIXES = satu-satunya pengecualian); normalizeApiPath() menormalkan prefix /api/v1.",
+    "no_change": "Tidak ada perubahan model/migrasi/view/endpoint/permission."
+  },
+
+  "sprint_H4_1_report_sales": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "module": "H4.1 — Laporan Penjualan (modul 1/8 FASE H4, READ-ONLY) — backend",
+    "endpoint": "GET /api/v1/reports/sales/ (name `reports_sales`, section kontrak core, setelah blok reports/wip) — IsAuthenticated → anonim 403",
+    "view": "integrations/erp_sync/monitoring.py::ReportsSalesView (+ helper: _sales_range, _sales_options, _sales_lines, _sales_rows, _sales_summary, _sales_cache_key, _sales_filters_echo, _sales_month_range, _sales_boundary)",
+    "sources": [
+      "OrderLine ⋈ Order → nilai penjualan; basis periode Order.created_at (akrual), order CANCELLED dibuang; amount = Σ(qty × price_unit) karena OrderLine TIDAK punya line_total",
+      "CustomerInvoiceLine.line_total → piutang per invoice_date, invoice CANCELLED dibuang (SEBELUM pajak, pola H3.1)",
+      "Payment INBOUND state SENT/DONE → kas masuk per payment_date (BUKAN CustomerInvoice.amount_total)"
+    ],
+    "params": "?period=YYYY-MM (default bulan berjalan) > ?date_from/?date_to > ?from/?to; ?customer_id=, ?product_id=, ?order_type=EXPORT|CUSTOM|BRAND, ?group_by=period|customer|product, ?_nocache=1 — nilai tak dikenal → 400",
+    "shape": "{rows[], summary{total_qty,total_amount,count_orders,count_lines,invoiced_amount,invoice_count,paid_amount,payment_count,currency}, group_by, filters{echo + resolved_from/resolved_to}, period{from,to}, generated_at, cached} — NON-ListPage (tanpa total_count/has_more, pola family report B13/B16)",
+    "rows": "key/label/unit(=IDR)/value(=total_amount) + total_qty/total_amount/order_count/line_count; group_by=period → +period; customer → +customer_id/customer_code/customer_name; product → +product_id/product_code/product_name; urut period naik, customer/product = -total_amount lalu nama",
+    "cache": "django.core.cache 300 dtk key `reports:sales:<sha1(filter efektif)>`; ?_nocache=1 = tidak baca DAN tidak tulis cache (escape hatch debug/force refresh)",
+    "migrations": "TIDAK ADA (read-only; tanpa field/model baru)",
+    "test": 20,
+    "test_file": "tests/integration/test_reports_sales.py",
+    "decisions": [
+      "Basis periode = Order.created_at (accrual: sales diakui saat order dibuat). Alternatif CustomerInvoice.invoice_date ditunda sebagai ?basis=invoice pada sprint terpisah.",
+      "Prioritas param: ?period=YYYY-MM > ?date_from/?date_to > ?from/?to (alias family report). Default = bulan berjalan.",
+      "Hanya batas atas diisi → batas bawah = awal bulan batas atas; hanya batas bawah → batas atas = now. from > to → 400.",
+      "Batas tanggal tanpa jam diperlakukan INKLUSIF: end=True → 23:59:59.999999 (parse_date diperiksa sebelum parse_datetime; Python 3.11 fromisoformat menerima YYYY-MM-DD sebagai tengah malam).",
+      "invoiced_amount = piutang dari CustomerInvoiceLine.line_total (SEBELUM pajak), bukan kas; invoice CANCELLED dibuang.",
+      "paid_amount = Σ Payment.amount INBOUND state SENT/DONE (payment_date dalam periode) — BUKAN CustomerInvoice.amount_total; filter product memakai subquery invoice sumber supaya tidak ada duplikasi baris.",
+      "OrderLine TIDAK diberi field line_total; nilai uang dihitung di query (annotate) — tanpa perubahan model/migration.",
+      "Cache 300 dtk + ?_nocache=1; response memuat flag `cached` (aditif) untuk membedakan hasil cache.",
+      "Export Excel/PDF SUDAH ada sejak H4.8 (openpyxl>=3.1 + reportlab>=4.0 di requirements; endpoint /api/v1/export/<report>/)."
+    ],
+    "non_breaking": "B13/B16/B18–B21 + /purchase/reporting/ + /inventory/reporting/ + H2.1/H3.1 tetap hijau (107 test targeted). Suite penuh: 2070 passed / 7 pre-existing fail / 1 skipped."
+  },
+
+  "sprint_H4_2_report_purchases": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "module": "H4.2 — Laporan Pembelian (modul 2/8 FASE H4, READ-ONLY) — backend",
+    "endpoint": "GET /api/v1/reports/purchases/ (name `reports_purchases`, section kontrak core, setelah blok reports/sales) — IsAuthenticated → anonim 403",
+    "view": "integrations/erp_sync/monitoring.py::ReportsPurchasesView (+ helper: _purchases_range, _purchases_options, _purchases_lines, _purchases_rows, _purchases_summary, _purchases_cache_key, _purchases_filters_echo, _purchases_month_range, _purchases_boundary, _purchases_amount_expr, _purchases_row, _qty)",
+    "sources": [
+      "PurchaseOrderLine + PurchaseOrder → nilai pembelian; basis periode PurchaseOrder.created_at (akrual), PO CANCELLED dibuang; amount = Sum(qty x price_unit) karena PurchaseOrderLine TIDAK punya line_total",
+      "VendorBillLine.line_total → utang per invoice_date, bill CANCELLED dibuang (SEBELUM pajak, pola H3.2)",
+      "Payment OUTBOUND state SENT/DONE → kas keluar per payment_date (BUKAN VendorBill.amount_total)"
+    ],
+    "params": "?period=YYYY-MM (default bulan berjalan) > ?date_from/?date_to > ?from/?to; ?vendor_id=, ?product_id=, ?status=DRAFT|CONFIRMED|DONE|CANCELLED (case-insensitive), ?group_by=period|vendor|product, ?_nocache=1 — nilai tak dikenal → 400",
+    "shape": "{rows[], summary{total_qty,total_amount,count_purchases,count_lines,billed_amount,bill_count,paid_amount,payment_count,currency}, group_by, filters{echo + resolved_from/resolved_to}, period{from,to}, generated_at, cached} — NON-ListPage (pola family report B13/B16)",
+    "rows": "key/label/unit(=IDR)/value(=total_amount) + total_qty(float)/total_amount/purchase_count/line_count; group_by=period → +period; vendor → +vendor_id/vendor_code/vendor_name; product → +product_id/product_code/product_name; urut period naik, vendor/product = -total_amount lalu nama",
+    "cache": "django.core.cache 300 dtk key `reports:purchases:<sha1(filter efektif)>`; ?_nocache=1 = tidak baca DAN tidak tulis cache",
+    "migrations": "TIDAK ADA (read-only; tanpa field/model baru)",
+    "test": 20,
+    "test_file": "tests/integration/test_reports_purchases.py",
+    "decisions": [
+      "Basis periode = PurchaseOrder.created_at (accrual) — konsisten H4.1 (Order.created_at). PO MES TIDAK punya field purchase_date; expected_date = rencana kedatangan, BUKAN tanggal transaksi.",
+      "Prioritas param & semantik rentang identik H4.1 (delegasi _sales_range/_sales_month_range/_sales_boundary); default bulan berjalan; from > to → 400.",
+      "?status memakai SEMUA state PO MES (DRAFT|CONFIRMED|DONE|CANCELLED, case-insensitive) — DRAFT tetap pipeline, bukan hanya CONFIRMED/DONE. Invalid → 400.",
+      "billed_amount = utang dari VendorBillLine.line_total (SEBELUM pajak), bill CANCELLED dibuang; paid_amount = Sum Payment.amount OUTBOUND SENT/DONE — BUKAN VendorBill.amount_total.",
+      "PurchaseOrderLine TIDAK diberi field line_total; nilai uang dihitung di query (annotate) — tanpa perubahan model/migration.",
+      "total_qty baris = FLOAT 2 desimal (qty pembelian Decimal 18,2 boleh pecahan, mis. benang 0.3) — beda dari H4.1 yang int (OrderLine.qty integer).",
+      "Cache 300 dtk + ?_nocache=1; response memuat flag `cached` (aditif).",
+      "Export Excel/PDF ditunda ke H4.8 (tombol disabled + tooltip di UI).",
+      "Vendor pada PurchaseOrder NOT NULL → cabang label (tanpa vendor) bersifat defensif (tak terjangkau)."
+    ],
+    "non_breaking": "B11 (/purchase/reporting/) + H4.1 (/reports/sales/) + H2.2/H3.2/H3.3 + reports lain tetap hijau (155 test targeted). Suite penuh: 2091 passed / 6 failed (7 daftar pre-existing; flake trace_bridge LULUS) / 1 skipped."
+  },
+
+  "sprint_H4_3_report_stock": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "module": "H4.3 — Laporan Stok (modul 3/8 FASE H4, READ-ONLY, SNAPSHOT) — backend",
+    "endpoint": "GET /api/v1/reports/stock/ (name `reports_stock`, section kontrak core, setelah blok reports/purchases) — IsAuthenticated → anonim 403",
+    "view": "integrations/erp_sync/monitoring.py::ReportsStockView (+ helper: _stock_options, _stock_location_filter, _stock_fetch, _stock_product_map, _stock_location_map, _stock_location_meta, _stock_aggregate, _stock_rows, _stock_summary, _stock_cache_key, _stock_filters_echo, _stock_truthy)",
+    "sources": [
+      "Odoo stock.quant LIVE via jalur I7 (REUSE): fetch_internal_locations() lalu fetch_stock_quants(location_ids, child_of=True) — 2 RPC KONSTAN per request (bukan per produk)",
+      "quantity = on-hand, reserved_quantity = tertahan; available_qty = quantity − reserved_quantity dihitung di MES (field available_quantity tidak diambil I7 → hemat RPC)",
+      "agregat in-memory; TIDAK ada model/tabel stok baru (CHANGES-DETAIL §4) dan tanpa migration"
+    ],
+    "params": "?location_id= (pk MES Location; wajib usage='internal' dan sudah punya odoo_id, else 400), ?product_id= (pk MES Product, else 400), ?search= (Product.code/name icontains), ?group_by=product|location (default product), ?only_nonzero=1, ?_nocache=1 — TANPA ?period/?date_from/?date_to (SNAPSHOT bukan time-series)",
+    "shape": "{rows[], summary{total_qty,reserved_qty,available_qty,product_count,location_count,quant_count,unmapped_product_count,unmapped_qty}, group_by, filters{echo + source}, generated_at, cached, source:'odoo'} — NON-ListPage; TANPA `currency` (H4.3 murni quantity)",
+    "rows": "group_by=product → key/label/unit(=unit)/product_id/product_code/product_name/uom_code/total_qty/reserved_qty/available_qty/locations_count; group_by=location → key/label/unit/location_id/location_code/location_name/location_odoo_id/total_qty/reserved_qty/available_qty/products_count; urut -total_qty lalu nama (tie-break)",
+    "location_enrich": "kode/nama lokasi di-enrich dari master.Location via odoo_id; fallback complete_name Odoo kalau belum tersinkron (location_id=null)",
+    "cache": "django.core.cache 300 dtk key `reports:stock:<sha1(filter efektif)>`; ?_nocache=1 = tidak baca DAN tidak tulis cache; cache hit = 0 RPC (jangan flood Odoo)",
+    "migrations": "TIDAK ADA (read-only; tanpa field/model/tabel baru)",
+    "test": 18,
+    "test_file": "tests/integration/test_reports_stock.py",
+    "decisions": [
+      "Stok = SNAPSHOT, bukan time-series → TANPA param rentang (beda dari H4.1/H4.2).",
+      "Sumber = Odoo stock.quant LIVE via I7 (BUKAN proxy DB B30) — MES tidak menyimpan stok (§4).",
+      "?location_id/?product_id = pk MES (konvensi dropdown master, sama /inventory/stock-qty/); di-map ke odoo_id saat query Odoo.",
+      "?location_id wajib usage='internal' (else 400) dan odoo_id terisi (else 400) — konsisten enforcement /inventory/stock-qty/.",
+      "available_qty = quantity − reserved_quantity (dihitung MES karena I7 tidak mengambil available_quantity).",
+      "Hanya produk yang ter-map ke master MES yang diagregasi (pola I7); produk Odoo non-master dihitung transparan di summary.unmapped_product_count/unmapped_qty supaya total bisa direkonsiliasi user.",
+      "total_qty/reserved_qty/available_qty = float 2 desimal (qty stok boleh pecahan).",
+      "summary TANPA currency — H4.3 fokus quantity (fisik); nilai Rp / COGS = H4.4.",
+      "Fail-safe: ERP_ADAPTER null / Odoo down / tanpa lokasi internal → HTTP 200 rows=[] summary nol + warning log (pola I7/B11), bukan 500.",
+      "?only_nonzero=1 memangkas bucket qty=0 sebelum hitung summary supaya angka ringkasan konsisten dengan baris yang tampil.",
+      "Export Excel/PDF ditunda ke H4.8 (tombol disabled + tooltip di UI).",
+      "Tooling: workaround (a) Windows-temp → WSL python dipakai (editor tool sesi ini tidak menulis ke UNC path); retry (c) Remote-WSL sesi berikutnya."
+    ],
+    "non_breaking": "I7 (/reconciliation/report/ + StockReconciliation + transport stock.quant) + B30 (/inventory/reporting/) + /inventory/stock-qty/ + H4.1 + H4.2 tetap hijau (222 test targeted). Suite penuh: 2109 passed / 6 failed (7 daftar pre-existing; flake trace_bridge LULUS) / 1 skipped."
+  },
+
+  "sprint_H4_4_report_cogs": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "module": "H4.4 — Laporan HPP/Laba Kotor (COGS) (modul 4/8 FASE H4, READ-ONLY) — backend",
+    "endpoint": "GET /api/v1/reports/cogs/ (name `reports_cogs`, section kontrak core, setelah blok reports/stock) — IsAuthenticated → anonim 403",
+    "view": "integrations/erp_sync/monitoring.py::ReportsCogsView (+ helper: _cogs_options, _cogs_lines, _cogs_sales_expr, _cogs_cost_expr, _cogs_missing_exprs, _money_pct, _cogs_row, _cogs_rows, _cogs_summary, _cogs_cache_key, _cogs_filters_echo)",
+    "formula": "omzet = Sum(qty × OrderLine.price_unit); HPP simplified = Sum(qty × Product.cost_price); gross_profit = omzet − HPP; gross_margin_pct = gross_profit / omzet × 100 (omzet 0 → 0, tanpa divide-by-zero)",
+    "basis": "Order.created_at (accrual, konsisten H4.1); order state CANCELLED dibuang; rentang param delegasi `_sales_range` (prioritas ?period > ?date_from/?date_to > ?from/?to, default bulan berjalan)",
+    "params": "?period=YYYY-MM, ?date_from=, ?date_to=, ?from=, ?to=, ?customer_id=, ?product_id=, ?order_type=EXPORT|CUSTOM|BRAND (case-insensitive), ?group_by=period|customer|product, ?_nocache=1 — nilai tak dikenal → 400",
+    "shape": "{rows[], summary{total_sales,total_cogs,total_gross_profit,gross_margin_pct,order_count,line_count,qty_total,rows_with_missing_cost,currency}, group_by, filters{echo + resolved_from/resolved_to}, period{from,to}, generated_at, cached} — NON-ListPage",
+    "rows": "common: key/label/sales_amount/cogs_amount/gross_profit/gross_margin_pct/order_count/line_count/qty_total/has_missing_cost/missing_cost_reason; group_by=period → +period; customer → +customer_id/customer_code/customer_name; product → +product_id/product_code/product_name/qty; urut period naik, customer/product = -sales_amount lalu nama",
+    "missing_cost": "cost_price = 0 ATAU product NULL → HPP 0 (TIDAK difabrikasi); baris agregat ditandai has_missing_cost + missing_cost_reason (no_product MENANG atas no_cost); summary.rows_with_missing_cost = jumlah baris OrderLine (2 alasan digabung)",
+    "cache": "django.core.cache 300 dtk key `reports:cogs:<sha1(filter efektif)>`; ?_nocache=1 = tidak baca DAN tidak tulis cache; cache hit = 0 query DB (diuji CaptureQueriesContext)",
+    "migrations": "TIDAK ADA (read-only; tanpa field/model baru)",
+    "test": 18,
+    "test_file": "tests/integration/test_reports_cogs.py",
+    "decisions": [
+      "Formula HPP simplified (qty × cost_price); biaya tenaga kerja + overhead = sprint terpisah (H4.4 hanya harga pokok produk).",
+      "Omzet dihitung dari qty × price_unit (selalu ada). HPP butuh Product.cost_price; product NULL → HPP 0 + missing_cost_reason = 'no_product'.",
+      "cost_price = 0 → HPP 0, JANGAN difabrikasi; dicatat di summary.rows_with_missing_cost + flag per baris agregat.",
+      "missing_cost_reason: 'no_product' menang atas 'no_cost' bila satu baris agregat memuat keduanya (alasan lebih fundamental).",
+      "Basis periode = Order.created_at (accrual) — konsisten H4.1; order CANCELLED dibuang.",
+      "Agregat dihitung di DB (Sum(F(qty)*F(...)) + Count(filter=Q(...))) → 1 query per response, tanpa N+1.",
+      "currency = IDR (laporan uang), beda dari H4.3 (quantity) yang sengaja tanpa currency.",
+      "OrderLine.qty = PositiveInteger DIPERTAHANKAN (tidak diubah H4.4); qty Decimal = sprint terpisah bila perlu.",
+      "Export Excel/PDF ditunda ke H4.8 (tombol disabled + tooltip di UI).",
+      "Read-only: tidak menyentuh Product.cost_price (H3.5) maupun auto-fill PurchaseOrderLine.price_unit (H2.2).",
+      "Tooling: workaround (a) Windows-temp → WSL python dipakai; retry (c) Remote-WSL sesi berikutnya."
+    ],
+    "non_breaking": "H4.1 (/reports/sales/) + H4.2 + H4.3 (/reports/stock/) + H3.5 (test_product_price) + H2.2 auto-fill cost_price + B11 + B30 + test_perf_queries tetap hijau (163 test targeted). Suite penuh: 2126 passed / 7 failed (daftar pre-existing LENGKAP — flake test_trace_bridge_e2e FAILED run ini) / 1 skipped."
+  },
+
+  "sprint_H4_5_report_pnl": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "module": "H4.5 — Laporan Laba-Rugi / PnL (modul 5/8 FASE H4, READ-ONLY) — backend",
+    "endpoint": "GET /api/v1/reports/pnl/ (name `reports_pnl`, section kontrak core, setelah blok reports/cogs) — IsAuthenticated → anonim 403",
+    "view": "integrations/erp_sync/monitoring.py::ReportsPnlView (+ helper: _pnl_options, _pnl_revenue_expr, _pnl_cost_expr, _pnl_bucket_label, _pnl_opex_available, _pnl_opex_by_bucket, _pnl_row, _pnl_rows, _pnl_summary, _pnl_cache_key, _pnl_filters_echo)",
+    "formula": "revenue = Sum(qty × OrderLine.price_unit) → cogs = Sum(qty × Product.cost_price) → gross_profit = revenue − cogs → opex (jurnal) → net_profit = gross_profit − opex; gross_margin_pct = gross_profit/revenue × 100; net_margin_pct = net_profit/revenue × 100 (revenue 0 → 0, tanpa divide-by-zero)",
+    "opex_source": "Sum(debit − credit) JournalEntryLine (H3.4) WHERE account.account_type ∈ (expense, expense_depreciation, expense_direct_cost) AND entry.state ∈ (CONFIRMED, SENT, DONE) AND entry.entry_date dalam rentang",
+    "basis": "Order.created_at (accrual, konsisten H4.1); order state CANCELLED dibuang; rentang param delegasi `_sales_range` (?period > ?date_from/?date_to > ?from/?to, default bulan berjalan)",
+    "params": "?period=YYYY-MM, ?date_from=, ?date_to=, ?from=, ?to=, ?group_by=period|quarter (bucket YYYY-MM / YYYY-Qn via TruncQuarter), ?_nocache=1 — TANPA ?customer_id/?product_id (PnL = agregat bisnis); nilai tak dikenal → 400",
+    "shape": "{rows[], summary{revenue,cogs,gross_profit,gross_margin_pct,opex,net_profit,net_margin_pct,opex_source,opex_account_types,opex_states,order_count,line_count,rows_with_missing_cost,currency}, group_by, filters{echo + resolved_from/resolved_to}, period{from,to}, generated_at, cached} — NON-ListPage",
+    "rows": "key/label/revenue/cogs/gross_profit/gross_margin_pct/opex(nullable)/net_profit/net_margin_pct/order_count/line_count/has_missing_cost/missing_cost_reason + period (bucket YYYY-MM) atau quarter (YYYY-Qn); urut naik",
+    "bucket_union": "baris = gabungan bucket penjualan ∪ bucket beban → bulan/kuartal tanpa penjualan tapi ada beban tetap muncul; Sigma baris == summary (diuji)",
+    "cache": "django.core.cache 300 dtk key `reports:pnl:<sha1(filter efektif)>`; ?_nocache=1 = tidak baca DAN tidak tulis cache; cache hit = 0 query DB (diuji CaptureQueriesContext)",
+    "migrations": "TIDAK ADA (read-only; tanpa field/model baru)",
+    "test": 18,
+    "test_file": "tests/integration/test_reports_pnl.py",
+    "decisions": [
+      "Rantai PnL: revenue − HPP = laba kotor; laba kotor − opex = laba bersih. Reuse ekspresi H4.4 (_cogs_sales_expr/_cogs_cost_expr) — HPP tetap simplified (qty × cost_price); biaya tenaga kerja/overhead TIDAK ditambahkan di H4.5 (sprint terpisah) kecuali yang sudah diposting manual ke jurnal expense.",
+      "opex = Σ(debit − credit) JournalEntryLine H3.4 (kredit mengurangi), account_type ∈ (expense, expense_depreciation, expense_direct_cost), state ∈ (CONFIRMED, SENT, DONE).",
+      "expense_direct_cost = COGS-like ('Cost of Revenue'); DIMASUKKAN ke opex sesuai keputusan H4.5 — tidak double-count (HPP H4.4 dari Product.cost_price = posting berbeda). User bisa audit via summary.opex_account_types.",
+      "opex_states memakai CONFIRMED|SENT|DONE (bukan hanya SENT|DONE): CONFIRMED = niat final akuntan (hanya lag push) supaya laporan tidak menyesatkan selama lag; diekspos di summary.opex_states.",
+      "opex_source = 'unavailable' HANYA bila master.Account belum punya akun expense-family (chart of accounts belum di-pull) → opex = null, net_profit = gross_profit, warning di log & UI; kalau akun ada tapi tanpa transaksi → opex = 0 (bukan null).",
+      "Basis periode = Order.created_at (accrual); order CANCELLED dibuang; bucket opex memakai entry.entry_date (DateField, inklusif).",
+      "group_by=period|quarter (TruncMonth/TruncQuarter) → label YYYY-MM / YYYY-Qn; baris = union bucket penjualan ∪ beban supaya beban tanpa penjualan tidak hilang.",
+      "TANPA ?customer_id/?product_id — PnL = agregat bisnis (keputusan H4.5).",
+      "currency = IDR; rows_with_missing_cost + flag has_missing_cost/missing_cost_reason dipertahankan (transparansi H4.4).",
+      "Read-only: tidak menyentuh H3.4 (/finance/journal-entries/) maupun H4.1–H4.4.",
+      "Tooling: workaround (a) Windows-temp → WSL python dipakai; retry (c) Remote-WSL sesi berikutnya."
+    ],
+    "non_breaking": "H4.1 (/reports/sales/) + H4.2 + H4.3 (/reports/stock/) + H4.4 (/reports/cogs/) + H3.4 (test_journal_entries_crud) + H3.5 + H2.2 + test_perf_queries tetap hijau (193 test targeted). Suite penuh: 2144 passed / 7 failed (daftar pre-existing LENGKAP) / 1 skipped."
+  },
+
+  "sprint_H4_6_report_production": {
+    "status": "done",
+    "completed_at": "2026-10-13",
+    "module": "H4.6 — Laporan Produksi (modul 6/8 FASE H4, READ-ONLY) — backend",
+    "endpoint": "GET /api/v1/reports/production/ (name `reports_production`, section kontrak core, setelah blok reports/pnl) — IsAuthenticated → anonim 403",
+    "view": "integrations/erp_sync/monitoring.py::ReportsProductionView (+ helper: _production_options, _production_bucket_range, _production_finish_buckets, _production_output, _production_scrap_buckets, _production_avg_efficiency, _production_efficiency_map, _production_otd_rows, _production_otd_pct_for, _production_scrap_pct, _production_metrics, _production_row, _production_summary, _production_cache_key, _production_filters_echo)",
+    "superset": "SUPERSET B13/B16/B18–B21: metrik produksi existing + **dimensi periode**; endpoint B13/B16/B18–B21 TIDAK diubah (read-only reuse helper _line_efficiency_durations/_target_per_day/_efficiency_pct_for/_wo_finish_map/_otd_metrics/_otd_pct)",
+    "basis": "DUA sumber waktu (keputusan H4.6, diekspos di filters.basis): output/efisiensi/OTD = realisasi BundleEvent.ts; scrap = ScrapAccumulator.created_at (tidak ada event scrap). Bundle.created_at (planning) TIDAK dipakai",
+    "formula": "output_pcs = Sum(Bundle.qty_done) untuk bundle dengan BUNDLE_FINISH dalam rentang & state != CANCELLED (satu bundle dihitung sekali = FINISH pertama); scrap_pcs = Sum(ScrapAccumulator.qty); scrap_pct = scrap/(output+scrap)×100 (denom 0 → 0); efficiency_pct = rumus identik B13 (period: _efficiency_pct_for per bucket (di-clamp ke rentang laporan); work_center: done/(target_per_day×hari)×100; line: Σdone_wc/(Σtarget_wc×hari)×100); otd_pct = pola B20 (WO DONE, finished_at = FINISH terakhir bundle WO fallback updated_at, on_time = finished_at <= Order.deadline)",
+    "params": "?period=YYYY-MM, ?date_from=, ?date_to=, ?from=, ?to= (delegasi _sales_range, prioritas ?period > ?date_from/?date_to > ?from/?to, default bulan berjalan), ?group_by=period|work_center|line, ?work_center_id=, ?line_id= (pk MES), ?_nocache=1 — nilai tak dikenal → 400",
+    "shape": "{rows[], summary{total_output_pcs,total_scrap_pcs,total_rework_pcs,total_end_loss_pcs,scrap_pct,avg_efficiency_pct,otd_pct,total_bundles,total_work_orders}, group_by, filters{echo + basis + resolved_from/resolved_to}, period{from,to}, generated_at, cached} — NON-ListPage; TANPA currency",
+    "rows": "period: key/label/output_pcs/scrap_pcs/scrap_pct/efficiency_pct/otd_pct/rework_pcs/end_loss_pcs/bundle_count/wo_count + period; work_center: + wc_id/wc_code/wc_name/bundle_count (otd_pct null); line: + line_id/line_code/line_name/bundle_count (otd_pct null); baris = union bucket output ∪ bucket scrap (Σ baris == summary); urut period naik / kode",
+    "cache": "django.core.cache 300 dtk key `reports:production:<sha1(filter efektif)>`; ?_nocache=1 = tidak baca DAN tidak tulis cache; cache hit = 0 query DB (diuji CaptureQueriesContext)",
+    "migrations": "TIDAK ADA (read-only; tanpa field/model baru)",
+    "test": 20,
+    "test_file": "tests/integration/test_reports_production.py",
+    "decisions": [
+      "Basis ganda: output/efficiency/OTD = BundleEvent.ts (realisasi); scrap = ScrapAccumulator.created_at (tidak ada event scrap). Dua-duanya diekspos di filters.basis.",
+      "rework_qty & end_loss_qty DIPISAH dari scrap_pcs (3 konsep berbeda: rusak permanen / diperbaiki / sisa bahan) — summary.total_rework_pcs/total_end_loss_pcs + baris period.rework_pcs/end_loss_pcs.",
+      "otd_pct = metrik order-level (pola B20) → hanya di summary + group_by=period; baris work_center/line bernilai null (mempartisi OTD per WC/line menyesatkan).",
+      "H4.6 = kuantitas (pcs) + persentase → TANPA currency (pola H4.3); nilai produksi (Rp) = sprint terpisah.",
+      "H4.6 = SUPERSET B13/B16/B18–B21 (dimensi periode); endpoint existing TIDAK diubah (hanya reuse helper read-only).",
+      "output: satu bundle dihitung SEKALI (FINISH pertama dalam rentang) supaya rework-loop tidak menggandakan output; bundle CANCELLED dibuang.",
+      "efisiensi baris period memakai rumus B13 dengan window bucket DI-CLAMP ke rentang laporan → konsisten dengan output_pcs baris itu (bukan seluruh bulan saat filter sebagian bulan).",
+      "efficiency_pct untuk line = Σdone_wc/(Σtarget_wc×hari)×100 (ekstensi terdokumentasi; ProductionLine tidak punya target sendiri).",
+      "bucket = union(output, scrap) supaya bulan dengan scrap tapi tanpa output tetap muncul (pola H4.5).",
+      "Tooling: workaround (a) Windows-temp → WSL python dipakai; retry (c) Remote-WSL sesi berikutnya."
+    ],
+    "non_breaking": "B13 (/reports/line-efficiency/) + B16 (/reports/wip/) + B18 + B19 + B20 + B21 + B2 (/dashboard/summary/) + H2.3 (test_work_orders_crud) + H2.4 (test_bundles_crud) + H4.1–H4.5 + test_perf_queries tetap hijau (243 test targeted). Suite penuh: 2164 passed / 7 failed (daftar pre-existing SAMA) / 1 skipped."
+  },
+
+  "sprint_H4_7_dashboard_executive": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "module": "H4.7 — Dashboard Eksekutif (modul 7/8 FASE H4, READ-ONLY, ORKESTRASI) — backend",
+    "endpoint": "GET /api/v1/dashboard/executive/ (name `dashboard_executive`, section kontrak core, setelah blok dashboard/summary B2) — IsAuthenticated → anonim 403",
+    "view": "integrations/erp_sync/monitoring.py::ExecutiveDashboardView (+ helper: _exec_options, _exec_orderline_base, _exec_missing_cost_count, _exec_purchases_section, _exec_stock_section, _exec_pnl_section, _exec_production_section, _exec_cache_key, _exec_filters_echo; konstanta EXEC_CACHE_TTL/EXEC_CACHE_PREFIX/EXEC_NOCACHE_TRUTHY/EXEC_ALERT_*)",
+    "orkestrasi": "TIDAK memanggil view HTTP & TIDAK menyalin rumus: tiap section memakai helper internal pemiliknya — H4.1 (_sales_range/_sales_lines/_sales_amount_expr), H4.2 (_purchases_lines/_purchases_amount_expr), H4.3 (_stock_fetch/_stock_product_map/_stock_aggregate/_stock_summary), H4.4 (_cogs_lines/_cogs_cost_expr/_cogs_missing_exprs), H4.5 (_pnl_opex_available/_pnl_opex_by_bucket/_pnl_summary), H4.6 (_production_*)",
+    "query_budget": "≤ 15 query DB (+2 RPC Odoo untuk stok) — TERUKUR 9 query DB (CaptureQueriesContext, diuji eksplisit); optimasi: sales+cogs+basis PnL dari SATU aggregate() karena _sales_lines identik _cogs_lines",
+    "params": "?period=YYYY-MM > ?date_from/?date_to > ?from/?to (delegasi _sales_range; default bulan berjalan) + ?_nocache=1; rentang tak valid → 400; TANPA filter customer/product/vendor",
+    "shape": "{period{from,to}, filters{echo+nocache+resolved_from/resolved_to}, sales{total_amount,count_orders,count_lines}, purchases{total_amount,count_purchases,count_lines}, stock{total_qty,product_count,location_count,unmapped_product_count}|null, cogs{total_cogs,gross_profit,gross_margin_pct,rows_with_missing_cost}, pnl{revenue,cogs,gross_profit,gross_margin_pct,opex,net_profit,net_margin_pct,opex_source,opex_account_types,opex_states}, production{output_pcs,scrap_pcs,scrap_pct,rework_pcs,end_loss_pcs,avg_efficiency_pct,otd_pct,total_bundles,total_work_orders}, alerts[], generated_at, cached} — NON-ListPage",
+    "alerts": "list[str] informatif: 'Stok tidak terbaca dari Odoo' (stock null), 'Opex unavailable: chart of accounts belum di-pull', 'N produk tanpa odoo_id', 'N baris OrderLine tanpa cost_price' — urutan deterministik",
+    "fail_safe": "PARTIAL per-section: transport error ATAU enumerasi lokasi internal kosong → stock = null + alert; section lain tetap terisi (diuji dengan mock Odoo down)",
+    "cache": "django.core.cache 300 dtk key `reports:executive:<sha1(rentang efektif)>`; ?_nocache=1 = tidak baca DAN tidak tulis cache; cache hit = 0 query DB",
+    "migrations": "TIDAK ADA (read-only; tanpa field/model baru; tanpa tabel stok)",
+    "test": 18,
+    "test_file": "tests/integration/test_dashboard_executive.py",
+    "decisions": [
+      "H4.7 = ORKESTRASI, bukan duplikasi: seluruh angka berasal dari helper internal H4.1–H4.6 (tidak memanggil view HTTP, tidak menyalin rumus) — satu sumber kebenaran per metrik.",
+      "Budget ≤ 15 query DB + 2 RPC Odoo (stock) — TERUKUR 9 query DB di skenario test; diuji eksplisit dengan CaptureQueriesContext.",
+      "Optimasi: _sales_lines identik _cogs_lines pada rentang yang sama → sales + cogs + revenue + rows_with_missing_cost dihitung dari SATU aggregate() (_exec_orderline_base).",
+      "Fail-safe PARTIAL per section: Odoo stok tak terbaca → section stock = null + alert, sales/purchases/cogs/pnl/production tetap terisi (bukan kegagalan global).",
+      "alerts = list[str] (informatif) — BEDA dari B2 alerts {code,message,severity} (operasional): beda konteks = beda shape.",
+      "Omit top_customer/top_vendor (drill-down ke H4.1/H4.2) demi budget query — dashboard ≠ laporan top-N.",
+      "B2 DashboardSummaryView TIDAK disentuh: endpoint PARALEL /dashboard/executive/ (prefix /dashboard/ sama, path beda); H4.1–H4.6 juga tidak diubah.",
+      "stock = null saat enumerasi lokasi internal kosong (bukan hanya error transport) — angka stok tidak dikarang (0 menyesatkan di level eksekutif).",
+      "filters echo ADDITIF (echo + nocache + resolved_from/resolved_to) — konsisten H4.1–H4.6.",
+      "Tooling: workaround (a) Windows-temp → WSL python; `editor` tool berfungsi kembali di path UNC (perbaikan sesi, bukan blocker)."
+    ],
+    "non_breaking": "B2 (/dashboard/summary/ — TIDAK disentuh) + H4.1–H4.6 + B13/B16/B18–B21 + H2.3/H2.4 + test_perf_queries tetap hijau. Suite penuh: 2182 passed / 7 failed (daftar pre-existing SAMA) / 1 skipped (2164 + 18 test H4.7)."
+  },
+
+  "sprint_H4_8_export_excel_pdf": {
+    "status": "done",
+    "completed_at": "2026-10-14",
+    "module": "H4.8 - Export Excel/PDF (modul 8/8 FASE H4, PENUTUP) - backend + frontend",
+    "endpoint": "POST /api/v1/export/<report>/ (name `export_report`, section kontrak core setelah dashboard/executive) - IsAuthenticated -> anonim 403",
+    "files_backend": [
+      "integrations/erp_sync/export.py (BARU: konstanta EXPORT_*, serializer dataset 7 laporan, penulis xlsx (openpyxl) + pdf (reportlab), ExportReportView)",
+      "integrations/erp_sync/monitoring.py (EKSTRAKSI `_production_rows` + `_exec_alerts`; perilaku tidak berubah)",
+      "config/urls.py (import ExportReportView + route export_report)",
+      "requirements.txt (openpyxl + reportlab)"
+    ],
+    "reuse": "ORKESTRASI: `_sales_range/_sales_lines/_sales_rows/_sales_summary` (H4.1), `_purchases_*` (H4.2), `_stock_*` (H4.3, termasuk fail-safe), `_cogs_*` (H4.4), `_pnl_*` (H4.5), `_production_*` (H4.6), `_exec_*` (H4.7) - tidak ada rumus yang disalin (angka berkas = angka halaman laporan)",
+    "params": "body JSON memakai param yang sama dengan endpoint laporan H4.x + `format`; body menang atas query string; `?format=` juga diterima (negosiasi DRF di-override); report invalid -> 404; format/rentang/filter invalid -> 400 (pesan sama dengan laporan)",
+    "response": "berkas binary: xlsx -> application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, pdf -> application/pdf; header `Content-Disposition: attachment; filename=<report>-<periode|range>.<ext>` + X-Export-Report/X-Export-Format",
+    "template_xlsx": "2 sheet (Summary: judul merged + periode + generated_at + catatan + tabel KPI; Data: header tebal + baris + freeze panes + lebar kolom auto maks 42); dashboard eksekutif -> 7 sheet section",
+    "template_pdf": "A4 landscape (6 laporan tabel) / portrait (executive); header judul+periode+generated_at+catatan; tabel KPI 4 kolom; tabel data bergaris dengan header berulang; footer `Generated by MES - Page N`",
+    "filename": "`?period` -> apa adanya; 1 bulan penuh -> YYYY-MM; 1 kuartal penuh -> YYYY-Qn; rentang lain -> YYYYMMDD-YYYYMMDD; stok (snapshot) -> YYYYMMDD",
+    "fail_safe": "stok Odoo tak terbaca -> berkas tetap dibuat (baris kosong + catatan) - bukan 500; status tetap 200",
+    "cache": "TANPA cache (selalu hitung ulang; berkas = data saat itu)",
+    "migrations": "TIDAK ADA (tanpa model/field baru; tanpa tabel stok)",
+    "test": 21,
+    "test_file": "tests/integration/test_export.py",
+    "decisions": [
+      "openpyxl>=3.1,<4.0 + reportlab>=4.0,<5.0 ditambahkan ke requirements.txt; WAJIB `docker compose build django` + `up -d django` (pip manual hanya bertahan sampai container berikutnya) — terpasang: openpyxl 3.1.5 + reportlab 4.5.1.",
+      "Satu endpoint POST /api/v1/export/<report>/ untuk 7 laporan (report di luar daftar -> 404; format di luar {xlsx,pdf} -> 400) — bukan 7 endpoint terpisah.",
+      "Reuse helper internal H4.1-H4.7 lewat SHIM REQUEST (`_QueryShim` ber-`.query_params` gabungan query + body): parser/validasi (mis. pesan 400 rentang & group_by) dipakai APA ADANYA, tanpa menulis ulang parsing.",
+      "Ekstraksi `_production_rows()` dari `ReportsProductionView.get()` (+ `_exec_alerts()` dari `ExecutiveDashboardView.get()`) supaya laporan & export memakai komposisi yang sama (anti-drift) — perilaku identik, dijaga 20 test H4.6 + 18 test H4.7.",
+      "Modul baru `erp_sync/export.py` (single responsibility: I/O + template); impor SEARAH export -> monitoring supaya tidak ada circular import.",
+      "Excel: 2 sheet (Summary KPI + Data dengan header beku & lebar kolom otomatis); khusus dashboard eksekutif 7 sheet (satu per section: sales/purchases/stock/cogs/pnl/production/alerts) sesuai keputusan pemilik produk.",
+      "PDF: A4 landscape untuk 6 laporan tabel, A4 portrait untuk dashboard eksekutif; footer `Generated by MES - Page N`; tabel data `repeatRows=1` (header berulang).",
+      "Nama berkas `<report>-<periode|range>.<ext>`: `?period` dipakai apa adanya; rentang tepat 1 bulan -> YYYY-MM; tepat 1 kuartal -> YYYY-Qn; selain itu YYYYMMDD-YYYYMMDD; snapshot stok -> tanggal hari ini (tanpa periode).",
+      "Fail-safe: stok Odoo tak terbaca -> berkas TETAP dibuat (tabel kosong + catatan `Stok tidak terbaca dari Odoo`), bukan 500 (pola H4.7).",
+      "TANPA cache laporan: export selalu menghitung ulang supaya berkas = data saat itu; `?nocache` diterima tetapi tidak berpengaruh (dicta di docstring view).",
+      "DRF memakai query param `format` untuk content negotiation -> `perform_content_negotiation` di-override di view supaya `?format=xlsx|pdf` bebas dipakai sebagai format BERKAS.",
+      "Frontend: `ApiClient.requestBlob` (additive; satu-satunya pintu HTTP - larangan fetch di komponen §12.1) + `lib/download.ts` (PURE-injectable, tanpa jsdom) + molecule `ExportButton` (modal pilih format) dipakai 7 halaman; MODE `export` (77 -> 78)."
+    ],
+    "frontend": {
+      "files": [
+        "src/types/export.ts (BARU: ExportReport/ExportFormat/ExportFilters/ExportFile)",
+        "src/api/real/export.ts (BARU: buildExportPath/buildExportBody/exportReport + label UI)",
+        "src/api/export.ts (BARU: barrel `exportReport` + re-export konstanta/tipe)",
+        "src/lib/download.ts (BARU: downloadBlob PURE-injectable + readFilenameFromDisposition)",
+        "src/integrations/api-client.ts (EXTEND: requestBlob additive - blob + filename dari Content-Disposition, error konsisten)",
+        "src/components/molecules/ExportButton.tsx (BARU: tombol + modal format; DRY untuk 7 halaman)",
+        "7 halaman laporan (Export dari DISABLED -> aktif; Tooltip/disabled dihapus)",
+        "src/api/_adapter.ts (MODE += export: real; 77 -> 78 key)"
+      ],
+      "tests": "22 test (tests/unit/api/export.test.ts 7 + tests/unit/lib/download.test.ts 3 + tests/unit/components/export-button.test.ts 12); suite penuh 1365 passed / 74 skipped / 0 failed; typecheck 0 error; lint 0 error (1 warning lama); build 340.16 kB; css:gate PASS tanpa delta (566 rule)"
+    },
+    "non_breaking": "B2 (/dashboard/summary/) + H4.1-H4.7 + B13/B16/B18-B21 + H2.3/H2.4 + test_perf_queries tetap hijau. Suite penuh: 2203 passed / 7 failed (daftar pre-existing SAMA) / 1 skipped (2182 + 21 test H4.8). Ekstraksi _production_rows diverifikasi 56 test (H4.5+H4.6+H4.7) hijau."
+  },
+  "backend_endpoints_summary": {
+    "total": "~60 endpoint (23 F1-F3A + 5 F5.4 + 14 core/ERP + H1-H3 baru)",
+    "core": [
+      "GET /api/health/, /api/schema/, /api/docs/",
+      "GET /api/v1/metadata/<resource>/",
+      "GET /api/v1/chatter/<resource>/<id>/",
+      "GET/POST /api/v1/devices/me|bind|unbind",
+      "POST /api/v1/auth/login|login-operator|logout|change-password|reset-password",
+      "GET /api/v1/auth/me/"
+    ],
+    "garment_resources": [
+      "GET /api/v1/garmen/<resource>/ (list)",
+      "GET /api/v1/garmen/<resource>/<id>/ (detail)",
+      "POST /api/v1/garmen/<resource>/<id>/<ACTION_ID>/ (action)",
+      "POST /api/v1/garmen/work-orders/ (H2.3 extend)",
+      "POST /api/v1/garmen/bundles/ (H2.4 extend)",
+      "GET/POST /api/v1/garmen/orders/ (H2.1)",
+      "GET/POST /api/v1/garmen/purchase-orders/ (H2.2)",
+      "GET/POST /api/v1/garmen/bundles/<id>/split|merge/",
+      "POST /api/v1/garmen/orders/<id>/generate-wo/"
+    ],
+    "sync_erp": [
+      "POST /api/v1/sync/odoo/<stage>/ (WIP|FG)",
+      "POST /api/v1/sync/master/<entity>/ (9 entity + accounts)",
+      "POST /api/v1/sync/scrap/",
+      "GET /api/v1/sync/records/",
+      "GET /api/v1/garmen/orders/<id>/readiness/",
+      "POST /api/v1/garmen/orders/<id>/recompute-readiness/",
+      "GET /api/v1/reconciliation/report/",
+      "GET /api/v1/audit/products-missing-odoo-id/",
+      "GET /api/v1/finance/invoices/"
+    ],
+    "reports": [
+      "GET /api/v1/reports/line-efficiency/ + /by-wc/ (B13/B18)",
+      "GET /api/v1/reports/lead-time/ + /bundles/ (B19/B19b)",
+      "GET /api/v1/reports/on-time-delivery/ + /orders/ (B20/B20b)",
+      "GET /api/v1/reports/wip/ + /by-wc/ (B16/B21)",
+      "GET /api/v1/reports/sales/ (H4.1 — read-only, cache 300 dtk + ?_nocache=1)",
+      "GET /api/v1/reports/purchases/ (H4.2 — BARU; read-only, cache 300 dtk + ?_nocache=1)",
+      "GET /api/v1/reports/stock/ (H4.3 — snapshot Odoo stock.quant via I7, cache 300 dtk + ?_nocache=1)",
+      "GET /api/v1/reports/cogs/ (H4.4 — omzet vs HPP simplified (qty x cost_price), cache 300 dtk + ?_nocache=1)",
+      "GET /api/v1/reports/pnl/ (H4.5 — revenue - HPP - opex jurnal H3.4 = laba bersih, cache 300 dtk + ?_nocache=1)",
+      "GET /api/v1/reports/production/ (H4.6 — BARU; output/scrap/efisiensi/OTD per periode|work_center|line, cache 300 dtk + ?_nocache=1)",
+      "GET /api/v1/dashboard/executive/ (H4.7 — BARU; orkestrasi H4.1–H4.6 + alerts list[str], fail-safe partial, cache 300 dtk + ?_nocache=1)",
+      "POST /api/v1/export/<report>/ (H4.8 — BARU; Excel/PDF untuk 7 laporan H4, berkas binary + Content-Disposition attachment)"
+    ],
+    "master_crud": [
+      "GET/POST /api/v1/master/products|uoms|warehouses|locations|partners|boms|work-centers|production-lines|taxes",
+      "GET/PUT/DELETE /api/v1/master/<resource>/<id>/",
+      "PUT /api/v1/master/products/<id>/price/",
+      "GET /api/v1/master/products/<id>/price-history/",
+      "GET /api/v1/master/accounts|journals/ (read-only)",
+      "GET/PUT /api/v1/settings/sequences/<code>/"
+    ],
+    "finance": [
+      "GET/POST /api/v1/finance/customer-invoices|vendor-bills|payments|journal-entries/",
+      "GET/PUT/DELETE /api/v1/finance/<resource>/<id>/",
+      "POST /api/v1/finance/<resource>/<id>/confirm|done|cancel/"
+    ],
+    "inventory": [
+      "POST /api/v1/inventory/adjust/",
+      "GET /api/v1/inventory/adjustments/",
+      "POST /api/v1/inventory/adjustments/<id>/commit/",
+      "POST /api/v1/inventory/transfer/",
+      "GET /api/v1/inventory/transfers/",
+      "POST /api/v1/inventory/transfers/<id>/commit/",
+      "GET /api/v1/inventory/stock-qty/"
+    ],
+    "print_wa_ai": [
+      "POST /api/v1/print/bundle-tag|kupon/",
+      "POST /api/v1/wa/send/",
+      "POST /api/v1/ai/chat (stub)"
+    ],
+    "ws": ["WS /ws/events/ (group bundle.{id}, work_order.{id}, events)"]
+  },
+
+  "models_summary": {
+    "total": "~55 model (naik dari 47 karena H1-H3)",
+    "garment": "Order, OrderLine, WorkOrder, Bundle, BundleEvent, WorkCenter, ProcessRouting, RoutingStep, ProductionLine, ScrapAccumulator, MaterialReadiness, StockReconciliation, BundlingRule, LineAllocationRule, GarmentDeviceProfile, HITLRequest, CustomerInvoice, CustomerInvoiceLine, VendorBill, VendorBillLine, Payment, JournalEntry, JournalEntryLine, PurchaseOrder, PurchaseOrderLine, InventoryAdjustment, StockTransfer",
+    "core": "core_auth (User, Role), state_machine (StateMachine, State, Transition), rule_engine (Rule, RuleCondition, RuleAction), cycle_handler (CycleDefinition, CycleStep, CycleInstance), device_profile (DeviceProfile, DeviceBinding), audit (AuditLog), idempotency (IdempotencyRecord)",
+    "master": "Product, BOM, BOMLine, Partner, UoM, Location, Warehouse, Tax, Journal, Currency, Account, NumberSequence",
+    "integrations": "SyncRecord, PrintJob, HITLRequest"
+  },
+
+  "sync_summary": {
+    "resource_baru": "master.product, master.uom, master.warehouse, master.location, master.bom, master.partner, master.work_center, master.production_line, master.process_routing, master.tax, master.number_sequence, master.currency, master.company, master.integration_config, master.wa_config, master.printer_config, core_auth.role_permission, customer_invoice, vendor_bill, payment, journal_entry, purchase_order, inventory_adjustment, stock_transfer",
+    "stage_baru": "MASTER_PUSH, MASTER_PULL, WORK_ORDER_PUSH, BUNDLE_PUSH, SALE_ORDER_PUSH, PURCHASE_ORDER_PUSH, VENDOR_BILL, PAYMENT, JOURNAL_ENTRY, INVENTORY_ADJUST, STOCK_TRANSFER",
+    "status_enum": "PENDING, SENT, FAILED, DUPLICATE, SKIPPED (BARU untuk MES-only)",
+    "master_arah": "dua arah (push + pull)",
+    "transaksi_arah": "satu arah MES → Odoo"
+  },
+
+  "frontend_v2_status": {
+    "repo": "frontend_app_v2/",
+    "framework": "React 18 + TypeScript strict + Tailwind v4 + Vite, runtime bun 1.4.2",
+    "routes": "~53 route (H4.8 += /export/<report> — POST)",
+    "pages": "~57 halaman (master CRUD, sales, purchase, finance, inventory, settings sequences, reports) + tombol Export aktif di 7 halaman laporan",
+    "mode_real": "85 key (naik dari 47; H5.1 += company; H5.6 += integrationConfig; H5.8 += waConfig; H5.5 += auditLogs; H5.7 += printerConfig; H5.4 += permissionMatrix)",
+    "mode_dummy": 0,
+    "tests": "1479 passed | 74 skipped | 0 failed (1553 test; 137 file passed + 11 skipped)",
+    "build": "hijau, chunk terbesar 343.07 kB < 500 kB",
+    "css_gate": "PASS — md5 d51e4a31… / 566 rule (H5.4 tanpa delta; lihat blok css_gate)",
+    "blockers": [
+      "Node v18 < vite 8 minimum (≥20): workaround `bun --bun vite`",
+      "ChatterBox WS: real-time belum di-wire ke halaman",
+      "device-binding UI: bind/unbind belum di-trigger otomatis"
+    ]
+  },
+
+  "next_phase_proposal": {
+    "next": "**FASE H5 SELESAI (8/8)** — H5.1–H5.8 tuntas (Settings & Admin). Fase berikutnya belum ditentukan; prioritas teknis yang menunggu: sprint **enforcement** matrix izin (menghubungkan `core_auth.role_permission` ke guard) + tech debt `css-gate-ci-integration` & `odoo-api-stock-manager-group`.",
+    "then": "H5 (Settings: Company, Currency, Sequence CRUD, Permission, Audit, Integration, Printer, WA)",
+    "after": "Fase J (AI Agent Layer): Decision Gate, MCP tools, KG+Vector, Context Pruning, HITL, Observability",
+    "ops": "UAT 2 klien + live deploy (Docker + Nginx + SSL + backup + monitoring)"
+  },
+
+  "uat_status": {
+    "title": "UAT 2 klien",
+    "status": "pending",
+    "klien": [
+      {
+        "id": "A",
+        "alur": "SO → Order → Bundle → WIP → FG → Invoice",
+        "status": "pending"
+      },
+      { "id": "B", "alur": "beda (fast-track + rework)", "status": "pending" }
+    ],
+    "checklist_ref": "docs/integration-config.md §5"
+  },
+
+  "notes": {
+    "test_env": "jsdom tidak jalan di bun → test pakai react-dom/server + walker",
+    "runtime_versions": "bun 1.4.2; node v18.20.8; vitest 5; tsc 6.0; oxlint 1.81",
+    "pytest_warning": "JANGAN jalankan dua sesi pytest bersamaan (test-DB sama ⇒ ratusan error palsu).",
+    "production_warning": "Setelah mengubah .env atau permission/beat: `docker compose up -d --force-recreate django celery_worker celery_beat`."
+  }
+}

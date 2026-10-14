@@ -1,0 +1,9 @@
+# Trace Bridge — konfigurasi default (override via env TRACE_BRIDGE_<KEY>).
+log_dir: logs
+log_basename: mes.jsonl
+max_backups: 5
+max_spans: 50
+max_lines: 5000
+host: 127.0.0.1
+port: 8765
+min_level: INFO

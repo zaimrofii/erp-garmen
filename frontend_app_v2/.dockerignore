@@ -1,0 +1,16 @@
+# F3-B.2.2 — Konteks build frontend: kecualikan hal berat/lokal.
+node_modules
+dist
+
+# Env lokal JANGAN ikut ke image (`.env.production` ditulis dari build ARG).
+.env
+.env.*
+!.env.example
+
+.git
+.gitignore
+*.log
+
+# Tidak dibutuhkan untuk build (hemat konteks).
+tests
+docs

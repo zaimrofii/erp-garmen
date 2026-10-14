@@ -1,0 +1,267 @@
+# ============================================================
+# F3-B.2.1 — Compose PRODUCTION (backend only)
+#
+# Terpisah dari `docker-compose.yml` (DEV) — file DEV TIDAK diubah.
+# Jalankan:
+#   cp .env.prod.example .env.prod   # lalu isi nilai nyata
+#   docker compose -f docker-compose.prod.yml build
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Bedanya dengan DEV:
+#   * TIDAK ada port host untuk postgres/redis/django → hanya Nginx (batch 2)
+#     yang boleh expose 80/443. Semua trafik internal lewat `garmen_prod_net`.
+#   * Runtime ASGI `daphne` (bukan `runserver`/`gunicorn`) → WebSocket `/ws/` hidup.
+#   * Kredensial dari `.env.prod` (BUKAN hardcode `odoo/odoo`).
+#   * Volume NAMED untuk data, bukan bind mount ke source code.
+#   * Odoo TIDAK dijalankan di sini (produksi memakai Odoo eksternal via ODOO_URL).
+#
+# F3-B.2.2 (batch 2) menambahkan:
+#   * `nginx`   : satu-satunya service yang expose 80/443 (reverse proxy + SPA + static/media).
+#   * `certbot` : perpanjangan sertifikat Let's Encrypt otomatis (renew tiap 12 jam).
+#   * `frontend_builder` : one-shot `bun run build` → mengisi volume `frontend_dist`.
+#
+# Urutan deploy PERTAMA kali:
+#   1) cp .env.prod.example .env.prod            # isi nilai nyata
+#   2) DOMAIN=... LETSENCRYPT_EMAIL=... ./scripts/generate-ssl.sh
+#      (bikin sertifikat; tanpa email → self-signed bootstrap)
+#   3) docker compose -f docker-compose.prod.yml build
+#   4) docker compose -f docker-compose.prod.yml up -d
+# ============================================================
+
+name: garmen-prod
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: garmen_prod_postgres
+    restart: unless-stopped
+    # POSTGRES_* dibaca langsung oleh image `postgres` (lihat .env.prod.example).
+    env_file:
+      - .env.prod
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    # TANPA `ports:` → tidak terekspos ke host.
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "${POSTGRES_USER:-odoo}" -d "${POSTGRES_DB:-garmen_django}"']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - garmen_prod_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: garmen_prod_redis
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis_prod_data:/data
+    # TANPA `ports:` → tidak terekspos ke host.
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - garmen_prod_net
+
+  django:
+    build:
+      context: ./django_app
+      dockerfile: Dockerfile.prod
+    image: garmen-django:prod
+    container_name: garmen_prod_django
+    restart: unless-stopped
+    # Migrasi + kumpulkan static + runtime ASGI.
+    # `exec` supaya daphne menjadi PID 1 (sinyal stop bersih).
+    command:
+      - sh
+      - -c
+      - >-
+        python manage.py migrate --noinput &&
+        python manage.py collectstatic --noinput &&
+        exec daphne -b 0.0.0.0 -p 8000 config.asgi:application
+    env_file:
+      - .env.prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - static_files:/app/staticfiles
+      - media_files:/app/media
+      - logs_prod:/app/logs
+    # TANPA `ports:` → Nginx (batch 2) yang menghadap publik.
+    expose:
+      - '8000'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:8000/api/health/ || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - garmen_prod_net
+
+  celery_worker:
+    build:
+      context: ./django_app
+      dockerfile: Dockerfile.prod
+    image: garmen-django:prod
+    container_name: garmen_prod_celery_worker
+    restart: unless-stopped
+    command: ['celery', '-A', 'config', 'worker', '-l', 'info', '-Q', 'default,erp_sync']
+    env_file:
+      - .env.prod
+    depends_on:
+      django:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    volumes:
+      - media_files:/app/media
+      - logs_prod:/app/logs
+    networks:
+      - garmen_prod_net
+
+  celery_beat:
+    build:
+      context: ./django_app
+      dockerfile: Dockerfile.prod
+    image: garmen-django:prod
+    container_name: garmen_prod_celery_beat
+    restart: unless-stopped
+    command: ['celery', '-A', 'config', 'beat', '-l', 'info']
+    env_file:
+      - .env.prod
+    depends_on:
+      django:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    volumes:
+      - logs_prod:/app/logs
+    networks:
+      - garmen_prod_net
+
+  # -------------------------------------------------------------------------
+  # Frontend build (one-shot): `bun run build` → isi volume `frontend_dist`.
+  # Nginx men-serve hasil ini dari /var/www/frontend.
+  # -------------------------------------------------------------------------
+  frontend_builder:
+    build:
+      context: ./frontend_app_v2
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://mes.klien-a.com/api/v1}
+        VITE_WS_URL: ${VITE_WS_URL:-wss://mes.klien-a.com/ws}
+    image: garmen-frontend:prod
+    container_name: garmen_prod_frontend_builder
+    # Selesai sekali lalu keluar; `up -d` akan menjalankannya lagi bila belum ada.
+    restart: 'no'
+    volumes:
+      - frontend_dist:/var/www/frontend
+    networks:
+      - garmen_prod_net
+
+  # -------------------------------------------------------------------------
+  # Reverse proxy + SPA + static/media + TLS. SATU-SATUNYA port publik.
+  # -------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: garmen_prod_nginx
+    restart: unless-stopped
+    ports:
+      - '80:80'    # ACME challenge + redirect ke HTTPS
+      - '443:443'  # aplikasi (API + WS + SPA)
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - static_files:/var/www/static:ro
+      - media_files:/var/www/media:ro
+      - frontend_dist:/var/www/frontend:ro
+      # Bind mount (bukan named volume) supaya sertifikat bisa diinspeksi/backup
+      # dan `scripts/generate-ssl.sh` bisa mengisinya dari host.
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - logs_prod:/var/log/nginx
+    depends_on:
+      django:
+        condition: service_started
+      frontend_builder:
+        condition: service_completed_successfully
+    networks:
+      - garmen_prod_net
+
+  # -------------------------------------------------------------------------
+  # Perpanjangan sertifikat otomatis (webroot, tiap 12 jam).
+  # -------------------------------------------------------------------------
+  certbot:
+    image: certbot/certbot:latest
+    container_name: garmen_prod_certbot
+    restart: unless-stopped
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        trap exit TERM;
+        while :; do
+        certbot renew --webroot -w /var/www/certbot --quiet;
+        sleep 12h & wait $${!};
+        done
+    networks:
+      - garmen_prod_net
+
+  # -------------------------------------------------------------------------
+  # Backup terjadwal (loop harian): pg_dump + media tarball -> ./backups.
+  # Image `postgres:15-alpine` dipilih karena `pg_dump`-nya SAMA versi dengan
+  # server (hindari peringatan ketidakcocokan), plus busybox (tar/find/du).
+  # Skrip yang sama juga bisa dijalankan di host via cron (mode auto-detect).
+  # -------------------------------------------------------------------------
+  backup:
+    image: postgres:15-alpine
+    container_name: garmen_prod_backup
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    environment:
+      BACKUP_MODE: container
+      BACKUP_DIR: /backup
+      MEDIA_SOURCE_DIR: /data
+    volumes:
+      - ./scripts:/scripts:ro
+      # Hasil backup di host (./backups) supaya mudah disalin ke storage lain.
+      - ./backups:/backup
+      - media_files:/data:ro
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        while :; do
+        /bin/sh /scripts/backup.sh;
+        sleep $${BACKUP_INTERVAL_SECONDS:-86400};
+        done
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - garmen_prod_net
+
+networks:
+  garmen_prod_net:
+    driver: bridge
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:
+  static_files:
+  media_files:
+  logs_prod:
+  # Hasil `bun run build` (diisi `frontend_builder`, dibaca `nginx`).
+  frontend_dist:

@@ -1,0 +1,135 @@
+# ============================================================
+# Project: integrasi Odoo 17 + Django (aplikasi manufaktur garmen)
+#
+# Service lama (dibiarkan apa adanya): db (postgres:15), odoo (odoo:17.0)
+# Service baru: django, celery_worker, celery_beat, redis
+#
+# Semua service ikut network `garmen_net` supaya bisa saling akses lewat
+# hostname service: odoo, db, redis, django.
+# Service lama tetap ikut network `default` (network lamanya) juga.
+# ============================================================
+
+services:
+  db:
+    image: postgres:15
+    container_name: odoo_garmen_db
+    restart: always
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      POSTGRES_DB: postgres
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - default
+      - garmen_net
+
+  odoo:
+    image: odoo:17.0
+    container_name: odoo_garmen_app
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "8069:8069"
+    environment:
+      HOST: db
+      USER: odoo
+      PASSWORD: odoo
+    volumes:
+      - ./odoo_data:/var/lib/odoo
+      - ./odoo_source:/opt/odoo
+      - ./custom_addons:/mnt/custom_addons
+      - ./odoo.conf:/etc/odoo/odoo.conf
+    command:
+      - --db_host=db
+      - --db_user=odoo
+      - --db_password=odoo
+      - --addons-path=/mnt/custom_addons,/usr/lib/python3/dist-packages/odoo/addons
+    networks:
+      - default
+      - garmen_net
+
+  django:
+    build: ./django_app
+    # Satu image dipakai bersama django/celery_worker/celery_beat supaya
+    # docker tidak membangun 3 image identik (context & Dockerfile sama).
+    image: garmen-django:local
+    container_name: garmen_django
+    restart: always
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./django_app:/app
+      - ./simulator:/app/simulator
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./django_app/.env
+    depends_on:
+      - db
+      - redis
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - garmen_net
+
+  celery_worker:
+    build: ./django_app
+    image: garmen-django:local
+    container_name: garmen_celery_worker
+    restart: always
+    command: celery -A config worker -l info -Q default,erp_sync --concurrency=1
+    volumes:
+      - ./django_app:/app
+    env_file:
+      - ./django_app/.env
+    depends_on:
+      - db
+      - redis
+      - django
+    networks:
+      - garmen_net
+
+  celery_beat:
+    build: ./django_app
+    image: garmen-django:local
+    container_name: garmen_celery_beat
+    restart: always
+    command: celery -A config beat -l info
+    volumes:
+      - ./django_app:/app
+    env_file:
+      - ./django_app/.env
+    depends_on:
+      - db
+      - redis
+      - django
+    networks:
+      - garmen_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: garmen_redis
+    restart: always
+    # Host port 6379 sudah dipakai redis-server native di WSL, jadi di-map ke 6380.
+    # Dari dalam network, semua service tetap memakai redis:6379 (REDIS_URL).
+    ports:
+      - "6380:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - garmen_net
+
+networks:
+  garmen_net:
+    driver: bridge
+
+volumes:
+  redis_data:

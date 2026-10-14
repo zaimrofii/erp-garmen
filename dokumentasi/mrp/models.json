@@ -1,0 +1,412 @@
+{
+  "panduan_baca": {
+    "tujuan": "Dokumen ini merangkum konsep dasar modul MRP (Manufacturing) di Odoo, mencakup Bill of Material, Manufacturing Order, Work Order, dan Unbuild Order.",
+    "10_konsep_dasar": [
+      "Manufacturing Order (MO) = order produksi utama. Statusnya: draft → confirmed → progress → to_close → done.",
+      "Bill of Material (BOM) = resep produk: daftar komponen (bahan baku) + by-products + operasi/routing.",
+      "BOM bisa multi-level (sub-BOM) dan phantom (kit) yang di-explode ke komponennya.",
+      "Work Order (WO) = instansi operasi pada MO spesifik. Satu MO bisa punya banyak WO.",
+      "Workcenter = mesin/unit produksi dengan kapasitas, biaya, dan kalender kerja.",
+      "Dependensi WO: WO A harus selesai dulu sebelum WO B bisa dimulai.",
+      "Reservasi komponen = proses lock stock untuk MO (action_assign).",
+      "Consumption policy: flexible (boleh beda), warning (warning), strict (block).",
+      "Unbuild = kebalikan dari MO: bongkar produk jadi menjadi komponen.",
+      "By-product = produk sampingan dari produksi dengan cost share (% biaya produksi)."
+    ]
+  },
+
+  "mrp_production": {
+    "nama": "Manufacturing Order (MO)",
+    "deskripsi": "Model utama untuk order produksi/manufaktur. Mengelola seluruh proses produksi dari bahan baku hingga produk jadi.",
+    "field_utama": {
+      "name": "Nomor referensi MO (auto dari sequence)",
+      "product_id": "Produk yang akan diproduksi (Many2one ke product.product)",
+      "product_qty": "Quantity yang akan diproduksi",
+      "product_uom_id": "Satuan produk (Many2one ke uom.uom)",
+      "bom_id": "Bill of Material yang digunakan (Many2one ke mrp.bom)",
+      "state": "Status: draft/confirmed/progress/to_close/done/cancel",
+      "reservation_state": "Ketersediaan komponen: confirmed/assigned/waiting",
+      "priority": "Prioritas: 0 (Normal) / 1 (Urgent)",
+      "date_start": "Tanggal mulai produksi",
+      "date_finished": "Tanggal selesai produksi",
+      "date_deadline": "Deadline (dari demand)",
+      "move_raw_ids": "Stock moves komponen (One2many)",
+      "move_finished_ids": "Stock moves produk jadi (One2many)",
+      "workorder_ids": "Work orders (One2many ke mrp.workorder)",
+      "location_src_id": "Lokasi sumber komponen",
+      "location_dest_id": "Lokasi tujuan produk jadi",
+      "picking_type_id": "Tipe operasi (Many2one ke stock.picking.type)",
+      "lot_producing_id": "Lot/Serial produk jadi",
+      "qty_producing": "Quantity yang sedang diproduksi",
+      "qty_produced": "Quantity yang sudah diproduksi (compute)",
+      "procurement_group_id": "Group procurement (Many2one)",
+      "company_id": "Perusahaan (Many2one)",
+      "backorder_sequence": "Urutan backorder",
+      "consumption": "Kebijakan konsumsi: flexible/warning/strict",
+      "is_locked": "Apakah terkunci? (boolean)",
+      "is_planned": "Apakah sudah di-plan? (boolean)",
+      "forecasted_issue": "Apakah ada issue forecast? (boolean)",
+      "components_availability": "Status ketersediaan komponen (char)",
+      "production_capacity": "Kapasitas produksi berdasarkan stock komponen (compute)",
+      "show_serial_mass_produce": "Tampilkan wizard mass produce serial (compute)"
+    },
+    "method_penting": {
+      "action_confirm": "Konfirmasi MO (trigger procurement)",
+      "action_assign": "Reservasi komponen",
+      "button_mark_done": "Tandai selesai (validasi)",
+      "action_cancel": "Batalkan MO",
+      "button_plan": "Plan work orders",
+      "button_unplan": "Unplan work orders",
+      "_plan_workorders": "Plan workorders berdasarkan workcenter",
+      "_post_inventory": "Post inventory (validasi stock moves)",
+      "_split_productions": "Split MO menjadi backorder",
+      "_get_consumption_issues": "Cek perbedaan konsumsi komponen",
+      "_link_bom": "Link BOM ke MO (update komponen/workorder)",
+      "_set_qty_producing": "Set quantity producing",
+      "action_generate_serial": "Generate serial number otomatis",
+      "action_serial_mass_produce_wizard": "Wizard mass produce serial",
+      "action_view_reception_report": "Lihat reception report",
+      "_action_cancel": "Cancel MO dan moves terkait"
+    },
+    "fitur_utama": [
+      "Multi-level BOM support",
+      "Work order planning",
+      "Backorder support",
+      "Flexible/strict consumption",
+      "Serial/lot tracking",
+      "By-product management",
+      "Scrap management",
+      "Auto-print reports",
+      "Integration with stock (moves, picking)",
+      "Forecast availability",
+      "Mass produce serial numbers"
+    ],
+    "alur_status": {
+      "draft": "MO baru, belum dikonfirmasi",
+      "confirmed": "MO dikonfirmasi, komponen diproses",
+      "progress": "Produksi sedang berjalan",
+      "to_close": "Produksi selesai, menunggu closing",
+      "done": "MO selesai",
+      "cancel": "MO dibatalkan"
+    }
+  },
+
+  "mrp_bom": {
+    "nama": "Bill of Material (BOM)",
+    "deskripsi": "Model untuk resep/struktur produk: daftar komponen, by-product, dan operasi produksi",
+    "field_utama": {
+      "product_tmpl_id": "Template produk (Many2one)",
+      "product_id": "Varian produk (Many2one)",
+      "code": "Kode/referensi BOM",
+      "type": "Tipe: normal / phantom (kit)",
+      "product_qty": "Quantity yang dihasilkan (default 1)",
+      "product_uom_id": "Satuan (Many2one ke uom.uom)",
+      "bom_line_ids": "Komponen BOM (One2many ke mrp.bom.line)",
+      "byproduct_ids": "By-product (One2many ke mrp.bom.byproduct)",
+      "operation_ids": "Operasi routing (One2many ke mrp.routing.workcenter)",
+      "ready_to_produce": "Kesiapan produksi: all_available / asap",
+      "picking_type_id": "Tipe operasi (Many2one ke stock.picking.type)",
+      "company_id": "Perusahaan",
+      "consumption": "Kebijakan konsumsi: flexible/warning/strict",
+      "active": "Aktif?",
+      "produce_delay": "Lead time manufaktur (hari)",
+      "days_to_prepare_mo": "Hari persiapan MO",
+      "allow_operation_dependencies": "Aktifkan dependensi antar operasi?"
+    },
+    "method_penting": {
+      "_bom_find": "Cari BOM untuk produk tertentu",
+      "explode": "Explode BOM menjadi komponen (termasuk sub-BOM)",
+      "_set_outdated_bom_in_productions": "Tandai MO yang pakai BOM ini sebagai outdated"
+    },
+    "fitur_utama": [
+      "Multi-level BOM (sub-BOM/phantom)",
+      "By-product management",
+      "Routing/operations",
+      "Variant-specific BOM (attribute-based)",
+      "Multi-company support",
+      "Active/inactive toggle",
+      "Consumption policy (flexible/strict)",
+      "Generate from MO",
+      "Cycle detection (prevent infinite loop)"
+    ]
+  },
+
+  "mrp_bom_line": {
+    "nama": "BOM Line",
+    "deskripsi": "Komponen dari BOM: produk + quantity + UoM + operasi",
+    "field_utama": {
+      "product_id": "Komponen (Many2one ke product.product)",
+      "product_qty": "Quantity komponen",
+      "product_uom_id": "Satuan komponen (Many2one)",
+      "bom_id": "BOM induk (Many2one)",
+      "operation_id": "Operasi konsumsi (Many2one ke mrp.routing.workcenter)",
+      "sequence": "Urutan",
+      "bom_product_template_attribute_value_ids": "Atribut varian (apply on variant)"
+    },
+    "method_penting": {
+      "_skip_bom_line": "Cek apakah line harus di-skip berdasarkan varian"
+    }
+  },
+
+  "mrp_byproduct": {
+    "nama": "By-product",
+    "deskripsi": "Produk sampingan dari produksi (bisa dijual atau digunakan ulang)",
+    "field_utama": {
+      "product_id": "By-product (Many2one)",
+      "product_qty": "Quantity by-product",
+      "product_uom_id": "Satuan",
+      "bom_id": "BOM induk",
+      "cost_share": "Persentase biaya (cost share)",
+      "operation_id": "Operasi produksi by-product"
+    }
+  },
+
+  "mrp_routing_workcenter": {
+    "nama": "Operation/Routing",
+    "deskripsi": "Operasi dalam BOM: workcenter + durasi + deskripsi",
+    "field_utama": {
+      "name": "Nama operasi",
+      "workcenter_id": "Workcenter (Many2one ke mrp.workcenter)",
+      "sequence": "Urutan",
+      "bom_id": "BOM induk",
+      "time_cycle": "Durasi (compute dari work order)",
+      "time_cycle_manual": "Durasi manual (minutes)",
+      "time_mode": "Metode durasi: auto/manual",
+      "note": "Deskripsi",
+      "worksheet": "Worksheet (PDF)",
+      "blocked_by_operation_ids": "Dependensi: operasi yang harus selesai dulu"
+    },
+    "method_penting": {
+      "_skip_operation_line": "Cek apakah operasi di-skip berdasarkan varian"
+    }
+  },
+
+  "mrp_workcenter": {
+    "nama": "Work Center",
+    "deskripsi": "Mesin/unit produksi dengan kapasitas, biaya, dan kalender",
+    "field_utama": {
+      "name": "Nama workcenter",
+      "code": "Kode workcenter",
+      "default_capacity": "Kapasitas default (unit paralel)",
+      "time_efficiency": "Efisiensi waktu (%)",
+      "costs_hour": "Biaya per jam",
+      "time_start": "Setup time (minutes)",
+      "time_stop": "Cleanup time (minutes)",
+      "resource_calendar_id": "Kalender kerja (Many2one)",
+      "alternative_workcenter_ids": "Workcenter alternatif",
+      "oee": "OEE (Overall Equipment Effectiveness)",
+      "oee_target": "Target OEE (%)",
+      "performance": "Performance (%)",
+      "working_state": "Status: normal/blocked/done"
+    },
+    "method_penting": {
+      "_get_first_available_slot": "Cari slot waktu tersedia pertama",
+      "_get_unavailability_intervals": "Dapatkan interval tidak tersedia",
+      "unblock": "Unblock workcenter"
+    },
+    "fitur_utama": [
+      "Kapasitas per produk",
+      "Alternative workcenter",
+      "OEE tracking",
+      "Productivity logging",
+      "Resource calendar",
+      "Block/unblock",
+      "Load calculation"
+    ]
+  },
+
+  "mrp_workcenter_productivity": {
+    "nama": "Workcenter Productivity Log",
+    "deskripsi": "Log aktivitas workcenter: productive time, blocked time, performance loss",
+    "field_utama": {
+      "workcenter_id": "Workcenter",
+      "workorder_id": "Work order",
+      "loss_id": "Loss reason (Many2one)",
+      "loss_type": "Tipe: availability/performance/quality/productive",
+      "date_start": "Start datetime",
+      "date_end": "End datetime",
+      "duration": "Durasi (minutes, compute)",
+      "description": "Deskripsi"
+    }
+  },
+
+  "tips__penting": [
+    "MO = order produksi utama, BOM = resep produk",
+    "BOM bisa multi-level (sub-BOM / phantom)",
+    "Work order = instansi operasi pada MO spesifik",
+    "Workcenter = mesin/unit produksi dengan kalender & kapasitas",
+    "Reservasi komponen = action_assign pada MO",
+    "Consumption policy: flexible (boleh beda), warning (warning), strict (block)",
+    "By-product = produk sampingan dengan cost share",
+    "Backorder = MO sisa untuk quantity yang belum diproduksi",
+    "Routing = urutan operasi produksi",
+    "OEE = Overall Equipment Effectiveness (availability × performance × quality)",
+    "Mass produce serial = generate serial numbers untuk produk serial",
+    "Phantom BOM = kit (tidak diproduksi, langsung di-explode)",
+    "Outdated BOM = BOM berubah setelah MO dibuat (ditandai di MO)"
+  ],
+
+  "mrp_workorder": {
+    "nama": "Work Order",
+    "deskripsi": "Instansi operasi pada MO spesifik: penjadwalan, progress, dan waktu aktual",
+    "field_utama": {
+      "name": "Nama work order",
+      "production_id": "MO induk (Many2one ke mrp.production)",
+      "operation_id": "Operasi (Many2one ke mrp.routing.workcenter)",
+      "workcenter_id": "Workcenter (Many2one ke mrp.workcenter)",
+      "state": "Status: pending/waiting/ready/progress/done/cancel",
+      "date_start": "Tanggal mulai (planned/actual)",
+      "date_finished": "Tanggal selesai (planned/actual)",
+      "duration_expected": "Durasi expected (minutes)",
+      "duration": "Durasi aktual (minutes)",
+      "qty_produced": "Quantity produced di work order ini",
+      "qty_production": "Quantity yang harus diproduksi (dari MO)",
+      "qty_producing": "Quantity yang sedang diproduksi",
+      "qty_remaining": "Sisa quantity yang harus diproduksi",
+      "move_raw_ids": "Komponen yang dikonsumsi (One2many ke stock.move)",
+      "move_finished_ids": "Produk yang dihasilkan (One2many ke stock.move)",
+      "finished_lot_id": "Lot/Serial produk jadi (Many2one ke stock.lot)",
+      "time_ids": "Time logs (One2many ke mrp.workcenter.productivity)",
+      "blocked_by_workorder_ids": "Dependensi: WO yang harus selesai dulu",
+      "needed_by_workorder_ids": "WO yang bergantung pada WO ini",
+      "leave_id": "Slot kalender workcenter (Many2one ke resource.calendar.leaves)",
+      "is_user_working": "Apakah user sedang bekerja? (compute)",
+      "progress": "Progress (%) (compute)"
+    },
+    "method_penting": {
+      "_plan_workorder": "Plan work order (jadwalkan di workcenter)",
+      "button_start": "Mulai work order (start timer)",
+      "button_finish": "Selesai work order (stop timer)",
+      "button_pending": "Set ke pending",
+      "action_cancel": "Batalkan work order",
+      "action_replan": "Replan work order",
+      "end_all": "Tutup semua timer yang terbuka",
+      "_get_duration_expected": "Hitung durasi expected",
+      "_calculate_date_finished": "Hitung tanggal selesai berdasarkan durasi",
+      "_get_conflicted_workorder_ids": "Cek WO yang bentrok jadwalnya"
+    },
+    "fitur_utama": [
+      "Penjadwalan otomatis di workcenter",
+      "Dependensi antar work order",
+      "Timer untuk tracking waktu aktual",
+      "Progress tracking",
+      "Lot/serial tracking",
+      "Alternative workcenter support",
+      "Conflict detection",
+      "Scrap management",
+      "Integration dengan stock moves"
+    ]
+  },
+
+  "mrp_unbuild": {
+    "nama": "Unbuild Order",
+    "deskripsi": "Order untuk membongkar produk jadi menjadi komponen-komponennya (reverse of MO)",
+    "field_utama": {
+      "name": "Nomor referensi unbuild",
+      "product_id": "Produk yang akan dibongkar (Many2one)",
+      "product_qty": "Quantity yang akan dibongkar",
+      "product_uom_id": "Satuan (Many2one ke uom.uom)",
+      "bom_id": "BOM yang digunakan (Many2one)",
+      "mo_id": "MO asal (Many2one ke mrp.production)",
+      "lot_id": "Lot/Serial produk yang dibongkar",
+      "location_id": "Lokasi sumber produk",
+      "location_dest_id": "Lokasi tujuan komponen",
+      "state": "Status: draft/done",
+      "consume_line_ids": "Stock moves komponen yang dikonsumsi",
+      "produce_line_ids": "Stock moves komponen yang dihasilkan"
+    },
+    "method_penting": {
+      "action_unbuild": "Proses unbuild (buat stock moves)",
+      "_generate_consume_moves": "Generate moves untuk produk yang di-consume",
+      "_generate_produce_moves": "Generate moves untuk komponen yang dihasilkan",
+      "_generate_move_from_existing_move": "Buat move dari move MO yang sudah ada"
+    },
+    "fitur_utama": [
+      "Reverse manufacturing",
+      "Bisa dari MO atau dari BOM",
+      "Support tracked products (lot/serial)",
+      "Auto-create stock moves",
+      "Traceability ke MO asal"
+    ]
+  },
+
+  "stock_move_inherit_mrp": {
+    "nama": "Stock Move (MRP Inheritance)",
+    "deskripsi": "Perluasan stock.move untuk manufaktur: link ke MO, workorder, BOM line",
+    "field_utama": {
+      "production_id": "MO untuk produk jadi (Many2one)",
+      "raw_material_production_id": "MO untuk komponen (Many2one)",
+      "created_production_id": "MO yang dibuat dari move ini",
+      "unbuild_id": "Unbuild order (Many2one)",
+      "workorder_id": "Work order konsumsi (Many2one)",
+      "operation_id": "Operasi konsumsi (Many2one)",
+      "bom_line_id": "BOM line (Many2one)",
+      "byproduct_id": "By-product (Many2one)",
+      "manual_consumption": "Apakah konsumsi manual? (boolean)",
+      "unit_factor": "Faktor unit (compute)",
+      "should_consume_qty": "Quantity yang harus dikonsumsi (compute)"
+    },
+    "method_penting": {
+      "action_explode": "Explode phantom BOM menjadi komponen",
+      "_generate_move_phantom": "Generate move dari phantom BOM line",
+      "_run_procurement": "Jalankan procurement untuk MTO moves",
+      "_compute_kit_quantities": "Hitung quantity kit yang terkirim/terima",
+      "_should_bypass_set_qty_producing": "Cek apakah bypass set qty producing"
+    },
+    "fitur_utama": [
+      "Link MO ke stock moves",
+      "Explode phantom BOM",
+      "Manual consumption flag",
+      "Unit factor untuk backorder",
+      "Kit quantity computation",
+      "Workorder link"
+    ]
+  },
+
+  "stock_move_line_inherit_mrp": {
+    "nama": "Stock Move Line (MRP Inheritance)",
+    "deskripsi": "Perluasan stock.move.line untuk manufaktur: link ke workorder dan production",
+    "field_utama": {
+      "workorder_id": "Work order (Many2one)",
+      "production_id": "Production order (Many2one)",
+      "description_bom_line": "Deskripsi BOM line (compute)"
+    },
+    "method_penting": {
+      "_get_aggregated_product_quantities": "Override untuk handle kit",
+      "_compute_packaging_qtys": "Override untuk handle packaging kit",
+      "_prepare_stock_move_vals": "Override untuk handle kit locations"
+    }
+  },
+
+  "stock_quant_inherit_mrp": {
+    "nama": "Stock Quant (MRP Inheritance)",
+    "deskripsi": "Perluasan stock.quant untuk validasi kit di inventory adjustment",
+    "method_penting": {
+      "action_apply_inventory": "Redirect ke komponen jika produk adalah kit"
+    }
+  },
+
+  "alur_unbuild": {
+    "draft_to_done": {
+      "1": "User buat Unbuild Order (pilih produk, qty, BOM/MO)",
+      "2": "Klik 'Unbuild' → generate consume moves (produk) dan produce moves (komponen)",
+      "3": "Confirm moves → reserve komponen dari stock",
+      "4": "Set quantity done pada move lines (ambil lot dari MO asal)",
+      "5": "Action done → stock berkurang di produk, bertambah di komponen",
+      "6": "State unbuild → done"
+    }
+  },
+
+  "tips_penting": [
+    "Work order = instansi operasi pada MO (bisa banyak WO per MO)",
+    "Work order bisa dependensi: WO A harus selesai dulu sebelum WO B",
+    "Workorder durasi = durasi expected (dari BOM) + adjustment",
+    "Unbuild = kebalikan dari MO (bongkar produk jadi jadi komponen)",
+    "Unbuild bisa dari MO (ambil komponen dari MO) atau dari BOM (generic)",
+    "Kit product = phantom BOM (tidak diproduksi, langsung di-explode ke komponen)",
+    "Manual consumption = user input quantity konsumsi manual",
+    "Unit factor = rasio komponen terhadap produk (untuk backorder)",
+    "Phantom BOM = kit, tidak punya MO sendiri",
+    "Tracked product di unbuild harus punya lot/serial"
+  ]
+}

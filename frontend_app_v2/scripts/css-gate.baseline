@@ -1,0 +1,18 @@
+# Baseline gate CSS (no visual regression) — dibaca scripts/css-gate.sh.
+#
+# md5   = md5sum dist/assets/index-*.css SETELAH `bun --bun run build`.
+# rules = jumlah blok rule ({) di file CSS yang sama, dihitung PERSIS seperti
+#         scripts/css-gate.sh (tr '}' '\n' | grep -c '{') — bukan jumlah selektor.
+#
+# Nilai ini DIUKUR (bukan disalin) pada H2.3 (2026-10-12). Nilai lama
+# 7e65992b0d97efab12a50e803f94444b terbukti "hantu": identik di 23 entri JSON dari
+# Fase 2 s/d H2.2 padahal kelas baru memang ditambahkan H1.5/H1.6/H1.8/H2.1/H2.2.
+#
+# CATATAN PENTING: Tailwind v4 (via @tailwindcss/vite) memindai SELURUH project root
+# frontend_app_v2 termasuk tests/** (kelas yang hanya muncul di file test pun ikut
+# menghasilkan rule). Jadi mengedit/menambah file test BISA mengubah md5 ini.
+# File baseline ini sendiri sengaja TIDAK memuat nama kelas Tailwind.
+# updated_at=2026-10-13T07:54:09Z
+# updated_from=/home/zaimrofii/projects/odoo-garmen-project/frontend_app_v2
+md5=d51e4a31c0871858c7861a9aeb31089f
+rules=566

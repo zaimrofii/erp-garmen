@@ -1,0 +1,74 @@
+simulator/scenarios/*.container.yaml
+simulator/scenarios/*.local.yaml
+simulator/runs/
+simulator/.env
+simulator/.env.local
+
+# --- Secrets / env (F3-B.2.1) ---
+.env
+.env.prod
+*.env.prod
+django_app/.env
+django_app/.env.prod
+frontend_app_v2/.env
+frontend_app_v2/.env.production
+
+# --- TLS / Certbot (F3-B.2.2) — sertifikat lokal hasil scripts/generate-ssl.sh ---
+certbot/
+
+# --- Backup lokal (F3-B.2.3) — isi ./backups/ JANGAN di-commit ---
+backups/
+
+# --- Data & artefak lokal (jangan commit) ---
+postgres_data/
+odoo_data/
+odoo_source/
+logs/
+django_app/logs/*.jsonl
+django_app/staticfiles/
+django_app/media/
+frontend_app_v2/dist/
+
+# --- Python ---
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.pyc
+.pytest_cache/
+
+# --- Node ---
+node_modules/
+dist/
+
+# --- OS / editor ---
+.DS_Store
+*.log
+
+# --- H5 push monorepo: artefak lokal yang TIDAK dipush (aditif) ---
+_archive_docs_20261010/
+frontend_app/
+runs/
+.vite/
+*.tsbuildinfo
+*.tmp
+*.bak
+
+# Artefak one-off / output tool
+repomix-output.xml
+NUL
+nul
+odoo.conf.save
+
+# tools/odoo_probe: hanya probe.py + snapshot_schema.json yang dipush
+django_app/tools/odoo_probe/*
+!django_app/tools/odoo_probe/probe.py
+!django_app/tools/odoo_probe/snapshot_schema.json
+
+# Tutorial Odoo (hello_world, todo_app) — bukan bagian MES Garmen, tidak dipush
+custom_addons/
+
+# Script one-off (padanan resmi: django_app/tools/odoo_probe/probe.py)
+extract_fields.py
+
+

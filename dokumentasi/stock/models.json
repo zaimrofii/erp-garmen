@@ -1,0 +1,429 @@
+{
+  "panduan_baca": {
+    "tujuan": "Dokumen ini merangkum model-model inti modul stock (inventory) di Odoo, mencakup location, picking, picking type, dan stock move. Modul stock adalah fondasi manajemen inventaris yang mengelola pergerakan barang di seluruh perusahaan.",
+    "cara_baca": {
+      "nama": "Nama model atau konsep",
+      "deskripsi": "Penjelasan singkat tentang fungsi model",
+      "field_utama": "Daftar field penting beserta tipe dan kegunaannya",
+      "method_penting": "Method-method kunci yang sering dipakai atau di-override",
+      "fitur_utama": "Kemampuan/fitur andalan dari model tersebut"
+    },
+    "konsep_dasar_stock": {
+      "location": "Lokasi fisik atau virtual tempat menyimpan barang (gudang, rak, supplier, customer)",
+      "picking_type": "Tipe operasi perpindahan barang (incoming/outgoing/internal)",
+      "picking": "Dokumen transfer yang mengelompokkan beberapa stock move",
+      "stock_move": "Unit terkecil perpindahan barang (1 baris product + quantity + lokasi asal/tujuan)",
+      "move_line": "Detail operasi dari stock move (lot, serial, package, quantity done)",
+      "alur_dasar": "Stock Move → dikelompokkan ke Picking → dengan tipe Picking Type → dilakukan di Location"
+    }
+  },
+
+  "stock_location": {
+    "nama": "Lokasi Inventory",
+    "deskripsi": "Model untuk lokasi penyimpanan barang (gudang, rak, zona, supplier, customer, dll)",
+    "field_utama": {
+      "name": "Nama lokasi",
+      "complete_name": "Nama lengkap (parent/child)",
+      "location_id": "Lokasi induk (Many2one)",
+      "child_ids": "Sub-lokasi (One2many)",
+      "usage": "Tipe: supplier/view/internal/customer/inventory/production/transit",
+      "company_id": "Perusahaan (Many2one)",
+      "scrap_location": "Apakah lokasi scrap? (boolean)",
+      "return_location": "Apakah lokasi return? (boolean)",
+      "replenish_location": "Apakah lokasi replenish? (boolean)",
+      "removal_strategy_id": "Strategi pengambilan: FIFO/LIFO/FEFO/closest",
+      "putaway_rule_ids": "Aturan putaway (One2many)",
+      "barcode": "Barcode lokasi",
+      "storage_category_id": "Kategori penyimpanan (Many2one)",
+      "cyclic_inventory_frequency": "Frekuensi inventory (hari)",
+      "next_inventory_date": "Tanggal inventory berikutnya (compute)"
+    },
+    "method_penting": {
+      "_get_putaway_strategy": "Dapatkan lokasi tujuan berdasarkan aturan putaway",
+      "_check_can_be_used": "Cek apakah lokasi bisa digunakan untuk produk/package",
+      "_get_weight": "Hitung berat net dan forecast di lokasi",
+      "_get_next_inventory_date": "Dapatkan tanggal inventory berikutnya",
+      "should_bypass_reservation": "Apakah lokasi ini bypass reservasi? (supplier/customer/inventory)"
+    },
+    "fitur_utama": [
+      "Hierarki lokasi (parent-child)",
+      "7 tipe lokasi (supplier, view, internal, customer, inventory, production, transit)",
+      "Support multi-company",
+      "Putaway rules (otomatis arahkan barang ke lokasi tertentu)",
+      "Removal strategy (FIFO/LIFO/FEFO)",
+      "Cyclic inventory (jadwal inventory otomatis)",
+      "Storage category (batasi produk berdasarkan berat/kapasitas)"
+    ]
+  },
+
+  "stock_picking_type": {
+    "nama": "Tipe Operasi Transfer",
+    "deskripsi": "Model untuk mengkonfigurasi tipe operasi perpindahan barang (receipt, delivery, internal transfer)",
+    "field_utama": {
+      "name": "Nama operasi",
+      "code": "Kode: incoming/outgoing/internal",
+      "sequence_id": "Sequence untuk nomor picking",
+      "default_location_src_id": "Lokasi sumber default",
+      "default_location_dest_id": "Lokasi tujuan default",
+      "default_location_return_id": "Lokasi return default",
+      "return_picking_type_id": "Tipe operasi untuk return",
+      "warehouse_id": "Gudang (Many2one ke stock.warehouse)",
+      "reservation_method": "Metode reservasi: at_confirm/manual/by_date",
+      "create_backorder": "Kebijakan backorder: ask/always/never",
+      "use_create_lots": "Boleh buat lot/serial baru?",
+      "use_existing_lots": "Boleh pakai lot/serial existing?",
+      "auto_print_delivery_slip": "Auto print delivery slip saat validate?"
+    },
+    "method_penting": {
+      "create": "Buat sequence otomatis",
+      "write": "Update sequence jika kode berubah",
+      "_compute_picking_count": "Hitung jumlah picking per status"
+    },
+    "fitur_utama": [
+      "3 tipe: incoming (receipt), outgoing (delivery), internal",
+      "Auto-generate nomor picking via sequence",
+      "Metode reservasi: at_confirm (otomatis), manual, by_date (jadwal)",
+      "Kebijakan backorder: ask/always/never",
+      "Konfigurasi auto-print berbagai dokumen"
+    ]
+  },
+
+  "stock_picking": {
+    "nama": "Transfer",
+    "deskripsi": "Dokumen yang mengelompokkan stock move untuk proses perpindahan barang",
+    "field_utama": {
+      "name": "Nomor referensi (auto dari sequence)",
+      "origin": "Dokumen sumber (SO/PO)",
+      "state": "Status: draft/waiting/confirmed/assigned/done/cancel",
+      "move_type": "Kebijakan pengiriman: direct/one (all at once)",
+      "picking_type_id": "Tipe operasi (Many2one)",
+      "location_id": "Lokasi sumber",
+      "location_dest_id": "Lokasi tujuan",
+      "partner_id": "Partner (customer/supplier)",
+      "scheduled_date": "Tanggal jadwal",
+      "date_deadline": "Deadline (dari SO/PO)",
+      "move_ids": "Stock moves (One2many)",
+      "move_line_ids": "Detail operasi (One2many)",
+      "backorder_id": "Induk backorder",
+      "backorder_ids": "Backorder anak",
+      "priority": "Prioritas: 0 (Normal) / 1 (Urgent)",
+      "owner_id": "Pemilik (untuk consignment)"
+    },
+    "method_penting": {
+      "action_confirm": "Konfirmasi picking",
+      "action_assign": "Cek ketersediaan (reservasi)",
+      "button_validate": "Validasi picking (proses)",
+      "action_cancel": "Batalkan",
+      "action_put_in_pack": "Masukkan ke package",
+      "do_print_picking": "Print picking",
+      "_action_done": "Proses finalisasi",
+      "_create_backorder": "Buat backorder"
+    },
+    "fitur_utama": [
+      "Status tracking (draft → waiting → confirmed → assigned → done)",
+      "Shipping policy: direct (secepatnya) / one (tunggu semua)",
+      "Support backorder (split picking)",
+      "Support return picking",
+      "Priority (urgent/normal)",
+      "Auto-print dokumen (delivery slip, return slip, label)",
+      "Package management (put in pack)",
+      "Scrap products",
+      "Signature untuk delivery"
+    ]
+  },
+
+  "stock_move": {
+    "nama": "Stock Move",
+    "deskripsi": "Unit terkecil perpindahan barang (1 produk + quantity + lokasi asal/tujuan)",
+    "field_utama": {
+      "name": "Deskripsi",
+      "product_id": "Produk (Many2one)",
+      "product_uom": "Satuan (Many2one ke uom.uom)",
+      "product_uom_qty": "Quantity demand",
+      "quantity": "Quantity done (sum of move lines)",
+      "location_id": "Lokasi sumber",
+      "location_dest_id": "Lokasi tujuan",
+      "picking_id": "Picking induk (Many2one)",
+      "state": "Status: draft/waiting/confirmed/partially_available/assigned/done/cancel",
+      "move_orig_ids": "Move asal (chain)",
+      "move_dest_ids": "Move tujuan (chain)",
+      "procure_method": "Metode: make_to_stock / make_to_order",
+      "rule_id": "Stock rule yang membuat move ini",
+      "price_unit": "Harga unit",
+      "date_deadline": "Deadline",
+      "priority": "Prioritas",
+      "picked": "Apakah sudah dipick?",
+      "reservation_date": "Tanggal reservasi",
+      "availability": "Forecasted quantity"
+    },
+    "method_penting": {
+      "_action_confirm": "Konfirmasi move",
+      "_action_assign": "Reservasi (cek stock & buat move lines)",
+      "_action_done": "Finalisasi",
+      "_action_cancel": "Batalkan",
+      "_split": "Split move untuk backorder",
+      "_prepare_procurement_values": "Siapkan nilai untuk procurement",
+      "_merge_moves": "Merge move yang sama",
+      "_update_reserved_quantity": "Update quantity reserved",
+      "_create_extra_move": "Buat extra move jika quantity done > demand"
+    },
+    "fitur_utama": [
+      "Status tracking (draft → confirmed → assigned → done)",
+      "Support chaining (move_orig_ids / move_dest_ids)",
+      "2 metode supply: MTS (ambil dari stock) / MTO (buat procurement)",
+      "Reservasi otomatis/manual/by_date",
+      "Support split (backorder)",
+      "Merge moves dengan karakteristik sama",
+      "Support push/pull rules",
+      "Forecast availability"
+    ]
+  },
+
+  "konsep_penting": {
+    "reservasi": "Proses mengunci stock di location tertentu untuk move",
+    "backorder": "Sisa barang yang belum diproses dari picking (di-split)",
+    "procurement": "Proses pemenuhan demand (dari MTO)",
+    "putaway": "Aturan otomatis untuk menentukan lokasi tujuan barang masuk",
+    "removal": "Strategi pengambilan barang (FIFO/LIFO/FEFO)",
+    "push_rule": "Aturan yang otomatis memindahkan barang ke lokasi lain setelah diterima",
+    "pull_rule": "Aturan yang otomatis meminta barang dari lokasi lain",
+    "chained_move": "Move yang saling terhubung (move_orig → move_dest)",
+    "forecast_availability": "Prediksi ketersediaan stock berdasarkan move yang sudah di-confirm"
+  },
+
+  "alur_kerja_umum": {
+    "penerimaan": {
+      "1": "Buat Picking Type = incoming",
+      "2": "Buat Stock Move dengan location_id = supplier, location_dest_id = stock",
+      "3": "Konfirmasi → Reservasi → Validasi",
+      "4": "Stock bertambah di location tujuan"
+    },
+    "pengiriman": {
+      "1": "Buat Picking Type = outgoing",
+      "2": "Buat Stock Move dengan location_id = stock, location_dest_id = customer",
+      "3": "Konfirmasi → Reservasi (kurangi stock) → Validasi",
+      "4": "Stock berkurang di location asal"
+    },
+    "internal_transfer": {
+      "1": "Buat Picking Type = internal",
+      "2": "Buat Stock Move dengan location_id = stock1, location_dest_id = stock2",
+      "3": "Konfirmasi → Reservasi → Validasi",
+      "4": "Stock pindah dari stock1 ke stock2"
+    }
+  },
+
+  "tips__penting": [
+    "Location = tempat fisik (gudang, rak) atau virtual (supplier, customer)",
+    "Picking = kumpulan beberapa move (1 dokumen transfer)",
+    "Stock move = 1 baris perpindahan (1 produk + quantity)",
+    "Move line = detail operasi (lot, serial, quantity done, package)",
+    "Reservasi dilakukan otomatis saat konfirmasi (jika metode at_confirm)",
+    "Backorder dibuat jika quantity done < demand",
+    "MTO (make_to_order) = buat procurement, MTS = ambil dari stock",
+    "Putaway rule = aturan lokasi tujuan otomatis",
+    "Removal strategy = aturan pengambilan (FIFO/LIFO/FEFO)",
+    "Chain move = move saling terhubung (misal incoming → outgoing)"
+  ], 
+
+  "stock_move_line": {
+    "nama": "Detail Operasi Stock Move",
+    "deskripsi": "Model untuk detail operasi dari stock move (lot, serial, quantity done, package, dll)",
+    "field_utama": {
+      "picking_id": "Picking induk (Many2one ke stock.picking)",
+      "move_id": "Stock move induk (Many2one ke stock.move)",
+      "product_id": "Produk (Many2one ke product.product)",
+      "product_uom_id": "Satuan produk (Many2one ke uom.uom)",
+      "quantity": "Quantity done",
+      "quantity_product_uom": "Quantity dalam product UoM",
+      "picked": "Apakah sudah dipick? (boolean)",
+      "package_id": "Package sumber (Many2one ke stock.quant.package)",
+      "result_package_id": "Package tujuan (Many2one ke stock.quant.package)",
+      "lot_id": "Lot/Serial number (Many2one ke stock.lot)",
+      "lot_name": "Nama lot (string)",
+      "location_id": "Lokasi sumber (Many2one ke stock.location)",
+      "location_dest_id": "Lokasi tujuan (Many2one ke stock.location)",
+      "owner_id": "Pemilik (Many2one ke res.partner)",
+      "state": "Status (related dari move_id)",
+      "tracking": "Tracking product (related)"
+    },
+    "method_penting": {
+      "_action_done": "Proses finalisasi move line (pindahkan quant)",
+      "_apply_putaway_strategy": "Terapkan putaway rules ke location_dest",
+      "_synchronize_quant": "Sinkronisasi quant (available/reserved)",
+      "_free_reservation": "Free reservation jika ada konflik",
+      "_create_and_assign_production_lot": "Buat & assign lot baru",
+      "_get_aggregated_product_quantities": "Agregasi quantity per produk",
+      "action_put_in_pack": "Masukkan ke package",
+      "action_revert_inventory": "Revert inventory adjustment"
+    },
+    "fitur_utama": [
+      "Detail operasi picking (lot, serial, package)",
+      "Support tracking (lot/serial/none)",
+      "Auto-sync dengan quant (reserved/available)",
+      "Putaway rules pada location_dest",
+      "Support split move lines",
+      "Aggregation untuk report",
+      "Validation: no negative quantity"
+    ]
+  },
+
+  "stock_quant": {
+    "nama": "Stock Quant",
+    "deskripsi": "Model untuk unit terkecil stock (produk + lokasi + lot + package + owner)",
+    "field_utama": {
+      "product_id": "Produk (Many2one ke product.product)",
+      "location_id": "Lokasi (Many2one ke stock.location)",
+      "lot_id": "Lot/Serial (Many2one ke stock.lot)",
+      "package_id": "Package (Many2one ke stock.quant.package)",
+      "owner_id": "Pemilik (Many2one ke res.partner)",
+      "quantity": "Quantity on hand (readonly)",
+      "reserved_quantity": "Quantity reserved (readonly)",
+      "available_quantity": "Quantity available (quantity - reserved)",
+      "in_date": "Tanggal masuk (readonly)",
+      "inventory_quantity": "Quantity counted (untuk inventory adjustment)",
+      "inventory_diff_quantity": "Selisih (inventory_quantity - quantity)",
+      "inventory_date": "Tanggal inventory berikutnya",
+      "user_id": "User assigned untuk count",
+      "inventory_quantity_set": "Apakah inventory quantity sudah di-set?"
+    },
+    "method_penting": {
+      "_gather": "Kumpulkan quants dengan kriteria tertentu",
+      "_get_available_quantity": "Dapatkan quantity available",
+      "_get_reserve_quantity": "Dapatkan quantity yang bisa di-reserve",
+      "_update_available_quantity": "Update quantity on hand",
+      "_update_reserved_quantity": "Update reserved quantity",
+      "_apply_inventory": "Apply inventory adjustment (buat stock move)",
+      "_unlink_zero_quants": "Hapus quant dengan quantity 0",
+      "_merge_quants": "Merge duplicate quants",
+      "_get_removal_strategy": "Dapatkan strategi pengambilan (FIFO/LIFO/FEFO/closest/least_packages)",
+      "action_apply_inventory": "Apply inventory adjustment via wizard",
+      "move_quants": "Pindahkan quant ke lokasi/package lain"
+    },
+    "fitur_utama": [
+      "Unit terkecil stock management",
+      "Support multi-lot, multi-package, multi-owner",
+      "Removal strategy: FIFO, LIFO, FEFO, closest, least_packages",
+      "Inventory adjustment (count)",
+      "Merge quants otomatis",
+      "Reservation system",
+      "Auto-unlink zero quants"
+    ]
+  },
+
+  "stock_package": {
+    "nama": "Stock Package (Quant Package)",
+    "deskripsi": "Model untuk package/wadah yang berisi quants (kardus, pallet, dll)",
+    "field_utama": {
+      "name": "Nama package (auto dari sequence)",
+      "quant_ids": "Quants dalam package (One2many ke stock.quant)",
+      "package_type_id": "Tipe package (Many2one ke stock.package.type)",
+      "location_id": "Lokasi package (compute dari quants)",
+      "company_id": "Perusahaan (compute)",
+      "owner_id": "Pemilik (compute)",
+      "package_use": "Penggunaan: disposable/reusable",
+      "pack_date": "Tanggal pack",
+      "valid_sscc": "Apakah nama valid SSCC?"
+    },
+    "method_penting": {
+      "unpack": "Unpack package (pindahkan quants keluar)",
+      "action_view_picking": "Lihat picking terkait package"
+    },
+    "fitur_utama": [
+      "Grouping quants dalam package",
+      "Support disposable dan reusable",
+      "Validasi SSCC",
+      "Auto-compute location & company dari quants"
+    ]
+  },
+
+  "stock_warehouse": {
+    "nama": "Stock Warehouse",
+    "deskripsi": "Model untuk gudang dengan konfigurasi lokasi, picking type, dan routes",
+    "field_utama": {
+      "name": "Nama gudang",
+      "code": "Kode gudang (short name, 5 chars)",
+      "company_id": "Perusahaan (Many2one ke res.company)",
+      "view_location_id": "View location (root)",
+      "lot_stock_id": "Stock location utama",
+      "wh_input_stock_loc_id": "Input location",
+      "wh_output_stock_loc_id": "Output location",
+      "wh_qc_stock_loc_id": "Quality control location",
+      "wh_pack_stock_loc_id": "Packing location",
+      "reception_steps": "Steps incoming: one_step/two_steps/three_steps",
+      "delivery_steps": "Steps outgoing: ship_only/pick_ship/pick_pack_ship",
+      "route_ids": "Routes default (Many2many ke stock.route)",
+      "in_type_id": "Incoming picking type",
+      "out_type_id": "Outgoing picking type",
+      "pick_type_id": "Pick picking type",
+      "pack_type_id": "Pack picking type",
+      "int_type_id": "Internal picking type"
+    },
+    "method_penting": {
+      "_create_or_update_sequences_and_picking_types": "Buat/update picking types & sequences",
+      "_create_or_update_route": "Buat/update routes & rules",
+      "_create_or_update_global_routes_rules": "Buat/update global routes (MTO, Buy)",
+      "_get_rules_dict": "Dapatkan rules berdasarkan konfigurasi",
+      "_get_locations_values": "Dapatkan nilai default lokasi",
+      "create_resupply_routes": "Buat routes untuk resupply antar warehouse"
+    },
+    "fitur_utama": [
+      "Multi-warehouse support",
+      "Konfigurasi incoming: 1/2/3 steps",
+      "Konfigurasi outgoing: 1/2/3 steps",
+      "Auto-create locations, picking types, sequences",
+      "Auto-create routes & rules (push/pull)",
+      "Cross-dock support",
+      "Resupply antar warehouse",
+      "MTO (Make to Order) rules",
+      "Multi-company support"
+    ]
+  },
+
+  "alur_stock": {
+    "incoming_3_steps": {
+      "1": "Supplier → Input (in_type_id)",
+      "2": "Input → Quality (int_type_id)",
+      "3": "Quality → Stock (int_type_id)"
+    },
+    "outgoing_3_steps": {
+      "1": "Stock → Pack (pick_type_id)",
+      "2": "Pack → Output (pack_type_id)",
+      "3": "Output → Customer (out_type_id)"
+    },
+    "crossdock": {
+      "1": "Input → Output (int_type_id)",
+      "2": "Output → Customer (out_type_id)"
+    }
+  },
+
+  "contoh_reservasi": {
+    "reservasi_standar": {
+      "1": "Stock move di-confirm → action_assign dipanggil",
+      "2": "Cari quants dengan removal strategy (FIFO/LIFO)",
+      "3": "Reserve quants → buat stock.move.line",
+      "4": "Update reserved_quantity di quant",
+      "5": "Move state → assigned/partially_available"
+    },
+    "inventory_adjustment": {
+      "1": "User set inventory_quantity di quant",
+      "2": "Hitung inventory_diff_quantity",
+      "3": "Apply → buat stock.move inventory",
+      "4": "_action_done → update quantity",
+      "5": "Clear inventory_quantity_set"
+    }
+  },
+
+  "tips_penting": [
+    "Move line = detail operasi (lot, serial, package, quantity done)",
+    "Quant = unit stock terkecil (produk + lokasi + lot + package + owner)",
+    "Package = wadah untuk mengelompokkan quants",
+    "Warehouse = gudang dengan konfigurasi lengkap (locations, picking types, routes)",
+    "Reservasi = proses lock quants untuk stock move",
+    "Removal strategy = aturan pengambilan stock (FIFO/LIFO/FEFO/closest)",
+    "Inventory adjustment = proses koreksi stock via counting",
+    "Putaway = aturan lokasi tujuan otomatis",
+    "Cross-dock = langsung dari input ke output tanpa stock",
+    "Resupply = pengisian stock antar warehouse"
+  ]
+}
+

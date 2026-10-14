@@ -1,0 +1,542 @@
+{
+  "panduan_baca": {
+    "tujuan": "Dokumen ini merangkum model-model inti Odoo (res_partner, res_company, ir_ui_view, ir_actions, ir_sequence, ir_model, dll) dalam format JSON yang ringkas untuk memudahkan pemahaman konsep, terutama bagi developer yang ingin memahami arsitektur Odoo secara cepat.",
+    "cara_baca": {
+      "nama": "Nama model atau konsep",
+      "deskripsi": "Penjelasan singkat tentang fungsi model",
+      "field_utama": "Daftar field penting beserta tipe dan kegunaannya (format: 'nama_field': 'deskripsi singkat + tipe data')",
+      "method_penting": "Method-method kunci yang sering dipakai atau di-override",
+      "fitur_utama": "Kemampuan/fitur andalan dari model tersebut"
+    },
+    "catatan_teknis": {
+      "relasi": "Tanda 'Many2one', 'One2many', 'Many2many' menunjukkan relasi antar model",
+      "compute": "Field yang nilainya dihitung otomatis oleh sistem (bukan disimpan langsung)",
+      "related": "Field yang mengambil nilai dari field di model lain (mirip pointer)",
+      "store": "Field yang nilainya disimpan di database (default True)"
+    },
+    "konvensi_penamaan": {
+      "x_": "Prefix untuk custom field/model (contoh: x_bundle_code, x_my_model)",
+      "_id": "Suffix untuk field relasi Many2one (contoh: partner_id, user_id)",
+      "_ids": "Suffix untuk field relasi One2many/Many2many (contoh: child_ids, bank_ids)"
+    },
+    "tips_penggunaan": [
+      "Gunakan JSON ini sebagai referensi cepat untuk melihat struktur model Odoo tanpa harus buka kode sumber",
+      "Perhatikan bagian 'method_penting' untuk tahu method apa yang biasa di-override saat kustomisasi",
+      "Bagian 'fitur_utama' membantu memahami kemampuan apa yang sudah tersedia di model tersebut",
+      "Untuk custom model, selalu gunakan prefix x_ untuk menghindari konflik dengan model bawaan"
+    ]
+  },
+
+  "RES_PARTNER___________________": {
+    "nama": "Model Partner/Kontak",
+    "deskripsi": "Menyimpan data kontak, perusahaan, alamat, dan informasi terkait",
+    "field_utama": {
+      "name": "Nama kontak",
+      "complete_name": "Nama lengkap (otomatis)",
+      "parent_id": "Perusahaan induk (Many2one ke res.partner)",
+      "child_ids": "Daftar kontak anak (One2many)",
+      "is_company": "Apakah ini perusahaan? (boolean)",
+      "company_type": "Tipe: person/company",
+      "company_id": "Perusahaan (Many2one ke res.company)",
+      "commercial_partner_id": "Entitas komersial (otomatis)",
+      "type": "Tipe alamat: contact/invoice/delivery/other",
+      "email": "Email",
+      "phone": "Telepon",
+      "mobile": "HP",
+      "vat": "NPWP/Tax ID",
+      "company_registry": "Nomor registrasi perusahaan",
+      "street": "Alamat",
+      "street2": "Alamat (baris 2)",
+      "zip": "Kode pos",
+      "city": "Kota",
+      "state_id": "Provinsi (Many2one ke res.country.state)",
+      "country_id": "Negara (Many2one ke res.country)",
+      "category_id": "Tag/kategori (Many2many ke res.partner.category)",
+      "user_id": "Salesperson (Many2one ke res.users)",
+      "bank_ids": "Rekening bank (One2many ke res.partner.bank)",
+      "website": "Website",
+      "comment": "Catatan (HTML)",
+      "lang": "Bahasa",
+      "tz": "Zona waktu",
+      "active": "Aktif? (boolean)",
+      "barcode": "Barcode",
+      "image_1920": "Foto (binary)",
+      "partner_share": "Apakah partner berbagi? (boolean)"
+    },
+    "method_penting": {
+      "create": "Membuat partner baru, otomatis sync field komersial",
+      "write": "Update partner, sync ke child dan commercial partner",
+      "_commercial_sync_from_company": "Sync field komersial dari parent",
+      "_children_sync": "Sync field ke child",
+      "address_get": "Cari alamat berdasarkan tipe (invoice/delivery)",
+      "_display_address": "Format alamat sesuai negara",
+      "_get_complete_name": "Buat nama lengkap dengan format tertentu",
+      "find_or_create": "Cari atau buat partner dari email"
+    },
+    "fitur_utama": [
+      "Hierarki perusahaan-kontak",
+      "Sinkronisasi otomatis field komersial ke child",
+      "Multi alamat (invoice, delivery)",
+      "Validasi NPWP unik",
+      "Format alamat berdasarkan negara",
+      "Gravatar integration"
+    ]
+  },
+
+  "RES_COMPANY__________________________________": {
+    "nama": "Model Perusahaan",
+    "deskripsi": "Menyimpan data perusahaan dan konfigurasi",
+    "field_utama": {
+      "name": "Nama perusahaan",
+      "partner_id": "Partner terkait (Many2one ke res.partner)",
+      "parent_id": "Perusahaan induk (Many2one)",
+      "child_ids": "Cabang/branch (One2many)",
+      "currency_id": "Mata uang (Many2one ke res.currency)",
+      "logo": "Logo perusahaan (binary)",
+      "logo_web": "Logo versi web (otomatis)",
+      "report_header": "Header report (HTML)",
+      "report_footer": "Footer report (HTML)",
+      "company_details": "Detail perusahaan (HTML)",
+      "email": "Email (dari partner)",
+      "phone": "Telepon (dari partner)",
+      "street": "Alamat (dari partner)",
+      "city": "Kota (dari partner)",
+      "state_id": "Provinsi (dari partner)",
+      "country_id": "Negara (dari partner)",
+      "vat": "NPWP (dari partner)",
+      "paperformat_id": "Format kertas (Many2one ke report.paperformat)",
+      "font": "Font: Lato/Roboto/Open_Sans/etc",
+      "primary_color": "Warna utama",
+      "secondary_color": "Warna sekunder"
+    },
+    "method_penting": {
+      "create": "Buat perusahaan, otomatis buat partner",
+      "write": "Update, sync ke branch dan root",
+      "_compute_address": "Ambil alamat dari partner",
+      "_get_main_company": "Dapatkan perusahaan utama",
+      "_accessible_branches": "Cabang yang bisa diakses user"
+    },
+    "fitur_utama": [
+      "Hierarki perusahaan-cabang",
+      "Delegasi field ke partner",
+      "Multi company support",
+      "Konfigurasi report/layout",
+      "Validasi unik nama perusahaan"
+    ]
+  },
+
+  "IR_UI_VIEW__________________________________": {
+    "nama": "Model View/Tampilan",
+    "deskripsi": "Menyimpan semua tampilan UI Odoo (form, tree, kanban, dll)",
+    "field_utama": {
+      "name": "Nama view",
+      "model": "Model yang ditampilkan",
+      "key": "Key unik (untuk QWeb)",
+      "type": "Tipe: tree/form/graph/pivot/calendar/kanban/search/qweb",
+      "priority": "Prioritas (default 16)",
+      "arch_db": "Arsitektur view (XML, tersimpan di DB)",
+      "arch_fs": "Path file source (jika dari file)",
+      "arch_updated": "Apakah arch sudah diubah? (boolean)",
+      "inherit_id": "View yang diinherit (Many2one ke ir.ui.view)",
+      "groups_id": "Group yang boleh melihat (Many2many ke res.groups)",
+      "mode": "Mode: primary/extension",
+      "active": "Aktif? (boolean)",
+      "model_id": "ID model (Many2one ke ir.model)"
+    },
+    "method_penting": {
+      "_get_combined_arch": "Gabungkan view dengan semua inheritance",
+      "_combine": "Proses kombinasi view secara rekursif",
+      "apply_inheritance_specs": "Terapkan inheritance specs",
+      "postprocess_and_fields": "Post-process view dan extract fields",
+      "_postprocess_view": "Proses utama view (groups, modifiers, dll)",
+      "_validate_view": "Validasi view (cek field, domain, dll)",
+      "get_combined_arch": "Dapatkan arch hasil kombinasi (string)",
+      "_read_template": "Baca template QWeb",
+      "distribute_branding": "Distribusi branding untuk studio/editor",
+      "reset_arch": "Reset arch ke versi sebelumnya/file",
+      "create": "Buat view baru",
+      "write": "Update view",
+      "_check_xml": "Validasi XML view"
+    },
+    "fitur_utama": [
+      "Inheritance view (modifikasi tanpa sentuh file asli)",
+      "5 posisi: before/after/inside/replace/attributes",
+      "Post-processing groups & modifiers",
+      "QWeb template support",
+      "Branding untuk studio",
+      "Validasi otomatis saat install/update",
+      "Cache view (disimpan di database)"
+    ]
+  },
+
+  "konsep__penting": {
+    "inherit_view": {
+      "cara": "Gunakan inherit_id di view custom",
+      "sintaks": "<field name='inherit_id' ref='module.view_id'/>",
+      "posisi": ["before", "after", "inside", "replace", "attributes"]
+    },
+    "view_types": {
+      "tree": "Tampilan daftar/list",
+      "form": "Tampilan detail/form",
+      "kanban": "Tampilan kartu",
+      "search": "Tampilan pencarian/filter",
+      "graph": "Tampilan grafik",
+      "pivot": "Tampilan pivot table",
+      "calendar": "Tampilan kalender",
+      "qweb": "Template QWeb"
+    },
+    "modifiers": {
+      "invisible": "Sembunyikan field/button",
+      "readonly": "Hanya baca",
+      "required": "Wajib diisi",
+      "groups": "Hanya untuk group tertentu"
+    },
+    "inheritance_example": {
+      "xml": "<record id='view_product_form_inherit' model='ir.ui.view'>\n  <field name='name'>product.form.garmen</field>\n  <field name='model'>product.template</field>\n  <field name='inherit_id' ref='product.product_template_form_view'/>\n  <field name='arch' type='xml'>\n    <field name='name' position='after'>\n      <field name='x_bundle_code'/>\n    </field>\n  </field>\n</record>"
+    }
+  },
+
+  "tips__penting": [
+    "View tersimpan di DATABASE, bukan file!",
+    "Setiap edit XML harus upgrade modul agar terlihat",
+    "Odoo 17+ tidak boleh pakai 'attrs' dan 'states'",
+    "Gunakan 'invisible' langsung: invisible='state in [\"done\", \"cancelled\"]'",
+    "Arch di field 'arch_db' dan 'arch_fs' (jika dari file)",
+    "Priority = 16 default, bisa diubah untuk urutan load",
+    "Mode 'primary' = view utama, 'extension' = inherit dari primary",
+    "Untuk dev, aktifkan 'xml' di dev_mode untuk baca dari file",
+    "View bisa diinherit berlapis-lapis",
+    "Gunakan 'position' untuk menentukan lokasi modifikasi"
+  ],
+
+  "IR_ACTIONS______________________________________________": {
+    "nama": "Model Actions",
+    "deskripsi": "Menyimpan semua jenis action di Odoo (window, server, URL, client, dll)",
+    "field_utama": {
+      "name": "Nama action",
+      "type": "Tipe action (ir.actions.act_window, ir.actions.server, dll)",
+      "help": "Deskripsi bantuan",
+      "binding_model_id": "Model tempat action terikat",
+      "binding_type": "Tipe binding: action/report",
+      "binding_view_types": "View types: list,form",
+      "xml_id": "External ID (compute)"
+    },
+    "method_penting": {
+      "get_bindings": "Dapatkan action yang terikat ke model tertentu",
+      "_get_eval_context": "Context untuk safe_eval",
+      "create": "Buat action baru, clear cache",
+      "write": "Update action, clear cache",
+      "unlink": "Hapus action dan related records"
+    },
+    "fitur_utama": [
+      "Base class untuk semua action",
+      "Binding ke model dan view types",
+      "Cache otomatis",
+      "Multi company support"
+    ]
+  },
+
+  "IR_ACTION_ACT_WINDOW___________________________": {
+    "nama": "Action Window",
+    "deskripsi": "Action untuk membuka view (tree/form/kanban/dll)",
+    "field_utama": {
+      "res_model": "Model tujuan (required)",
+      "view_mode": "Mode view: tree,form,kanban (default: tree,form)",
+      "view_id": "View reference (Many2one ke ir.ui.view)",
+      "view_ids": "Daftar view (One2many ke ir.actions.act_window.view)",
+      "views": "List view yang di-compute (compute)",
+      "domain": "Domain filter (Python expression)",
+      "context": "Context (Python expression, default: {})",
+      "res_id": "ID record spesifik",
+      "target": "Target: current/new/inline/fullscreen/main",
+      "limit": "Limit list view (default 80)",
+      "groups_id": "Group yang boleh akses",
+      "search_view_id": "Search view reference",
+      "mobile_view_mode": "View mode untuk mobile (default: kanban)"
+    },
+    "method_penting": {
+      "read": "Override untuk get_empty_list_help",
+      "_compute_views": "Compute ordered list of views",
+      "create": "Auto-set name dari model description"
+    },
+    "fitur_utama": [
+      "Multi view modes (tree, form, kanban, graph, pivot, calendar)",
+      "Domain dan context support",
+      "Group-based access control",
+      "Mobile responsive"
+    ]
+  },
+
+  "IR_SERVER_ACTION________________________________": {
+    "nama": "Server Action",
+    "deskripsi": "Action untuk menjalankan logika server (Python code, update/create record, webhook, dll)",
+    "field_utama": {
+      "model_id": "Model target (required)",
+      "state": "Tipe: object_write/object_create/code/webhook/multi",
+      "code": "Python code (untuk tipe 'code')",
+      "child_ids": "Child actions (Many2many)",
+      "crud_model_id": "Model untuk create record",
+      "link_field_id": "Field untuk link record baru",
+      "update_field_id": "Field yang diupdate",
+      "update_path": "Path ke field (contoh: partner_id.name)",
+      "value": "Nilai/expression",
+      "evaluation_type": "value/equation",
+      "webhook_url": "URL webhook",
+      "webhook_field_ids": "Field yang dikirim ke webhook",
+      "groups_id": "Group yang boleh execute"
+    },
+    "method_penting": {
+      "run": "Execute server action",
+      "_run_action_code_multi": "Execute Python code",
+      "_run_action_object_write": "Update record",
+      "_run_action_object_create": "Create record",
+      "_run_action_webhook": "Send webhook POST",
+      "_run_action_multi": "Execute child actions",
+      "_get_eval_context": "Prepare safe_eval context",
+      "_eval_value": "Evaluate value expression",
+      "create_action": "Buat contextual action di menu More"
+    },
+    "fitur_utama": [
+      "5 tipe action: code, write, create, webhook, multi",
+      "Safe eval untuk Python code",
+      "Dapat return action dari code",
+      "Webhook dengan timeout 1s",
+      "Multi-company support",
+      "Logging terintegrasi"
+    ]
+  },
+
+  "IR_SECUENCE_____________________________________": {
+    "nama": "Sequence",
+    "deskripsi": "Generate unique identifiers (nomor dokumen, invoice, dll)",
+    "field_utama": {
+      "name": "Nama sequence",
+      "code": "Kode sequence (untuk next_by_code)",
+      "implementation": "standard/no_gap",
+      "prefix": "Prefix (bisa pakai format: %(year)s, %(month)s, dll)",
+      "suffix": "Suffix",
+      "number_next": "Next number",
+      "number_increment": "Step (default 1)",
+      "padding": "Padding size (default 0)",
+      "company_id": "Company (Many2one)",
+      "use_date_range": "Pakai subsequences per date range",
+      "date_range_ids": "Subsequences (One2many)"
+    },
+    "method_penting": {
+      "next_by_code": "Dapatkan next number by code",
+      "next_by_id": "Dapatkan next number by id",
+      "_next": "Generate next number",
+      "_get_prefix_suffix": "Interpolate prefix/suffix",
+      "get_next_char": "Format number dengan padding",
+      "_create_date_range_seq": "Buat date range baru",
+      "create": "Create PostgreSQL sequence",
+      "write": "Alter sequence jika perlu",
+      "unlink": "Drop sequence"
+    },
+    "fitur_utama": [
+      "2 implementasi: standard (cepat, gap) dan no_gap (lambat, no gap)",
+      "Prefix/suffix dengan format: %(year)s, %(month)s, %(day)s, %(y)s, %(doy)s, %(woy)s, %(weekday)s, %(h24)s, %(h12)s, %(min)s, %(sec)s",
+      "Date range support (per tahun/bulan)",
+      "Multi-company support",
+      "PostgreSQL sequence for performance"
+    ]
+  },
+
+  "IR_SEQUENCE_DATE_RANGE_______________________________": {
+    "nama": "Sequence Date Range",
+    "deskripsi": "Subsequence per date range (per tahun untuk nomor invoice)",
+    "field_utama": {
+      "date_from": "Tanggal mulai",
+      "date_to": "Tanggal akhir",
+      "sequence_id": "Main sequence (Many2one)",
+      "number_next": "Next number",
+      "number_next_actual": "Actual next number (compute)"
+    },
+    "method_penting": {
+      "_next": "Get next number",
+      "_alter_sequence": "Alter PostgreSQL sequence",
+      "create": "Create sequence untuk date range",
+      "unlink": "Drop sequence"
+    },
+    "fitur_utama": [
+      "Auto-create date range jika belum ada",
+      "PostgreSQL sequence per date range",
+      "Digunakan untuk nomor invoice per tahun"
+    ]
+  },
+
+  "IR_MODEL______________________________________________": {
+    "nama": "Model",
+    "deskripsi": "Menyimpan metadata model (custom dan base)",
+    "field_utama": {
+      "name": "Model description",
+      "model": "Technical name (contoh: x_my_model)",
+      "order": "SQL order (default: id)",
+      "info": "Informasi tambahan",
+      "field_id": "Fields (One2many ke ir.model.fields)",
+      "state": "manual/base",
+      "transient": "Transient model?",
+      "modules": "Modules where defined (compute)",
+      "count": "Jumlah records (compute)"
+    },
+    "method_penting": {
+      "_reflect_models": "Reflect models ke database",
+      "_add_manual_models": "Add custom models ke registry",
+      "_instanciate": "Create class for custom model",
+      "_drop_table": "Drop table",
+      "unlink": "Delete model dan drop table",
+      "_check_manual_name": "Validasi nama custom (harus x_)"
+    },
+    "fitur_utama": [
+      "Custom models (x_*) dan base models",
+      "Auto-reflect ke database",
+      "Drop table on unlink",
+      "Model inheritance tracking"
+    ]
+  },
+
+  "IR_MODEL_FIELDS_____________________________": {
+    "nama": "Model Fields",
+    "deskripsi": "Menyimpan metadata field (custom dan base)",
+    "field_utama": {
+      "name": "Field name (harus x_ untuk custom)",
+      "field_description": "Field label",
+      "model": "Model name",
+      "ttype": "Field type (char, integer, float, many2one, dll)",
+      "relation": "Related model (untuk relational fields)",
+      "relation_field": "Inverse field (untuk one2many)",
+      "store": "Stored? (default True)",
+      "compute": "Compute code",
+      "depends": "Dependencies untuk compute",
+      "related": "Related field path",
+      "required": "Required?",
+      "readonly": "Readonly?",
+      "index": "Indexed?",
+      "translate": "Translatable?",
+      "selection_ids": "Selection options (One2many)",
+      "domain": "Domain untuk relational fields",
+      "state": "manual/base"
+    },
+    "method_penting": {
+      "_reflect_fields": "Reflect fields ke database",
+      "_add_manual_fields": "Add custom fields ke model",
+      "_instanciate": "Create field instance",
+      "_drop_column": "Drop column",
+      "unlink": "Delete field dan column",
+      "_prepare_update": "Check dependencies before delete"
+    },
+    "fitur_utama": [
+      "Custom fields (x_*) dan base fields",
+      "Auto-reflect ke database",
+      "Compute method support",
+      "Related field support",
+      "Ondelete policy untuk many2one",
+      "Selection field support"
+    ]
+  },
+
+  "IR_MODEL_ACCESS_______________________": {
+    "nama": "Model Access (ACL)",
+    "deskripsi": "Menyimpan hak akses per model per group",
+    "field_utama": {
+      "name": "Nama ACL",
+      "model_id": "Model (Many2one)",
+      "group_id": "Group (Many2one)",
+      "perm_read": "Read access",
+      "perm_write": "Write access",
+      "perm_create": "Create access",
+      "perm_unlink": "Delete access",
+      "active": "Active?"
+    },
+    "method_penting": {
+      "check": "Cek access untuk model dan mode",
+      "_get_allowed_models": "Dapatkan model yang diizinkan (cached)",
+      "group_names_with_access": "Dapatkan nama group dengan access"
+    },
+    "fitur_utama": [
+      "4 permission: read, write, create, unlink",
+      "Group-based access control",
+      "Cache untuk performance",
+      "Clear cache on create/write/unlink"
+    ]
+  },
+
+  "IR_MODEL_DATA_____________________________________": {
+    "nama": "Model Data (External ID)",
+    "deskripsi": "Menyimpan external identifier untuk records (XML ID)",
+    "field_utama": {
+      "name": "External identifier",
+      "module": "Module name",
+      "model": "Model name",
+      "res_id": "Record ID",
+      "noupdate": "Non-updatable? (default False)",
+      "complete_name": "module.name (compute)",
+      "reference": "model,id (compute)"
+    },
+    "method_penting": {
+      "_xmlid_to_res_model_res_id": "Convert XML ID ke (model, id)",
+      "_xmlid_to_res_id": "Convert XML ID ke id",
+      "_update_xmlids": "Bulk create/update XML IDs",
+      "_module_data_uninstall": "Delete records on module uninstall",
+      "_process_end": "Cleanup orphan records"
+    },
+    "fitur_utama": [
+      "Cached lookup",
+      "Bulk update support",
+      "Module uninstall cleanup",
+      "Noupdate flag untuk base data"
+    ]
+  },
+
+  "konsep_penting": {
+    "server_action_types": {
+      "object_write": "Update record",
+      "object_create": "Create record",
+      "code": "Execute Python code",
+      "webhook": "Send webhook notification",
+      "multi": "Execute existing actions"
+    },
+    "sequence_formats": {
+      "year": "%(year)s",
+      "month": "%(month)s",
+      "day": "%(day)s",
+      "y": "%(y)s",
+      "doy": "%(doy)s",
+      "woy": "%(woy)s",
+      "weekday": "%(weekday)s",
+      "h24": "%(h24)s",
+      "h12": "%(h12)s",
+      "min": "%(min)s",
+      "sec": "%(sec)s"
+    },
+    "field_types": [
+      "char",
+      "text",
+      "html",
+      "integer",
+      "float",
+      "monetary",
+      "date",
+      "datetime",
+      "boolean",
+      "selection",
+      "binary",
+      "many2one",
+      "one2many",
+      "many2many",
+      "reference"
+    ]
+  },
+
+  "tips_penting": [
+    "Action window pakai view_mode untuk menentukan tampilan",
+    "Server action bisa return action untuk redirect",
+    "Webhook timeout 1s (send and forget)",
+    "Sequence standard = cepat tapi ada gap",
+    "Sequence no_gap = lambat tapi tanpa gap",
+    "Custom model harus mulai dengan x_",
+    "Custom field harus mulai dengan x_",
+    "ACL di-cache, perlu clear cache setelah perubahan",
+    "External ID di-cache, perlu clear cache setelah perubahan"
+  ]
+}

@@ -1,0 +1,306 @@
+{
+  "project": {
+    "name": "odoo-garmen-project",
+    "component": "django_app + simulator",
+    "architecture": "Modular Monolith (Django) + Simulator (Python async, klien API)",
+    "current_phase": "SELESAI — MVP + FASE 3 Realism",
+    "last_updated": "2026-10-08",
+    "status_summary": "Django MES production-ready (I1–I8 + 3 endpoint FASE 3.4). Simulator otonom LLM-selective, multi-hari, overlap, SO dinamis. E2E terbukti: 93 aksi / 3 hari / 8.6% error. Simulator 95% mirip garmen asli.",
+    "frontend_repo": {
+      "active": "frontend_app_v2/ (hand-coded React)",
+      "archived": "frontend_app/ (metadata-driven v1)",
+      "status": "Tidak disentuh selama FASE 3"
+    },
+    "trace_tool": {
+      "path": "trace-tool/",
+      "status": "ADA tapi BELUM AKTIF (fastapi/uvicorn belum install di container)"
+    }
+  },
+
+  "django_mes": {
+    "status": "SELESAI",
+    "phases_completed": [
+      "Sprint 0–6 (MVP)",
+      "FASE 7 (routing & kontrak frontend)",
+      "FASE 8 (WebSocket + print/WA/AI stub)",
+      "FASE 9 (auth + device binding + hardening)",
+      "Integrasi I1–I8 (master sync, SO, PO, vendor bill, scrap, invoice, reconciliation, hardening)",
+      "FASE 3.4 D1 (2 endpoint create: work-orders, bundles)",
+      "FASE 3.4 P1 (resource order-lines + builder + list/detail)"
+    ],
+    "test_count": {
+      "total": 1060,
+      "pre_existing_failures": 19,
+      "note": "19 failure pre-existing (Celery broker nyata + flake registry global) — BUKAN regresi FASE 3.4."
+    },
+    "capabilities": [
+      "Bundle engine + DAG routing + overlap + rework loop",
+      "Two-stage stock sync (WIP + FG) ke Odoo via Celery",
+      "ERP adapter pattern (Null/Odoo) — fail-safe ke NullAdapter",
+      "Device profile multi-device (HP/KIOS/SCANNER/DESKTOP)",
+      "Odoo sync: master, SO, PO, vendor bill, scrap, invoice",
+      "Reconciliation + audit + print + WA stub + AI stub",
+      "Auth (session + device cookie), CSRF, idempotency, rate limit",
+      "Observability (JSON logger + RequestID + audit + OTel stub)",
+      "WebSocket (daphne + channels + consumer bundle/work_order)"
+    ],
+    "endpoints_added_fase_3_4": [
+      {
+        "method": "POST",
+        "path": "/api/v1/garmen/work-orders/",
+        "body": { "order_line_id": "int" },
+        "auth": "IsAuthenticated",
+        "logic": "Create WorkOrder dari OrderLine (qty_planned=order_line.qty, state=DRAFT, code auto)"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/garmen/bundles/",
+        "body": {
+          "work_order_id": "int",
+          "size_matrix": "dict",
+          "bundle_size": "int"
+        },
+        "auth": "IsAuthenticated",
+        "logic": "Delegate ke BundleEngine.create_bundles(order_line, size_matrix, bundle_size)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/garmen/order-lines/",
+        "auth": "AllowAny",
+        "logic": "List OrderLine (id, order_code, product_code, qty, tag)"
+      }
+    ],
+    "bugs_found_by_simulator": [
+      {
+        "file": "integrations/erp_sync/api.py",
+        "issue": "RawPostDataException (request.body setelah request.data di ASGI/daphne)",
+        "status": "FIXED",
+        "regression_test": "test_rawpostdata_regression.py"
+      },
+      {
+        "file": "apps_industry/garment/api/actions/views.py",
+        "issue": "RawPostDataException (pola sama di _request_hash)",
+        "status": "FIXED",
+        "regression_test": "test_rawpostdata_regression.py"
+      }
+    ],
+    "known_issues": [
+      "OrderLine hasil SO sync punya product_code=None (data issue, bukan kode) — cutting agent skip via guard",
+      "19 test pre-existing failure (Celery broker nyata + flake registry) — bukan regresi"
+    ]
+  },
+
+  "simulator": {
+    "status": "SELESAI — otonom, LLM-selective, multi-step, multi-hari, overlap, SO dinamis",
+    "phases_completed": [
+      {
+        "id": "M1",
+        "name": "World + Config",
+        "output": "clock.py (sim clock + fatigue), events.py (EventGenerator), config.py (Pydantic YAML)"
+      },
+      {
+        "id": "M2",
+        "name": "HTTP Client + Scripted Agent + Recorder",
+        "output": "client/http.py (MESClient + CSRF + retry + trace-id), agents/scripted.py, telemetry/recorder.py"
+      },
+      {
+        "id": "M3",
+        "name": "BaseAgent + LLM Operator + QC + Fatigue",
+        "output": "agents/base.py, agents/operator.py, agents/qc.py, llm/client.py"
+      },
+      {
+        "id": "M4",
+        "name": "Orchestrator + KPI + CLI",
+        "output": "orchestrator.py (entry + CLI Typer), telemetry/kpi.py"
+      },
+      {
+        "id": "FASE 2.1–2.8",
+        "name": "Kontrak simulator ↔ Django",
+        "output": "Operator aktif (BUNDLE_ASSIGNED), body action fix, allowed_actions, in-flight guard, shared registry, multi-step refresh, jeda realistis, LLM aktif"
+      },
+      {
+        "id": "FASE 3.1",
+        "name": "Persistensi multi-hari",
+        "output": "Loop `days`, auth env (.env loader), seed per hari, KPI agregat, auto-refresh cookie"
+      },
+      {
+        "id": "FASE 3.1.1–3.1.4",
+        "name": "Fix PPIC + WIP",
+        "output": "Payload WIP + product_ref (chaining bundle→WO→product_code), bersihkan SyncRecord"
+      },
+      {
+        "id": "FASE 3.3",
+        "name": "Overlap antar-bundle",
+        "output": "N× BUNDLE_ASSIGNED per tick, round-robin operator, in-flight operator guard"
+      },
+      {
+        "id": "FASE 3.4",
+        "name": "SO/WO dinamis",
+        "output": "ORDER_IN periodik (08:00/11:00/14:00), cutting agent create WO + bundle, guard product_code"
+      }
+    ],
+    "struktur": {
+      "config.py": "Pydantic schema YAML (factory, clock, llm, anomaly, fatigue, django, recording, tool_set, timing, days)",
+      "orchestrator.py": "Entry point + CLI Typer + BundleRegistry + _run_one_shift + bootstrap",
+      "world/": "clock.py (sim clock + fatigue), events.py (EventGenerator + order_in_at + N× BUNDLE_ASSIGNED)",
+      "agents/": "base.py (BaseAgent + BundleRegistry + LLM helper), operator.py (LLM), qc.py (LLM), scripted.py (cutting + ppic + inventory)",
+      "client/": "http.py (MESClient + CSRF + X-Base-Version + auto-refresh cookie)",
+      "llm/": "client.py (OllamaClient timeout 30s + retry 2x)",
+      "telemetry/": "recorder.py (JSONL), kpi.py (aggregator)",
+      "scenarios/": "mini_1line.yaml, mini_1line.container.yaml"
+    },
+    "capabilities": [
+      "10 agent virtual: 5 operator (LLM) + 1 QC (LLM) + 1 cutting (scripted) + 1 inventory (scripted) + 1 ppic (scripted) + 1 supervisor (idle)",
+      "LLM-selective: operator & QC pakai Qwen 2.5 7B lokal (llm_decision_rate 44–94% tergantung beban)",
+      "Rule-based: scripted agent + fatigue curve + anomaly generator (deterministik dengan seed)",
+      "Multi-step bundle: DRAFT → CUTTING → SEWING → QC → DONE dalam 1 run (refresh allowed_actions dari Django)",
+      "Multi-hari: N hari non-stop via loop, Django sebagai source of truth, bundle unfinished di-resume",
+      "Overlap antar-bundle: bundle A di CUTTING, B di SEWING, C di QC bersamaan (N× event per tick)",
+      "SO dinamis: ORDER_IN jam 08:00/11:00/14:00 → cutting agent create WO + bundle",
+      "Jeda realistis: delay acak 0.5-5s + idle prob 25%",
+      "In-flight guard: cegah race condition async (bundle + operator)",
+      "Bundle registry shared: anti stale state antar agent",
+      "KPI lengkap: total_actions, success, error, latency p50/p95/p99, llm_decision_rate, by_agent, by_endpoint",
+      "JSONL append-only: replay-ready, trace via X-Request-ID",
+      "Fail-safe: LLM error → fallback scripted, bundle invalid → skip, OrderLine tanpa product → skip",
+      "Auto-refresh cookie: sesi expired → refresh otomatis via admin login",
+      ".env loader: DJANGO_SIM_COOKIE/USERNAME/PASSWORD dari file"
+    ],
+    "infra": {
+      "runtime": "container garmen_django, mount ./simulator:/app/simulator",
+      "django_url": "http://django:8000 (internal network garmen_net)",
+      "ollama_url": "http://10.255.255.254:11434 (host WSL, bind 0.0.0.0)",
+      "auth": "session cookie + X-CSRFToken (dari csrftoken di cookie)",
+      "speed": "600x (1 hari compressed = 6 detik real)",
+      "days": "Loop N hari, 1 run per hari"
+    },
+    "last_e2e": {
+      "days": 3,
+      "scenario": "mini_1line.container",
+      "total_actions": 93,
+      "success": 85,
+      "error": 8,
+      "error_rate": 0.086,
+      "llm_decision_rate": "day 0: 0.79 | day 1: 0.44 | day 2: idle",
+      "latency_p50_ms": "day 0: 129 | day 1: 74",
+      "catatan": [
+        "Day 2 idle karena semua bundle selesai (bukti simulator menyelesaikan seluruh bundle dalam 2 hari)",
+        "4 error/hari dari cutting agent create bundle (OrderLine tanpa product_code)",
+        "Auth 403 muncul di awal (cookie lama) tapi auto-refresh bekerja",
+        "Ollama error 500 muncul sporadis (beban tinggi), sudah fix timeout 30s + retry 2x"
+      ]
+    },
+    "files_changed_fase_3": [
+      "simulator/config.py",
+      "simulator/orchestrator.py",
+      "simulator/world/events.py",
+      "simulator/agents/base.py",
+      "simulator/agents/operator.py",
+      "simulator/agents/qc.py",
+      "simulator/agents/scripted.py",
+      "simulator/client/http.py",
+      "simulator/llm/client.py",
+      "simulator/scenarios/mini_1line.container.yaml",
+      "simulator/README.md",
+      ".gitignore"
+    ]
+  },
+
+  "siap_untuk": {
+    "internal_testing": "✅ YA — terbukti e2e 93 aksi, 3 hari",
+    "sales_demo": "✅ YA (butuh dashboard visual untuk dampak maksimal)",
+    "production_deploy": "⚠️ Butuh: scale test (25+ operator), dashboard, report otomatis, UAT 2 klien",
+    "fase_j_ai_agent": "✅ Seed siap — simulator = data training + validation + tool registry pattern"
+  },
+
+  "yang_bisa_ditambah_nanti": [
+    "Scale 25 operator + 3 line (edit YAML, 5 menit)",
+    "Dashboard visual React (1-2 bulan)",
+    "Report otomatis PDF/Excel (2-4 minggu)",
+    "Multi-shift (pagi/siang/malam)",
+    "DAG multi-WC penuh (seed RoutingStep + WorkCenter di Django)",
+    "Trace Bridge aktif (install fastapi + uvicorn)",
+    "Fase J: AI Agent produksi (Decision Gate, MCP, HITL, observability)",
+    "Rework loop simulator (QC → rework → QC ulang)",
+    "Fatigue curve lebih detail (per operator, per jam)"
+  ],
+
+  "decisions_log": [
+    "Simulator = klien API biasa, Django-agnostic (Prinsip #2 blueprint)",
+    "LLM hanya di tempat ambigu (operator, QC), sisanya scripted (Prinsip #1)",
+    "World rule-based, bukan LLM (Prinsip #3)",
+    "1 proses async, N agent — bukan N proses (Prinsip #4)",
+    "Django = single source of truth, simulator tidak simpan state persisten",
+    "Replay = regression, semua HTTP + decision terekam JSONL",
+    "Tool whitelist per role, di luar whitelist = error",
+    "Multi-step refresh allowed_actions dari Django (hindari stale state)",
+    "In-flight guard: bundle + operator (cegah race condition async)",
+    "Bundle registry shared antar agent (anti stale)",
+    "Fail-safe LLM: error → fallback scripted (jangan crash)",
+    "Idle check sebelum LLM (efisiensi + realism)",
+    "Auto-refresh cookie: session expired → login ulang otomatis",
+    "Auth per-method (GET AllowAny, POST IsAuthenticated) — backward-compat",
+    "Endpoint create WO/bundle di Django (FASE 3.4 D1) — pakai service existing",
+    "Resource order-lines didaftarkan (FASE 3.4 P1) — pola sama seperti work-orders"
+  ],
+
+  "known_issues": [
+    {
+      "issue": "IP host WSL (10.255.255.254) bisa berubah setelah WSL restart",
+      "impact": "Simulator tidak bisa connect Ollama",
+      "mitigasi": "Cek ulang IP, atau pakai host.docker.internal via extra_hosts"
+    },
+    {
+      "issue": "19 test pre-existing failure (Celery broker nyata + flake registry global)",
+      "impact": "Full test suite tidak 100% hijau",
+      "mitigasi": "Bukan regresi — jalankan modul terpisah untuk verifikasi"
+    },
+    {
+      "issue": "OrderLine hasil SO sync punya product_code=None",
+      "impact": "Cutting agent skip (4 error/hari dari create bundle)",
+      "mitigasi": "Perbaiki sync master product (produk MES ↔ Odoo mapping)"
+    },
+    {
+      "issue": "Cookie .env perlu refresh manual (kalau auto-refresh gagal)",
+      "impact": "403 di awal run, tapi auto-refresh bekerja",
+      "mitigasi": "Auto-refresh sudah aktif via DJANGO_SIM_USERNAME/PASSWORD"
+    },
+    {
+      "issue": "Trace Bridge belum aktif (fastapi/uvicorn belum install)",
+      "impact": "Debug trace via JSONL manual, bukan Trace Bridge",
+      "mitigasi": "Install fastapi + uvicorn di container"
+    },
+    {
+      "issue": "Inventory & supervisor agent idle (tool_set kosong)",
+      "impact": "Tidak ada aksi dari 2 agent ini",
+      "mitigasi": "Aktifkan kalau perlu (endpoint sudah ada)"
+    }
+  ],
+
+  "langkah_selanjutnya": [
+    {
+      "prioritas": 1,
+      "opsi": "Scale ke 3 line × 25 operator",
+      "effort": "30 menit (edit YAML)",
+      "kapan": "Kalau butuh load test / sales demo skala besar"
+    },
+    {
+      "prioritas": 2,
+      "opsi": "Dashboard visual React (KPI simulator + live status)",
+      "effort": "1-2 bulan",
+      "kapan": "Kalau mau jual ke klien"
+    },
+    {
+      "prioritas": 3,
+      "opsi": "Fase J: AI Agent produksi (Decision Gate, MCP, HITL)",
+      "effort": "3-6 bulan",
+      "kapan": "Kalau mau AI agent sebagai fitur produk"
+    },
+    {
+      "prioritas": 4,
+      "opsi": "UAT 2 klien (portabilitas)",
+      "effort": "2-4 minggu",
+      "kapan": "Sebelum production deploy"
+    }
+  ]
+}
