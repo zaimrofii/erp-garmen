@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, KeyRound, LogOut, UserRound } from 'lucide-react';
+import { ChevronDown, KeyRound, LogOut, Settings, UserRound } from 'lucide-react';
 import type { AuthUser } from '@/api/auth';
+import { canOpenSettings, roleLabelFromCode } from '@/app/useRole';
 import { Button } from '@/components/atoms/Button';
 import { Input } from '@/components/atoms/Input';
 import { Modal } from '@/components/atoms/Modal';
@@ -19,7 +20,8 @@ import { PILL } from '@/lib/tokens';
 
 /**
  * ProfileMenu.tsx — pill user di TopBar (F6.2): avatar + nama + label role, membuka menu
- * berisi identitas user (read-only), "Ganti Password", dan "Logout".
+ * berisi identitas user (read-only), "Ganti Password", "Pengaturan" (hanya ADMIN/OWNER —
+ * lihat `canOpenSettings`), dan "Logout".
  *
  * Kenapa bukan atom `Dropdown`: menu ini butuh blok kaya (nama + email + chip role) di
  * dalam panel, sementara `Dropdown` hanya menerima daftar item (label + ikon). Perilaku
@@ -43,8 +45,8 @@ export function ProfileSummary({ user }: { user: AuthUser | null }) {
         {displayNameOf(user)}
       </p>
       <p className="text-xs text-muted-foreground">{email.length > 0 ? email : '—'}</p>
-      <span className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-accent-blue">
-        {user?.role_code ?? '—'}
+      <span className="mt-1 text-[11px] font-semibold tracking-wider text-accent-blue">
+        {roleLabelFromCode(user?.role_code)}
       </span>
     </div>
   );
@@ -54,10 +56,20 @@ export interface ProfileMenuPanelProps {
   user: AuthUser | null;
   onSelectPassword: () => void;
   onSelectLogout: () => void;
+  /**
+   * Klik "Pengaturan". Diisi HANYA kalau `canOpenSettings(user.role_code)`; `undefined`
+   * berarti item TIDAK dirender (role tanpa akses tidak melihat pintunya sama sekali).
+   */
+  onSelectSettings?: () => void;
 }
 
 /** Panel menu (presentasional). */
-export function ProfileMenuPanel({ user, onSelectPassword, onSelectLogout }: ProfileMenuPanelProps) {
+export function ProfileMenuPanel({
+  user,
+  onSelectPassword,
+  onSelectLogout,
+  onSelectSettings,
+}: ProfileMenuPanelProps) {
   return (
     <div
       role="menu"
@@ -74,6 +86,18 @@ export function ProfileMenuPanel({ user, onSelectPassword, onSelectLogout }: Pro
         <KeyRound className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         Ganti Password
       </button>
+      {onSelectSettings === undefined ? null : (
+        <button
+          role="menuitem"
+          type="button"
+          data-profile-settings="true"
+          onClick={onSelectSettings}
+          className={MENU_ITEM}
+        >
+          <Settings className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          Pengaturan
+        </button>
+      )}
       <button
         role="menuitem"
         type="button"
@@ -190,6 +214,9 @@ export function ProfileMenu({ roleLabel }: ProfileMenuProps) {
   }, [open]);
 
   const initials = initialsOf(user);
+  // Pintu "Pengaturan" diputuskan dari `role_code` OTORITATIF (`/auth/me/`), bukan
+  // `useRole()` yang berasal dari localStorage/device/viewport (bisa diubah klien).
+  const showSettings = canOpenSettings(user?.role_code);
 
   function closePasswordModal(): void {
     setPasswordOpen(false);
@@ -233,6 +260,12 @@ export function ProfileMenu({ roleLabel }: ProfileMenuProps) {
     navigate(LOGIN_PATH, { replace: true });
   }
 
+  /** Menu akun → app Settings (hanya role ber-akses; pintunya dijaga `canOpenSettings`). */
+  function handleSettings(): void {
+    setOpen(false);
+    navigate('/settings');
+  }
+
   return (
     <div ref={containerRef} className="relative">
       <button
@@ -269,6 +302,7 @@ export function ProfileMenu({ roleLabel }: ProfileMenuProps) {
             setOpen(false);
             setPasswordOpen(true);
           }}
+          {...(showSettings ? { onSelectSettings: handleSettings } : {})}
           onSelectLogout={() => {
             void handleLogout();
           }}

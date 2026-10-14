@@ -51,7 +51,23 @@ export function TopBar({ app, currentPath, onNavigate }: TopBarProps) {
   const items = app?.topbar ?? [];
 
   return (
-    <header className="sticky top-0 z-20 flex flex-col gap-4 px-4 pt-4 pb-2 backdrop-blur md:px-6 lg:flex-row lg:items-center lg:justify-between [mask-image:linear-gradient(to_bottom,black_70%,transparent_100%)]">
+    <header className="sticky top-0 z-20 flex flex-col gap-4 px-4 pt-4 pb-2 md:px-6 lg:flex-row lg:items-center lg:justify-between">
+      {/*
+        FIX (dropdown akun tidak muncul) - lapisan dekoratif TERPISAH untuk mask. Dulu mask
+        ada di <header>: area mask default membatasi SEMUA isi yang dilukis turunannya ke
+        kotak header, sehingga panel dropdown (posisi absolute, di luar kotak header) dan
+        Modal ganti password (posisi fixed) ikut terpotong = tidak terlihat walau state-nya
+        benar. Elemen di bawah tetap membawa efek kaca + mask yang sama supaya batas bawah
+        header tetap lembut (yang memudar adalah latar buram, bukan overlay), dan <header>
+        tidak lagi jadi acuan posisi bagi elemen fixed.
+        NB: jangan menulis token seperti nama kelas Tailwind di komentar - pemindai
+        Tailwind membaca berkas ini sebagai teks dan akan membuat rule baru.
+      */}
+      <div
+        aria-hidden="true"
+        data-topbar-fade="true"
+        className="pointer-events-none absolute inset-0 backdrop-blur [mask-image:linear-gradient(to_bottom,black_70%,transparent_100%)]"
+      />
       <div className="flex min-w-0 flex-col gap-2">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
           {app?.label ?? 'Dashboard'}

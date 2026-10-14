@@ -101,6 +101,50 @@ export function isRole(value: unknown): value is Role {
   return typeof value === "string" && ROLES.some((role) => role === value);
 }
 
+/** Kode role BACKEND (`UPPERCASE`, migrasi `core_auth.0002`/`0004`) -> union UI `Role`. */
+export const ROLE_BY_CODE: Record<string, Role> = {
+  OPERATOR: "operator",
+  QC: "qc",
+  SUPERVISOR: "supervisor",
+  ADMIN: "admin",
+  OWNER: "owner",
+  PURCHASING: "purchasing",
+};
+
+/**
+ * PURE - label role manusiawi dari `user.role_code` (`/auth/me/`, UPPERCASE).
+ *
+ * Label diambil dari `ROLE_LABELS` supaya hanya ada SATU daftar label (pill TopBar juga
+ * memakainya). Input di-`toUpperCase()` dulu (toleran); kode di luar daftar dikembalikan
+ * apa adanya (jangan mengarang label untuk kode asing), kosong -> `—`.
+ */
+export function roleLabelFromCode(code: string | null | undefined): string {
+  const raw = (code ?? "").trim().toUpperCase();
+  if (raw.length === 0) return "—";
+
+  const role = ROLE_BY_CODE[raw];
+
+  return role === undefined ? raw : ROLE_LABELS[role];
+}
+
+/**
+ * Kode role yang boleh membuka app Settings - cermin `UPPERCASE` dari `SETTINGS_ROLES`
+ * di `App.tsx` (`['admin', 'owner']`). Guard route tetap `RoleRoute`; konstanta ini hanya
+ * memutuskan apakah pintu "Pengaturan" ditampilkan di menu akun.
+ */
+export const SETTINGS_ROLE_CODES: readonly string[] = ["ADMIN", "OWNER"];
+
+/**
+ * PURE - true kalau `role_code` boleh membuka `/settings`.
+ *
+ * Sengaja menerima `role_code` dari `/auth/me/` (OTORITATIF), BUKAN `useRole()` - role di
+ * `useRole()` berasal dari `localStorage['mes-role']`/device/viewport sehingga bisa diubah
+ * klien dan tidak boleh dipakai sebagai penentu hak akses.
+ */
+export function canOpenSettings(code: string | null | undefined): boolean {
+  return SETTINGS_ROLE_CODES.includes((code ?? "").trim().toUpperCase());
+}
+
 /** PURE - daftar app yang terlihat untuk satu role (urutan tetap mengikuti NAV_APPS). */
 export function visibleAppsForRole(role: Role): NavApp[] {
   const allowed = ROLE_APPS[role];
