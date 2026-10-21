@@ -6,8 +6,8 @@
       "concept": "MES = ERP Produksi (single point of input). Odoo = back-office pasif. Sync: master dua arah, transaksi satu arah (MES → Odoo).",
       "frontend_repo": "frontend_app_v2/ (hand-coded React); arsip: frontend_app/ (v1 metadata-driven)",
       "last_updated": "2026-10-21",
-      "current_phase": "Fase Ringan DONE (R.1-R.5); siap Fase Sedang",
-      "test_count_total": 2999,
+      "current_phase": "Fix #17 DONE (state lifecycle + top N + count query); siap design contract refactor",
+      "test_count_total": 3052,
       "test_pre_existing_failures": 0
     },
     "test_status": {
@@ -91,6 +91,57 @@
       "r5_polish": "docs + test manual",
       "test_count": 2999,
       "completed_at": "2026-10-21"
+    },
+    "fix_13_over_clarification": {
+      "status": "done",
+      "files": [
+        "integrations/ai_agent/orchestrator/context_builder.py",
+        "integrations/ai_agent/clarification/epistemic_classifier.py",
+        "integrations/ai_agent/orchestrator/response_synthesizer.py"
+      ],
+      "perbaikan": "13A kode spesifik → lookup code__icontains (1 hasil skor 0.95 EXACT, >1 ambigu, 0 EMPTY); 13B is_aggregate_query → classify EXACT + context_builder tidak membuat kandidat; 13C pertanyaan harga/produk → lookup name__icontains + product_list; 13D _specific_lookup skip query agregat.",
+      "test": "tests/ai_agent/test_over_clarification_fix.py — 12 test hijau; full suite 3011 passed / 0 failed / 1 skipped.",
+      "test_count": 3011,
+      "next": "Fase Sedang — HITL saran aksi + OEE/WIP + Data Sanity v1"
+    },
+    "fix_14_disambiguasi_bukti": {
+      "status": "done",
+      "files": [
+        "integrations/ai_agent/orchestrator/context_builder.py",
+        "integrations/ai_agent/clarification/templates.py"
+      ],
+      "perbaikan": "Attrs kandidat berbasis bukti per entity: produk (harga Rp + kategori, TANPA kode), order (customer/status/deadline), partner (kota/tipe), bundle (produk/status/qty), work center (kapasitas/tipe). Template menyembunyikan kode/id, header 'Ada N <label>:' bila label sama, harga diformat Rp50.000.",
+      "resolver": "Fuzzy match label + attrs (rapidfuzz ≥ 70); arsitektur tidak berubah.",
+      "test": "tests/ai_agent/test_disambig_evidence.py — 9 test hijau; full suite 3020 passed / 0 failed / 1 skipped.",
+      "test_count": 3020,
+      "next": "Fase Sedang — HITL saran aksi + OEE/WIP + Data Sanity v1"
+    },
+    "fix_15_seed_over_execute": {
+      "status": "done",
+      "seed": "demo_products.ensure_demo_polos_products + command seed_demo_polos (idempoten); dihook ke seed_rich_garment. DB terverifikasi: ODOO-65..69 kini punya nama unik, harga Rp35.000–Rp75.000, kategori Kaos.",
+      "over_execute": "AKAR: pending state masih aktif + user mengulang pertanyaan; resolver FUZZY (partial_ratio 'kaos polos'=100) menganggapnya pilihan kandidat → over-execute. FIX: di AiChatView, FUZZY yang berupa pertanyaan baru (_looks_like_new_question) → clear state dan lanjut alur normal.",
+      "fallback": "attrs placeholder (harga ≤ 0 / kategori kosong) tidak ditampilkan; bila semua kandidat tanpa bukti → 'Ada N yang cocok' + catatan 'data pembeda belum lengkap'.",
+      "test": "tests/ai_agent/test_fix15_seed_debug.py — 10 test hijau; full suite 3030 passed / 0 failed / 1 skipped.",
+      "test_count": 3030,
+      "next": "Fase Sedang — HITL saran aksi + OEE/WIP + Data Sanity v1"
+    },
+    "fix_16_seed_dedup_ordinal": {
+      "status": "done",
+      "seed": "ODOO-64 ('Kaos Polos Basic', Rp40.000, Kaos) masuk DEMO_POLOS_PRODUCTS; dipakai 2 OrderLine + 4 Bundle → UPDATE (bukan hapus). Total 6 produk demo, semua unik.",
+      "dedup": "_dedup_candidates(label, harga, kategori) diterapkan di jalur kode, jalur generik, dan lookup harga — duplikat tidak lagi tampil sebagai pilihan.",
+      "ordinal": "ORDINAL_MAP diperluas: 'ke N', 'yang ke N', 'yg ke N', 'yang pertama..kelima', 'yg pertama..kelima' + varian angka/kata.",
+      "test": "tests/ai_agent/test_fix16_seed_dedup_ordinal.py — 12 test hijau; full suite 3042 passed / 0 failed / 1 skipped.",
+      "test_count": 3042,
+      "next": "Fase Sedang — HITL saran aksi + OEE/WIP + Data Sanity v1"
+    },
+    "fix_17_state_top_count": {
+      "status": "done",
+      "state_lifecycle": "RANK/FUZZY tidak lagi clear state; turn bertambah; clear hanya CANCEL/ALL/ESCALATE/ganti topik/TTL/turn >= 3.",
+      "top_customer": "_detect_top_query dari RAW message (normalizer mengubah 'top' → 'pertama'); memakai METRICS.customer_total_spend(limit).",
+      "count_query": "_detect_count_query 'N <entity> <nama>' → daftar (product_list/orders/partners), _aggregate_query=True, tanpa kandidat.",
+      "test": "tests/ai_agent/test_fix17_state_top_count.py — 10 test hijau; full suite 3052 passed / 0 failed / 1 skipped.",
+      "test_count": 3052,
+      "next": "Design contract refactor (docs/ai/REFACTOR-CONTRACT.md) → refactor views.py"
     },
     "pra_0a_cleanup": {
       "status": "done (2026-10-18) — backend 0 failed, frontend 0 failed",

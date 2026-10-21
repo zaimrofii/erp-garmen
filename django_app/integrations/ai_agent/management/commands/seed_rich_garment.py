@@ -29,6 +29,7 @@ from apps_industry.garment.models import (
     WorkOrder,
 )
 from core.auth.models import User
+from integrations.ai_agent.demo_products import ensure_demo_polos_products
 from integrations.ai_agent.models import AIDecisionLog, AIHitlQueue
 from integrations.erp_sync.models import SyncRecord
 from master.models import BOM, BOMLine, Account, Journal, Partner, Product, UoM
@@ -129,6 +130,9 @@ class Command(BaseCommand):
                 },
             )
             self.products[code] = product
+
+        # Fix #15 — produk ODOO-65..69 (5 "Kaos Polos") wajib punya pembeda.
+        ensure_demo_polos_products(uom=unit)
 
         for index in range(1, 5):
             fg_code = (

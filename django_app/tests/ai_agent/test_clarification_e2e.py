@@ -152,7 +152,9 @@ class ClarificationE2ETests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(body["answer"], "Jawaban LLM.")
         self.assertEqual(captured["_resolved_candidate"]["id"], 2)
-        self.assertIsNone(pending_state.load(self.user.pk, self.session_id))
+        state = pending_state.load(self.user.pk, self.session_id)
+        self.assertIsNotNone(state)
+        self.assertEqual(state["turn_count"], 1)
 
     def test_fuzzy_memilih_kandidat(self):
         self._save_pending()
@@ -170,7 +172,9 @@ class ClarificationE2ETests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(captured["_resolved_candidate"]["id"], 3)
-        self.assertIsNone(pending_state.load(self.user.pk, self.session_id))
+        state = pending_state.load(self.user.pk, self.session_id)
+        self.assertIsNotNone(state)
+        self.assertEqual(state["turn_count"], 1)
 
     def test_cancel_membersihkan_state(self):
         self._save_pending()

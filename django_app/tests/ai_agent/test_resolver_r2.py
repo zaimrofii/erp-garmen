@@ -231,7 +231,7 @@ class ChatClarificationWiringTests(TestCase):
         state = pending_state.load(self.user.pk, self.session_id)
         self.assertEqual(state["turn_count"], 1)
 
-    def test_rank_menghapus_state_dan_lanjut_rule_hit(self):
+    def test_rank_state_tetap_hidup_dan_lanjut_rule_hit(self):
         self._save_pending()
 
         with patch(
@@ -247,7 +247,9 @@ class ChatClarificationWiringTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["answer"], "Diproses.")
-        self.assertIsNone(pending_state.load(self.user.pk, self.session_id))
+        state = pending_state.load(self.user.pk, self.session_id)
+        self.assertIsNotNone(state)
+        self.assertEqual(state["turn_count"], 1)
 
 
 class AllResponseTests(SimpleTestCase):

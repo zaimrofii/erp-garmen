@@ -46,12 +46,14 @@ def classify(
     query: str,
     min_exact_score: float = 0.85,
     max_ambig: int = 5,
+    is_aggregate_query: bool = False,
 ) -> EpistemicResult:
     """Klasifikasikan kandidat terhadap query.
 
     Aturan (deterministik, "ask only when it changes the answer"):
 
     - query < 2 karakter → OUT_OF_SCOPE
+    - `is_aggregate_query=True` → EXACT (agregat dijawab metrik, bukan pilih)
     - 0 kandidat → EMPTY (jawaban tegas, bukan "maaf")
     - 1 kandidat skor >= `min_exact_score` → EXACT
     - 1 kandidat skor < `min_exact_score` → WEAK (minta konfirmasi ya/tidak)
@@ -63,6 +65,15 @@ def classify(
         return EpistemicResult(
             status=EpistemicStatus.OUT_OF_SCOPE,
             reason="Query terlalu pendek",
+        )
+
+    # Fix #13B — pertanyaan agregat tidak pernah memicu klarifikasi.
+    if is_aggregate_query:
+        return EpistemicResult(
+            status=EpistemicStatus.EXACT,
+            candidates=list(candidates),
+            question=None,
+            reason="Query agregat (tidak butuh klarifikasi)",
         )
 
     if not candidates:

@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import timedelta
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from django.utils import timezone
@@ -132,6 +133,35 @@ LIST_QUERY_HINTS = frozenset(
     }
 )
 
+#: Fix #13 — kata penanda pertanyaan AGREGAT (tidak perlu klarifikasi).
+AGGREGATE_KEYWORDS = (
+    "tidak seimbang",
+    "paling tidak seimbang",
+    "seimbang",
+    "bottleneck",
+    "penyumbat",
+    "hambatan",
+    "menumpuk",
+    "paling sibuk",
+    "paling lambat",
+    "paling cepat",
+    "tertinggi",
+    "terendah",
+    "terbanyak",
+    "tersedikit",
+    "ranking",
+    "urutkan",
+    "bandingkan",
+    "top",
+)
+
+
+def is_aggregate_query(message: str) -> bool:
+    """True bila pesan meminta agregat/peringkat (tidak perlu klarifikasi)."""
+    text = str(message or "").lower()
+    return any(keyword in text for keyword in AGGREGATE_KEYWORDS)
+
+
 #: Kata umum yang bukan penanda entitas spesifik.
 QUESTION_STOPWORDS = frozenset(
     {
@@ -167,6 +197,32 @@ QUESTION_STOPWORDS = frozenset(
         "kah",
         "sih",
         "dong",
+    }
+)
+
+#: Fix #13C — kata kunci harga + kata benda produk untuk lookup nama.
+PRICE_HINTS = ("harga", "price")
+PRODUCT_NOUNS = (
+    "kaos",
+    "kemeja",
+    "dress",
+    "celana",
+    "jaket",
+    "baju",
+    "rok",
+    "koko",
+    "kain",
+)
+PRICE_STOPWORDS = QUESTION_STOPWORDS | frozenset(
+    {
+        "harga",
+        "price",
+        "berapa",
+        "produk",
+        "product",
+        "barang",
+        "rp",
+        "rupiah",
     }
 )
 
@@ -305,18 +361,78 @@ def _candidate_haystack(row: dict) -> str:
     ).lower()
 
 
+def _format_rupiah(value) -> str:
+    """Format harga gaya Indonesia: ``50000`` → ``"Rp50.000"``."""
+    if value in (None, ""):
+        return "harga belum diisi"
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return "harga belum diisi"
+    if amount <= 0:
+        return "harga belum diisi"
+    return "Rp{:,.0f}".format(amount).replace(",", ".")
+
+
 def _candidate_attrs(entity: str, row: dict) -> dict:
+    """Atribut pembeda per entity — bukti untuk user, BUKAN kode.
+
+    Prinsip Fix #14: "disambiguate by evidence, not by ID". Owner/operator
+    tidak hafal kode, jadi produk memakai harga + kategori, order memakai
+    customer/status, dan seterusnya.
+    """
     attrs: dict = {}
+
+    if entity == "product":
+        attrs["harga"] = _format_rupiah(row.get("sale_price"))
+        attrs["kategori"] = row.get("category") or "tanpa kategori"
+        return attrs
+
+    if entity == "order":
+        if row.get("customer_name"):
+            attrs["customer"] = row["customer_name"]
+        if row.get("state"):
+            attrs["status"] = row["state"]
+        if row.get("deadline"):
+            attrs["deadline"] = str(row["deadline"])[:10]
+        return attrs
+
+    if entity == "partner":
+        if row.get("city"):
+            attrs["kota"] = row["city"]
+        types = []
+        if row.get("is_customer"):
+            types.append("customer")
+        if row.get("is_vendor"):
+            types.append("vendor")
+        if types:
+            attrs["tipe"] = "/".join(types)
+        return attrs
+
+    if entity == "bundle":
+        if row.get("product_name"):
+            attrs["produk"] = row["product_name"]
+        if row.get("state"):
+            attrs["status"] = row["state"]
+        if row.get("qty") is not None:
+            attrs["qty"] = row["qty"]
+        return attrs
+
+    if entity == "work_center":
+        if row.get("capacity_per_hour") is not None:
+            attrs["kapasitas/jam"] = row["capacity_per_hour"]
+        if row.get("wc_type"):
+            attrs["tipe"] = row["wc_type"]
+        return attrs
+
+    if entity == "production_line" and row.get("code"):
+        attrs["line"] = row["code"]
+        return attrs
+
     if row.get("code"):
         attrs["kode"] = row["code"]
     if row.get("state"):
         attrs["status"] = row["state"]
-    if entity == "order" and row.get("customer_name"):
-        attrs["customer"] = row["customer_name"]
-    if entity == "bundle" and row.get("product_name"):
-        attrs["produk"] = row["product_name"]
-    if entity == "production_line" and row.get("name"):
-        attrs["nama"] = row["name"]
     return attrs
 
 
@@ -334,11 +450,68 @@ def _candidate_rows(entity: str, data: dict) -> list[dict]:
         return []
 
 
+def _product_phrase(raw: str) -> str | None:
+    """Ambil frasa nama produk dari pesan (mis. 'kaos polos')."""
+    text = str(raw or "").lower()
+    pattern = (
+        r"\b(?:" + "|".join(PRODUCT_NOUNS) + r")\s+[a-z0-9][a-z0-9\- ]{0,30}"
+    )
+    match = re.search(pattern, text)
+    if match:
+        return match.group(0).strip(" ?.,!")
+
+    tokens = [
+        token.strip("?.,!")
+        for token in text.split()
+        if token.strip("?.,!")
+        and token.strip("?.,!") not in PRICE_STOPWORDS
+    ]
+    if not tokens:
+        return None
+    phrase = tokens[-1]
+    return None if phrase in LIST_QUERY_HINTS else phrase
+
+
+def _make_candidate(entity: str, row: dict, score: float) -> dict:
+    """Bentuk kandidat standar {id,label,attrs,score,entity}."""
+    return {
+        "id": row.get("id"),
+        "label": str(
+            row.get("name") or row.get("code") or f"{entity} #{row.get('id')}"
+        ),
+        "attrs": _candidate_attrs(entity, row),
+        "score": score,
+        "entity": entity,
+    }
+
+
+def _dedup_candidates(candidates: list[dict]) -> list[dict]:
+    """Buang kandidat duplikat (label + harga + kategori sama) — Fix #16B."""
+    seen: set[tuple[str, str, str]] = set()
+    unique: list[dict] = []
+    for candidate in candidates:
+        attrs = candidate.get("attrs") or {}
+        key = (
+            str(candidate.get("label") or "").strip().lower(),
+            str(attrs.get("harga") or ""),
+            str(attrs.get("kategori") or ""),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(candidate)
+    return unique
+
+
 def _specific_lookup(normalized: dict) -> tuple[str, list[str]] | None:
     """Deteksi pencarian SATU entitas (bukan daftar/agregat).
 
-    Return `(entity, tokens_spesifik)` atau `None` bila query bersifat daftar.
+    Return `(entity, tokens_spesifik)` atau `None` bila query bersifat daftar
+    atau agregat (Fix #13D: agregat dijawab metrik, bukan klarifikasi).
     """
+    if is_aggregate_query(str(normalized.get("raw") or "")):
+        return None
+
     tokens = list(normalized.get("tokens") or [])
     if not tokens or any(token in LIST_QUERY_HINTS for token in tokens):
         return None
@@ -374,6 +547,33 @@ def _collect_candidates(
         return [], None
 
     entity, tokens = lookup
+
+    # Fix #13A — kode spesifik (mis. KPP-DEWASA-V2) → lookup by code (EXACT).
+    raw_message = str(normalized.get("raw") or "").upper()
+    codes = [
+        code
+        for code in CODE_PATTERN.findall(raw_message)
+        if any(char.isdigit() for char in code)
+    ]
+    if codes:
+        code = codes[0]
+        repo = get_repo(entity)
+        code_rows: list[dict] = []
+        if repo is not None:
+            try:
+                code_rows = repo.get_list(
+                    filters={"code__icontains": code}, limit=5
+                )
+            except Exception:
+                code_rows = []
+        data_key = ENTITY_DATA_KEYS.get(entity, "")
+        if code_rows and data_key:
+            data[data_key] = code_rows
+        score = 0.95 if len(code_rows) == 1 else 0.7
+        return _dedup_candidates(
+            [_make_candidate(entity, row, score) for row in code_rows]
+        ), entity
+
     rows = _candidate_rows(entity, data)
 
     # Pilih baris dengan jumlah token cocok TERBANYAK (hindari melebar ke semua
@@ -394,19 +594,92 @@ def _collect_candidates(
         return [], None
 
     score = 0.9 if len(matched) == 1 else 0.7
-    candidates = [
-        {
-            "id": row.get("id"),
-            "label": str(
-                row.get("name") or row.get("code") or f"{entity} #{row.get('id')}"
-            ),
-            "attrs": _candidate_attrs(entity, row),
-            "score": score,
-            "entity": entity,
-        }
-        for row in matched[:20]
-    ]
+    candidates = _dedup_candidates(
+        [_make_candidate(entity, row, score) for row in matched[:20]]
+    )
     return candidates, entity
+
+
+#: Fix #17B — deteksi "top N customer" dari RAW message (normalizer mengubah
+#: "top" → "pertama" sehingga canonicals tidak bisa dipakai).
+_TOP_WORDS = r"(?:top|tertinggi|terbaik|ranking|peringkat)"
+_TOP_ENTITIES = r"(?:customer|pelanggan|vendor|supplier)"
+
+#: Fix #17C — "N <entity> <nama>" = permintaan daftar, bukan klarifikasi.
+_COUNT_ENTITY_MAP = {
+    "produk": "product",
+    "product": "product",
+    "order": "order",
+    "orderan": "order",
+    "bundle": "bundle",
+    "paket": "bundle",
+    "customer": "partner",
+    "pelanggan": "partner",
+    "partner": "partner",
+    "vendor": "partner",
+    "supplier": "partner",
+}
+_COUNT_PATTERN = re.compile(
+    r"^\s*(\d+)\s+"
+    r"(produk|product|order|orderan|bundle|paket|customer|pelanggan|"
+    r"partner|vendor|supplier)\s+(.+?)\s*$",
+    re.IGNORECASE,
+)
+
+
+def _detect_top_query(message: str) -> dict | None:
+    """Deteksi "top N customer"/"customer terbaik" dari pesan mentah."""
+    text = str(message or "").lower()
+    if not (
+        re.search(rf"\b{_TOP_WORDS}\b.*\b{_TOP_ENTITIES}\b", text)
+        or re.search(rf"\b{_TOP_ENTITIES}\b.*\b{_TOP_WORDS}\b", text)
+    ):
+        return None
+
+    numbers = re.findall(r"\d+", text)
+    limit = int(numbers[0]) if numbers else 10
+    return {"entity": "customer", "limit": max(1, limit)}
+
+
+def _detect_count_query(message: str) -> dict | None:
+    """Deteksi "5 produk kaos polos" → daftar 5 produk (bukan klarifikasi)."""
+    match = _COUNT_PATTERN.match(str(message or ""))
+    if match is None:
+        return None
+
+    name = match.group(3).strip(" ?.,!")
+    if not name:
+        return None
+
+    entity = _COUNT_ENTITY_MAP.get(match.group(2).lower())
+    if entity is None:
+        return None
+    return {"count": int(match.group(1)), "entity": entity, "name": name}
+
+
+def _count_query_rows(entity: str, name: str, limit: int) -> list[dict]:
+    """Ambil maksimal `limit` baris yang cocok dengan nama/kota/kode."""
+    repo = get_repo(entity)
+    if repo is None or limit <= 0:
+        return []
+
+    try:
+        if entity == "product":
+            return repo.get_list(filters={"name__icontains": name}, limit=limit)
+        if entity in {"order", "bundle"}:
+            return repo.get_list(filters={"code__icontains": name}, limit=limit)
+        rows = repo.get_list(limit=max(limit * 10, 50))
+    except Exception:
+        return []
+
+    phrase = name.lower()
+    return [
+        row
+        for row in rows
+        if phrase in str(row.get("name") or "").lower()
+        or phrase in str(row.get("city") or "").lower()
+        or phrase in str(row.get("code") or "").lower()
+    ][:limit]
 
 
 def _metric_result(user, metric_id: str, dimension: str) -> dict:
@@ -989,6 +1262,39 @@ def _auto_detect_keywords(
             user, "garment.bottleneck", "work_center"
         )
 
+    # Fix #13C — pertanyaan harga produk: lookup produk via nama (bukan klarifikasi).
+    if any(hint in text for hint in PRICE_HINTS) and (
+        "produk" in canonicals
+        or "barang" in tokens
+        or any(noun in text for noun in PRODUCT_NOUNS)
+    ):
+        phrase = _product_phrase(normalized.get("raw") or "")
+        rows: list[dict] = []
+        repo = get_repo("product")
+        if phrase and repo is not None:
+            try:
+                rows = repo.get_list(
+                    filters={"name__icontains": phrase}, limit=10
+                )
+            except Exception:
+                errors.append(
+                    {
+                        "tool": "data-access",
+                        "entity": "product_price",
+                        "error": "exception",
+                    }
+                )
+        if rows:
+            data["product_list"] = _filter_financial_rows(rows, user)
+            data["_entity_label"] = "produk"
+            score = 0.95 if len(rows) == 1 else 0.7
+            data["_candidates"] = _dedup_candidates(
+                [_make_candidate("product", row, score) for row in rows[:20]]
+            )
+        elif phrase:
+            data["_candidates"] = []
+            data["_entity_label"] = "produk"
+
     if "lambat" in canonicals or "late" in tokens:
         try:
             data["order_late_stats"] = METRICS.order_late_percentage()
@@ -1137,6 +1443,42 @@ def build_context(
         data["_followup_entity"] = followup["target_entity"]
     errors: list[dict] = []
 
+    # Fix #17B/#17C — permintaan terstruktur dari RAW message.
+    top_query = _detect_top_query(message)
+    if top_query is not None:
+        data["_aggregate_query"] = True
+        data["_top_query"] = top_query
+        try:
+            data["customer_total_spend"] = METRICS.customer_total_spend(
+                limit=top_query["limit"]
+            )
+        except Exception:
+            errors.append(
+                {
+                    "tool": "metrics",
+                    "entity": "customer_total_spend",
+                    "error": "exception",
+                }
+            )
+        return data
+
+    count_query = _detect_count_query(message)
+    if count_query is not None:
+        data[ENTITY_DATA_KEYS.get(count_query["entity"], "rows")] = (
+            _count_query_rows(
+                count_query["entity"],
+                count_query["name"],
+                count_query["count"],
+            )
+        )
+        data["_entity_label"] = ENTITY_LABELS.get(
+            count_query["entity"], "data"
+        )
+        data["_aggregate_query"] = True
+        data["_count_query"] = count_query
+        data["requested_count"] = count_query["count"]
+        return data
+
     if data["intent"] in {"GENERAL_CHAT", "UNKNOWN"}:
         try:
             data["system_status"] = _system_status()
@@ -1177,7 +1519,11 @@ def build_context(
     data.update(detail_data)
     errors.extend(detail_errors)
 
-    # 4) R.3 — kandidat klarifikasi (query spesifik) atau hasil pilihan user.
+    # 4) R.3 / Fix #13 — kandidat klarifikasi (spesifik) atau hasil resolve user.
+    aggregate = is_aggregate_query(effective_message)
+    if aggregate:
+        data["_aggregate_query"] = True
+
     resolved = page_context.get("_resolved_candidate")
     if isinstance(resolved, dict) and resolved.get("id") is not None:
         entity = str(resolved.get("entity") or "")
@@ -1199,7 +1545,7 @@ def build_context(
             str(key).endswith("_specific") and bool(value)
             for key, value in data.items()
         )
-        if not has_specific_code:
+        if not has_specific_code and not aggregate:
             candidates, entity = _collect_candidates(effective_norm, data)
             if entity is not None:
                 data["_candidates"] = candidates

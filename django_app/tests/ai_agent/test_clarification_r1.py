@@ -193,13 +193,16 @@ class TemplatesTests(SimpleTestCase):
 
         self.assertEqual(lines[0], "Ada 3 yang cocok:")
         self.assertIn(
-            "(1) Kaos Sate Slamet — order: SO-042, tanggal: 15 Okt", lines[1]
+            "(1) Kaos Sate Slamet — order SO-042, tanggal 15 Okt", lines[1]
         )
-        self.assertIn("(3) Pak Slamet — customer: 4 order aktif", lines[3])
+        self.assertIn("(3) Pak Slamet — customer 4 order aktif", lines[3])
         self.assertEqual(lines[-1], "Yang mana?")
 
     def test_ambiguous_question_dipotong_ellipsis(self):
-        candidates = [_candidate(f"Kaos {index}") for index in range(4)]
+        candidates = [
+            _candidate(f"Kaos {index}", harga=f"Rp{index + 1}.000")
+            for index in range(4)
+        ]
 
         text = templates.ambiguous_question(candidates, max_show=2)
 
@@ -215,7 +218,7 @@ class TemplatesTests(SimpleTestCase):
         text = templates.weak_question(_candidate("Kaos Sate", order="SO-042"))
 
         self.assertEqual(
-            text, "Apakah maksud Anda: Kaos Sate — order: SO-042? (ya/tidak)"
+            text, "Apakah maksud Anda: Kaos Sate — order SO-042? (ya/tidak)"
         )
 
     def test_weak_question_tanpa_attrs(self):

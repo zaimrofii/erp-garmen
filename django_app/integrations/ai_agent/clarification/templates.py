@@ -11,34 +11,104 @@ from typing import Any
 MAX_SHOW = 5
 
 
+#: Nilai attrs yang dianggap tidak informatif (Fix #15).
+PLACEHOLDER_VALUES = frozenset(
+    {"harga belum diisi", "tanpa kategori", "-", ""}
+)
+
+
+def _has_evidence(candidate: dict[str, Any]) -> bool:
+    """True bila kandidat punya minimal 1 attrs pembeda yang bermakna."""
+    attrs = candidate.get("attrs") or {}
+    hidden = {"kode", "code", "id"}
+    return any(
+        str(value).strip()
+        and str(value).strip().lower() not in PLACEHOLDER_VALUES
+        for key, value in attrs.items()
+        if str(key).strip().lower() not in hidden
+    )
+
+
 def _attrs_text(attrs: dict[str, Any] | None) -> str:
+    """Gabungkan attrs menjadi teks bukti; SKIP kode/id (Fix #14/#15).
+
+    Harga ditampilkan apa adanya (``Rp50.000``), atribut lain diberi label
+    (``kategori Kaos``, ``status SEWING``) agar mudah dibaca owner/operator.
+    Placeholder (``Rp0``/kategori kosong) tidak ditampilkan.
+    """
     if not attrs:
         return ""
-    return ", ".join(f"{key}: {value}" for key, value in attrs.items() if value)
+
+    hidden = {"kode", "code", "id"}
+    value_only = {"harga", "price"}
+    parts = []
+    for key, value in attrs.items():
+        if not value:
+            continue
+        label = str(key).strip().lower()
+        if label in hidden:
+            continue
+        if str(value).strip().lower() in PLACEHOLDER_VALUES:
+            continue
+        parts.append(str(value) if label in value_only else f"{label} {value}")
+    return ", ".join(parts)
 
 
 def ambiguous_question(
     candidates: list[dict[str, Any]], max_show: int = MAX_SHOW
 ) -> str:
-    """Pertanyaan pilihan untuk status AMBIGUOUS.
+    """Pertanyaan pilihan untuk status AMBIGUOUS (berbasis bukti).
 
-    Format::
+    Format (label sama)::
 
-        Ada 3 yang cocok:
-          (1) Kaos Sate Slamet — order: SO-042, tanggal: 15 Okt
-          (2) Baju Slametan Anak — order: SO-051, tanggal: 17 Okt
-          (3) Pak Slamet — customer: 4 order aktif
+        Ada 2 Kaos Polos:
+          (1) Rp50.000, kategori Kaos
+          (2) Rp75.000, kategori Kaos
+        Yang mana?
+
+    Format (label berbeda)::
+
+        Ada 2 yang cocok:
+          (1) Kaos Polos Cotton — Rp50.000, kategori Kaos
+          (2) Kaos Polos Premium — Rp75.000, kategori Kaos
         Yang mana?
     """
     if not candidates:
         return "Tidak ada data yang cocok."
 
     limit = max(1, int(max_show))
-    lines = [f"Ada {len(candidates)} yang cocok:"]
+
+    # Fix #15C — semua attrs kosong/placeholder: fallback jujur + catatan.
+    if not any(_has_evidence(candidate) for candidate in candidates):
+        lines = [f"Ada {len(candidates)} yang cocok:"]
+        for index, candidate in enumerate(candidates[:limit], start=1):
+            lines.append(f"  ({index}) {candidate.get('label', '?')}")
+        lines.append("")
+        lines.append(
+            "Catatan: data pembeda (harga, kategori) belum lengkap. "
+            "Mohon periksa halaman produk."
+        )
+        lines.append("Yang mana?")
+        return "\n".join(lines)
+
+    labels = [str(candidate.get("label", "?")) for candidate in candidates]
+    same_label = len(set(labels)) == 1
+
+    if same_label:
+        header = f"Ada {len(candidates)} {labels[0]}:"
+    else:
+        header = f"Ada {len(candidates)} yang cocok:"
+
+    lines = [header]
     for index, candidate in enumerate(candidates[:limit], start=1):
-        label = candidate.get("label", "?")
+        label = str(candidate.get("label", "?"))
         attrs = _attrs_text(candidate.get("attrs"))
-        lines.append(f"  ({index}) {label}" + (f" — {attrs}" if attrs else ""))
+        if same_label and attrs:
+            lines.append(f"  ({index}) {attrs}")
+        elif attrs:
+            lines.append(f"  ({index}) {label} — {attrs}")
+        else:
+            lines.append(f"  ({index}) {label}")
 
     if len(candidates) > limit:
         lines.append(f"  ... dan {len(candidates) - limit} lainnya")

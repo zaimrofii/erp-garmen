@@ -44,7 +44,18 @@ MAX_ANSWER_CHARS = 5000
 WRITE_REJECT_ANSWER = "Maaf, saya tidak bisa menyarankan perubahan data."
 EMPTY_ANSWER_FALLBACK = "Maaf, saya tidak bisa menjawab pertanyaan itu."
 _WRITE_PATTERN = re.compile(r"\b(UPDATE|DELETE|INSERT|DROP)\s", re.IGNORECASE)
-_CONTROL_KEYS = {"message", "context", "intent", "tools", "_candidates", "_entity_label"}
+_CONTROL_KEYS = {
+    "message",
+    "context",
+    "intent",
+    "tools",
+    "_candidates",
+    "_entity_label",
+    "_aggregate_query",
+    "_top_query",
+    "_count_query",
+    "requested_count",
+}
 
 
 def validate_answer(text: str) -> str:
@@ -108,7 +119,11 @@ def synthesize(
     # context_builder menandai `_candidates` dan user BELUM memilih kandidat.
     candidates = context_data.get("_candidates")
     if candidates is not None and not context_data.get("_resolved_candidate"):
-        epistemic = epistemic_classifier.classify(list(candidates), question)
+        epistemic = epistemic_classifier.classify(
+            list(candidates),
+            question,
+            is_aggregate_query=bool(context_data.get("_aggregate_query")),
+        )
         entity_label = str(context_data.get("_entity_label") or "data")
 
         if epistemic.status is epistemic_classifier.EpistemicStatus.EMPTY:

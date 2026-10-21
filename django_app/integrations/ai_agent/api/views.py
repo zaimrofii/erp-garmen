@@ -291,6 +291,13 @@ class AiChatView(APIView):
         # R.2 — lanjutkan klarifikasi yang masih pending (deterministik, 0 token).
         session_id = _session_id(request)
         pending = pending_state.load(request.user.pk, session_id)
+
+        # Fix #17A — pesan pertanyaan baru = ganti topik (state dibuang),
+        # sebelum resolver supaya ordinal/fuzzy tidak salah dianggap pilihan.
+        if pending and _looks_like_new_question(body.message):
+            pending_state.clear(request.user.pk, session_id)
+            pending = None
+
         if pending:
             candidates = list(pending.get("candidates") or [])
             resolution = resolver.resolve(
@@ -305,7 +312,14 @@ class AiChatView(APIView):
 
             if resolution.type in resolved_types and resolution.candidate:
                 context["_resolved_candidate"] = resolution.candidate
-                pending_state.clear(request.user.pk, session_id)
+                # Fix #17A — state TETAP hidup (TTL 10 menit) agar user bisa
+                # merujuk "yg keempat" setelah "yg kedua"; clear hanya saat
+                # batas turn tercapai.
+                if (
+                    pending_state.increment_turn(request.user.pk, session_id)
+                    >= MAX_TURNS
+                ):
+                    pending_state.clear(request.user.pk, session_id)
             elif resolution.type is resolver.ResolutionType.CANCEL:
                 pending_state.clear(request.user.pk, session_id)
                 return _clarification_response(
@@ -325,25 +339,21 @@ class AiChatView(APIView):
                     request, body, templates.all_response(candidates), latency()
                 )
             else:
-                if _looks_like_new_question(body.message):
-                    # Ganti topik: buang state, lanjut alur normal.
+                turn = pending_state.increment_turn(request.user.pk, session_id)
+                if turn >= MAX_TURNS:
                     pending_state.clear(request.user.pk, session_id)
-                else:
-                    turn = pending_state.increment_turn(request.user.pk, session_id)
-                    if turn >= MAX_TURNS:
-                        pending_state.clear(request.user.pk, session_id)
-                        return _clarification_response(
-                            request,
-                            body,
-                            templates.escalation_response(candidates),
-                            latency(),
-                        )
                     return _clarification_response(
                         request,
                         body,
-                        templates.ambiguous_question(candidates),
+                        templates.escalation_response(candidates),
                         latency(),
                     )
+                return _clarification_response(
+                    request,
+                    body,
+                    templates.ambiguous_question(candidates),
+                    latency(),
+                )
 
         # §5 #6 — role tidak berhak melihat resource master (status 200).
         if (
