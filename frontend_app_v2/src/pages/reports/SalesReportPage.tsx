@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { FileText, Layers, RefreshCw, TrendingUp, Wallet } from 'lucide-react';
 import { Button } from '@/components/atoms/Button';
@@ -8,6 +9,8 @@ import { DenseTable, type DenseTableColumn } from '@/components/molecules/DenseT
 import { ExportButton } from '@/components/molecules/ExportButton';
 import { KpiCard } from '@/components/molecules/KpiCard';
 import { PageHeader } from '@/components/molecules/PageHeader';
+import { FloatingAIAssistant } from '@/components/organisms/FloatingAIAssistant';
+import { buildChatContext } from '@/lib/ai-context';
 import {
   fetchSalesReport,
   SALES_GROUP_BY_VALUES,
@@ -117,6 +120,15 @@ export function SalesReportPage() {
   const [groupBy, setGroupBy] = useState<SalesGroupBy>('period');
   /** Naik +1 setiap "Muat Ulang" → `?_nocache=1` dipakai sekali (force refresh). */
   const [forceRefresh, setForceRefresh] = useState(0);
+  const location = useLocation();
+
+  // Sprint E.4 — konteks REPORT: filter laporan (period/customer/product/group_by).
+  const aiContext = buildChatContext(location, {}, 'report', 'report', {
+    period,
+    customer_id: customerId,
+    product_id: productId,
+    group_by: groupBy,
+  });
 
   const customers = useQuery({
     queryKey: ['reports-sales-customers'],
@@ -307,6 +319,8 @@ export function SalesReportPage() {
           : `Rentang ${report.data.period.from} s/d ${report.data.period.to}`}
         {report.data?.cached === true ? ' — dari cache backend (5 menit)' : ''}
       </p>
+
+      <FloatingAIAssistant context={aiContext} />
     </div>
   );
 }

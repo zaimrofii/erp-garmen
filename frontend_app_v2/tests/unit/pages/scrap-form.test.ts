@@ -26,7 +26,7 @@ describe('F11/11.4a — route', () => {
     expect(app).toContain('path="/production/scrap/:id"');
     expect(app).toContain('<ScrapFormPage />');
     expect(app).toMatch(/path="\/production\/scrap\/:id"[\s\S]{0,160}PRODUCTION_ROLES/);
-    expect(app).toContain("import('@/pages/production/ScrapFormPage')");
+    expect(app).toContain('import("@/pages/production/ScrapFormPage")');
   });
 });
 

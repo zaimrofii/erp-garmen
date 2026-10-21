@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createElement, type ReactElement } from 'react';
@@ -36,7 +37,6 @@ function read(relative: string): string {
 }
 
 const APP = read('src/App.tsx');
-const NAV = read('src/app/nav-config.ts');
 
 /** Konteks feedback palsu — `useFeedback()` di halaman butuh provider. */
 const FEEDBACK: FeedbackRuntime = {
@@ -84,12 +84,12 @@ describe('H5.1 — route, guard & nav', () => {
   it('App.tsx: /settings/company dengan guard SETTINGS_ROLES', () => {
     expect(APP).toContain('path="/settings/company"');
     expect(APP).toContain('<CompanyPage />');
-    expect(APP).toContain("import('@/pages/settings/CompanyPage')");
+    expect(APP).toContain('import("@/pages/settings/CompanyPage")');
     expect(APP).toContain('roles={SETTINGS_ROLES}');
   });
 
   it('nav-config menambah topbar "Company" di app Settings', () => {
-    expect(NAV).toContain("label: 'Company', path: '/settings/company'");
+    expect(topbarPaths('settings')).toContain('/settings/company');
 
     const settings = NAV_APPS.find((app) => app.id === 'settings');
 

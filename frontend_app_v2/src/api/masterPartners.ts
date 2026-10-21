@@ -21,9 +21,24 @@ export const updatePartner = pickAdapter('masterPartners', real.updatePartner, r
 /** Nonaktifkan partner (`DELETE` = soft delete) — REAL (H1.6). */
 export const deletePartner = pickAdapter('masterPartners', real.deletePartner, real.deletePartner);
 
+/** K5.3 — unggah gambar partner (`POST /master/partners/<id>/image/`) — REAL (K5.2). */
+export const uploadPartnerImage = pickAdapter(
+  'masterPartners',
+  real.uploadPartnerImage,
+  real.uploadPartnerImage,
+);
+
+/** K5.3 — hapus gambar partner (`DELETE /master/partners/<id>/image/`) — REAL (K5.2). */
+export const deletePartnerImage = pickAdapter(
+  'masterPartners',
+  real.deletePartnerImage,
+  real.deletePartnerImage,
+);
+
 export {
   buildMasterPartnersPath,
   MASTER_PARTNERS_PATH,
+  masterPartnerImagePath,
   PARTNERS_LIMIT_DEFAULT,
   PARTNERS_LIMIT_MAX,
   readMasterPartnerDetail,
@@ -33,6 +48,9 @@ export {
   toMasterPartnerBody,
 } from './real/masterPartners';
 export type { MasterPartnerPage, MasterPartnersParams } from './real/masterPartners';
+
+/** K5.3 — bentuk response endpoint gambar master (unggah/hapus). */
+export type { MasterImagePayload } from '@/types/master-image';
 export type {
   MasterPartnerDetail,
   MasterPartnerInput,

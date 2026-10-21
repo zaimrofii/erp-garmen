@@ -12,7 +12,7 @@
 # frontend_app_v2 termasuk tests/** (kelas yang hanya muncul di file test pun ikut
 # menghasilkan rule). Jadi mengedit/menambah file test BISA mengubah md5 ini.
 # File baseline ini sendiri sengaja TIDAK memuat nama kelas Tailwind.
-# updated_at=2026-10-13T07:54:09Z
+# updated_at=2026-10-20T09:36:26Z
 # updated_from=/home/zaimrofii/projects/odoo-garmen-project/frontend_app_v2
-md5=d51e4a31c0871858c7861a9aeb31089f
-rules=566
+md5=1e4ca3d99fc645cfc23810cd73a4b4b5
+rules=690

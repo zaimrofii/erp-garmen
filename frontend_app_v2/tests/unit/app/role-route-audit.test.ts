@@ -29,7 +29,9 @@ function parseRoleConsts(source: string): Record<string, Role[]> {
     const name = match[1] ?? '';
     const body = match[2] ?? '';
 
-    result[name] = [...body.matchAll(/'([^']+)'/g)].map((item) => item[1] as Role);
+    result[name] = [...body.matchAll(/'([^']+)'|"([^"]+)"/g)].map(
+      (item) => (item[1] ?? item[2]) as Role,
+    );
   }
 
   return result;
@@ -84,6 +86,7 @@ describe('F12/12.1 — audit role × route', () => {
     expect(Object.keys(ROLE_CONSTS).sort()).toEqual([
       'ADMIN_ROLES',
       'AI_ROLES',
+      'ANALYTICS_ROLES',
       'BUFFER_QUEUE_ROLES',
       'FINANCE_ROLES',
       'INVENTORY_ROLES',

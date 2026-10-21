@@ -1,6 +1,6 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/cn';
-import { PILL_SECONDARY } from '@/lib/tokens';
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/cn";
+import { PILL_SECONDARY } from "@/lib/tokens";
 
 /**
  * PaginationBar - kontrol pagination offset-based untuk tabel dense (Fase 20).
@@ -23,7 +23,7 @@ interface PaginationBarProps {
 }
 
 const NAV_BUTTON_CLASS =
-  'h-9 w-9 shrink-0 p-0 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2';
+  "h-9 w-9 shrink-0 p-0 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
 
 export function PaginationBar({
   page,
@@ -38,9 +38,16 @@ export function PaginationBar({
   className,
 }: PaginationBarProps) {
   return (
-    <div className={cn('flex flex-wrap items-center justify-between gap-2', className)}>
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-2 pr-14",
+        className,
+      )}
+    >
       <p className="text-xs tabular-nums text-muted-foreground">
-        {total === 0 ? 'Tidak ada baris' : `Menampilkan ${rangeStart}-${rangeEnd} dari ${total}`}
+        {total === 0
+          ? "Tidak ada baris"
+          : `Menampilkan ${rangeStart}-${rangeEnd} dari ${total}`}
       </p>
 
       <div className="flex items-center gap-2">

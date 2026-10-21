@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -27,16 +28,16 @@ describe('H4.7 - route & nav', () => {
   it('route /dashboard/executive + guard SUPERVISOR_ROLES (B2 tetap utuh)', () => {
     expect(app).toContain('path="/dashboard/executive"');
     expect(app).toContain('<ExecutiveDashboardPage />');
-    expect(app).toContain("import('@/pages/dashboard/ExecutiveDashboardPage')");
+    expect(app).toContain('import("@/pages/dashboard/ExecutiveDashboardPage")');
     expect(app).toContain('roles={SUPERVISOR_ROLES}');
     expect(app).toContain('path="/dashboard"');
     expect(app).toContain('<SupervisorDashboardPage />');
   });
 
   it('menu Executive di app Reports + alias path (app `dashboard` tetap `/`)', () => {
-    expect(nav).toContain("{ label: 'Executive', path: '/dashboard/executive' }");
-    expect(nav).toContain("{ prefix: '/dashboard/executive', appId: 'reports' }");
-    expect(nav).toContain("{ prefix: '/dashboard', appId: 'dashboard' }");
+    expect(topbarPaths('reports')).toContain('/dashboard/executive');
+    expect(nav).toContain('{ prefix: "/dashboard/executive", appId: "reports" }');
+    expect(nav).toContain('{ prefix: "/dashboard", appId: "dashboard" }');
   });
 });
 

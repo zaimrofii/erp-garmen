@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -67,9 +68,7 @@ describe('F15/B.5 — halaman', () => {
 
 describe('F15/B.7 — nav Settings += Sync Monitor', () => {
   it('item Sync Monitor terpasang di nav-config (menu-config turunan)', () => {
-    expect(read('src/app/nav-config.ts')).toContain(
-      "{ label: 'Sync Monitor', path: '/settings/sync' }",
-    );
+    expect(topbarPaths('settings')).toContain('/settings/sync');
     expect(read('src/app/menu-config.ts')).toContain('NAV_APPS');
   });
 });

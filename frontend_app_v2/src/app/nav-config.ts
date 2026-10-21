@@ -10,7 +10,7 @@ import {
   ShoppingCart,
   TrendingUp,
   type LucideIcon,
-} from 'lucide-react';
+} from "lucide-react";
 
 /**
  * nav-config.ts - sumber tunggal navigasi App Shell (Blueprint v3 bagian 5.2).
@@ -19,6 +19,11 @@ import {
  * (filter per role). JANGAN duplikasi daftar ini di komponen lain.
  *
  * Semua ikon dari `lucide-react` (tidak ada import file gambar/asset).
+ *
+ * OPSI B (2026-10-15): Work Center, Production Line, dan Routing DIPINDAH dari
+ * app `inventory` ke app `production` karena ketiganya domain produksi (stasiun
+ * kerja, lini, alur proses) — bukan master inventory. Semua `Master *` lain
+ * tetap di `inventory` (produk, UoM, pajak, gudang, lokasi, BOM, partner).
  */
 
 export interface NavMenuItem {
@@ -41,225 +46,197 @@ export interface NavApp {
 }
 
 export const NAV_APPS: NavApp[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/', topbar: [] },
   {
-    id: 'production',
-    label: 'Production',
+    id: "dashboard",
+    label: "Dashboard", // Tetap Dashboard
+    icon: LayoutDashboard,
+    path: "/",
+    topbar: [],
+  },
+  {
+    id: "production",
+    label: "Produksi", // ID 'production', Label 'Produksi'
     icon: Factory,
-    path: '/production',
+    path: "/production/work-orders",
     topbar: [
-      { label: 'Shop Floor', path: '/production/scan' },
-      { label: 'Buffer Queue', path: '/production/buffer-queue' },
-      { label: 'Routing', path: '/production/routing' },
-      { label: 'QC', path: '/production/qc' },
-      // H2.3 — Work Order MES (list = halaman F13; form/detail baru H2.3).
-      { label: 'Work Order', path: '/production/work-orders' },
+      // PRA-0A.1 (Q2) — RESTORE keputusan 1A (K3.6): landing app production =
+      // `/production/scan`. Urutan ini juga yang membuat guard produksi (K4-b)
+      // konsisten: 3 master produksi disisipkan setelah QC.
+      { label: "Area Operator (Shop Floor)", path: "/production/scan" },
+      { label: "Quality Control (QC)", path: "/production/qc" },
+      { label: "Stasiun Kerja (WC)", path: "/master/work-centers" },
+      { label: "Lini Produksi", path: "/master/production-lines" },
+      { label: "Master Routing", path: "/master/routings" },
+      { label: "Routing", path: "/production/routing" },
+      { label: "Perintah Kerja (WO)", path: "/production/work-orders" },
+      // PRA-0A.1 (Catatan #2) — Opsi B: alur produksi WO → Bundle → Buffer.
+      { label: "Bundle", path: "/bundles" },
+      { label: "Antrean Buffer", path: "/production/buffer-queue" },
     ],
   },
   {
-    id: 'inventory',
-    label: 'Inventory',
+    id: "inventory",
+    label: "Stok & Gudang", // Bahasa Indonesia ramah awam
     icon: Package,
-    path: '/inventory',
+    path: "/inventory",
     topbar: [
-      { label: 'Products', path: '/inventory/products' },
-      // H1.1 — CRUD master produk (MES = source of truth). Path `/master/products`
-      // dipetakan ke app ini lewat `LEGACY_APP_PATHS` di bawah.
-      { label: 'Master Products', path: '/master/products' },
-      // H1.2 — CRUD master UoM (satuan); dipakai juga oleh dropdown di form produk.
-      { label: 'Master UoM', path: '/master/uoms' },
-      // H3.6 — CRUD master pajak (tax: tarif/jenis + pajak default MES; dipakai juga
-      // oleh dropdown `tax_ids` di form SO/PO H2.1/H2.2).
-      { label: 'Master Pajak', path: '/master/taxes' },
-      // H1.3 — CRUD master gudang (warehouse).
-      { label: 'Master Gudang', path: '/master/warehouses' },
-      // H1.4 — CRUD master lokasi (location: usage 7 nilai + hierarki induk/gudang).
-      { label: 'Master Lokasi', path: '/master/locations' },
-      // H1.5 — CRUD master BOM (header + komponen inline).
-      { label: 'Master BOM', path: '/master/boms' },
-      // H1.6 — CRUD master partner (pelanggan + supplier).
-      { label: 'Master Partner', path: '/master/partners' },
-      // H1.7 — CRUD master work center (stasiun kerja; MES-only).
-      { label: 'Master Work Center', path: '/master/work-centers' },
-      // H1.8 — CRUD master production line (lini + anggota WC; MES-only).
-      { label: 'Master Production Line', path: '/master/production-lines' },
-      // H1.9 — CRUD master routing DAG (alur proses; MES-only, endpoint B22 extend).
-      { label: 'Master Routing', path: '/master/routings' },
-      // H2.5 — LOG inventory adjustment MES → Odoo (stok tetap di Odoo; form di
-      // `/inventory/adjust` dijangkau dari tombol "Buat Adjustment" di halaman ini).
-      { label: 'Adjustment', path: '/inventory/adjustments' },
-      // H2.6 — LOG stock transfer MES → Odoo (picking internal; form di
-      // `/inventory/transfer` dijangkau dari tombol "Buat Transfer" di halaman ini).
-      { label: 'Transfer', path: '/inventory/transfers' },
-      { label: 'Operations', path: '/inventory/operations' },
-      { label: 'Reporting', path: '/inventory/reporting' },
-      { label: 'Configuration', path: '/inventory/config' },
+      { label: "Produk & Bahan", path: "/master/products" },
+      { label: "Satuan (UoM)", path: "/master/uoms" },
+      { label: "Pajak", path: "/master/taxes" },
+      { label: "Gudang", path: "/master/warehouses" },
+      { label: "Lokasi Rak", path: "/master/locations" },
+      { label: "Resep Produk (BOM)", path: "/master/boms" },
+      { label: "Pemasok & Pelanggan", path: "/master/partners" },
+      { label: "Penyesuaian Stok", path: "/inventory/adjustments" },
+      { label: "Transfer Stok", path: "/inventory/transfers" },
+      { label: "Operasional Gudang", path: "/inventory/operations" },
+      { label: "Laporan Stok", path: "/inventory/reporting" },
+      { label: "Lokasi & Stok", path: "/inventory/config" },
     ],
   },
   {
-    id: 'sales',
-    label: 'Sales',
+    id: "sales",
+    label: "Penjualan", // ID 'sales', Label 'Penjualan'
     icon: FileText,
-    path: '/sales',
-    topbar: [
-      // H2.1 — Sales Order MES (transaksi; push ke Odoo saat CONFIRMED).
-      { label: 'Orders', path: '/sales/orders' },
-    ],
+    path: "/sales/orders",
+    topbar: [{ label: "Pesanan Masuk (SO)", path: "/sales/orders" }],
   },
   {
-    id: 'purchase',
-    label: 'Purchase',
+    id: "purchase",
+    label: "Pembelian", // ID 'purchase', Label 'Pembelian'
     icon: ShoppingCart,
-    path: '/purchase',
+    path: "/purchase",
     topbar: [
-      { label: 'Orders', path: '/purchase/orders' },
-      { label: 'Vendors', path: '/purchase/vendors' },
-      { label: 'Reporting', path: '/purchase/reporting' },
+      { label: "Pesanan Beli (PO)", path: "/purchase/orders" },
+      { label: "Supplier / Vendor", path: "/purchase/vendors" },
+      { label: "Laporan Pembelian", path: "/purchase/reporting" },
     ],
   },
   {
-    id: 'quality',
-    label: 'Quality',
+    id: "quality",
+    label: "Kualitas (QC)",
     icon: CheckCircle2,
-    path: '/quality',
+    path: "/quality",
     topbar: [
-      { label: 'Defect Log', path: '/quality/defects' },
-      { label: 'AQL', path: '/quality/aql' },
-      { label: 'Rework', path: '/quality/rework' },
+      { label: "Log Cacat", path: "/quality/defects" },
+      { label: "Standar AQL", path: "/quality/aql" },
+      { label: "Perbaikan (Rework)", path: "/quality/rework" },
     ],
   },
   {
-    id: 'reports',
-    label: 'Reports',
-    icon: TrendingUp,
-    path: '/reports',
-    topbar: [
-      { label: 'Line Efficiency', path: '/reports/line-efficiency' },
-      { label: 'Lead Time', path: '/reports/lead-time' },
-      { label: 'On-Time Delivery', path: '/reports/on-time-delivery' },
-      { label: 'WIP', path: '/reports/wip' },
-      // F9/9.4 — halaman baru (endpoint §6.2 SUDAH ADA; anon 403).
-      { label: 'Reconciliation', path: '/reports/reconciliation' },
-      // H4.1 — laporan penjualan (GET /reports/sales/, DB murni read-only).
-      { label: 'Sales', path: '/reports/sales' },
-      // H4.2 — laporan pembelian (GET /reports/purchases/, DB murni read-only).
-      { label: 'Purchases', path: '/reports/purchases' },
-      // H4.3 — laporan stok snapshot (GET /reports/stock/, Odoo via I7).
-      { label: 'Stock', path: '/reports/stock' },
-      // H4.4 — laporan HPP/laba kotor (GET /reports/cogs/, DB murni).
-      { label: 'HPP (COGS)', path: '/reports/cogs' },
-      // H4.5 — laporan laba-rugi PnL (GET /reports/pnl/, DB murni).
-      { label: 'Laba-Rugi', path: '/reports/pnl' },
-      // H4.6 — laporan produksi (GET /reports/production/, DB murni).
-      { label: 'Produksi', path: '/reports/production' },
-      // H4.7 — dashboard eksekutif (GET /dashboard/executive/, orkestrasi H4.1–H4.6).
-      // Menu SENGAJA di app `reports` (bukan app `dashboard`) supaya `appLandingPath`
-      // app Dashboard tetap `/`; path-nya dipetakan lewat `LEGACY_APP_PATHS` di bawah.
-      { label: 'Executive', path: '/dashboard/executive' },
-    ],
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    icon: Settings,
-    path: '/settings',
-    topbar: [
-      { label: 'Routing', path: '/settings/routing' },
-      { label: 'Bundling', path: '/settings/bundling' },
-      { label: 'Line Allocation', path: '/settings/line-allocation' },
-      // H5.1 — profil perusahaan (identitas MES; MES-only).
-      { label: 'Company', path: '/settings/company' },
-      // Sprint C — penomoran dokumen (MES-only; prefix/tahun/counter).
-      { label: 'Number Sequence', path: '/settings/sequences' },
-      // H5.2 — mata uang (mirror res.currency Odoo; MES-only).
-      { label: 'Currencies', path: '/settings/currencies' },
-      { label: 'Devices', path: '/settings/devices' },
-      { label: 'Users', path: '/settings/users' },
-      // F9/9.4 — audit produk tanpa odoo_id (endpoint §6.1 SUDAH ADA; anon 403).
-      { label: 'Audit', path: '/settings/audit' },
-      // F15 — monitoring sync (Fase 4.4: `GET /sync/records/`).
-      { label: 'Sync Monitor', path: '/settings/sync' },
-      // H5.6 — profil config integrasi MES ↔ Odoo (aktivasi lewat .env + restart).
-      { label: 'Integration', path: '/settings/integration' },
-      // H5.8 — profil gateway WhatsApp (URUTAN AKHIR: landing tetap /settings/routing).
-      { label: 'WA Gateway', path: '/settings/wa' },
-      // H5.5 — jejak audit (read-only; BUKAN `/settings/audit` milik F9 = audit produk).
-      { label: 'Audit Log', path: '/settings/audit-log' },
-      // H5.7 — profil printer thermal ESC/POS (URUTAN AKHIR: landing tetap /settings/routing).
-      { label: 'Printer', path: '/settings/printers' },
-      // H5.4 — matrix izin (profil + efektif; enforcement tetap guard kode) — TERAKHIR.
-      { label: 'Permissions', path: '/settings/permissions' },
-    ],
-  },
-  { id: 'ai', label: 'AI Assistant', icon: Bot, path: '/ai/chat', topbar: [] },
-  {
-    // F15 — Finance jadi NYATA (Fase 4.4: `GET /finance/invoices/` sudah ada).
-    id: 'finance',
-    label: 'Finance',
+    id: "finance",
+    label: "Keuangan", // ID 'finance', Label 'Keuangan'
     icon: Banknote,
-    path: '/finance',
+    path: "/finance",
     topbar: [
-      { label: 'Invoices', path: '/finance/invoices' },
-      // H3.1 — CRUD Customer Invoice MES (harga & pajak nyata; draft ke Odoo).
-      // Halaman F15 di atas TETAP = antrean I5 read-only (dari SyncRecord).
-      { label: 'Customer Invoices', path: '/finance/customer-invoices' },
-      // H3.2 — CRUD Vendor Bill MES (tagihan vendor; draft `in_invoice` ke Odoo).
-      // I6 (`MaterialReadiness.vendor_bill_*`) & B10 (`/purchase/orders`) TIDAK diubah.
-      { label: 'Vendor Bills', path: '/finance/vendor-bills' },
-      // H3.3 — CRUD Payment MES (satu model dua arah: customer bayar kita /
-      // kita bayar vendor; draft `account.payment` ke Odoo). Rekonsiliasi di Odoo.
-      { label: 'Payments', path: '/finance/payments' },
-      // H3.4 — CRUD Journal Entry manual MES (double-entry; draft `account.move`
-      // `move_type='entry'` ke Odoo, journal `general` saja). Posting di Odoo.
-      { label: 'Journal Entries', path: '/finance/journal-entries' },
+      { label: "Faktur Tagihan", path: "/finance/invoices" },
+      { label: "Faktur Pelanggan", path: "/finance/customer-invoices" },
+      { label: "Tagihan Vendor", path: "/finance/vendor-bills" },
+      { label: "Pembayaran", path: "/finance/payments" },
+      { label: "Jurnal Umum", path: "/finance/journal-entries" },
     ],
   },
+  {
+    id: "reports",
+    label: "Laporan",
+    icon: TrendingUp,
+    path: "/reports",
+    topbar: [
+      { label: "Efisiensi Lini", path: "/reports/line-efficiency" },
+      { label: "Lead Time Produksi", path: "/reports/lead-time" },
+      {
+        label: "Ketepatan Pengiriman (OTD)",
+        path: "/reports/on-time-delivery",
+      },
+      { label: "Pantauan WIP", path: "/reports/wip" },
+      { label: "Rekonsiliasi Odoo", path: "/reports/reconciliation" },
+      { label: "Laporan Penjualan", path: "/reports/sales" },
+      { label: "Laporan Pembelian", path: "/reports/purchases" },
+      { label: "Laporan Stok", path: "/reports/stock" },
+      { label: "Harga Pokok (HPP)", path: "/reports/cogs" },
+      { label: "Laba Rugi (PnL)", path: "/reports/pnl" },
+      { label: "Laporan Produksi", path: "/reports/production" },
+      { label: "Dashboard Eksekutif", path: "/dashboard/executive" },
+    ],
+  },
+  {
+    id: "analytics",
+    label: "Analitik",
+    icon: TrendingUp,
+    path: "/analytics",
+    topbar: [{ label: "Metrik", path: "/analytics" }],
+  },
+  {
+    id: "settings",
+    label: "Pengaturan",
+    icon: Settings,
+    path: "/settings",
+    topbar: [
+      // PRA-0A.1 (Q1) — RESTORE perilaku resmi `/settings → /settings/routing`
+      // (current-project.json:1365). Tiga halaman ini punya route di App.tsx
+      // tetapi sempat kehilangan item nav saat cleanup K3.6/K3.7.
+      { label: "Routing", path: "/settings/routing" },
+      { label: "Bundling", path: "/settings/bundling" },
+      { label: "Line Allocation", path: "/settings/line-allocation" },
+      { label: "Profil Perusahaan", path: "/settings/company" },
+      { label: "Penomoran Otomatis", path: "/settings/sequences" },
+      { label: "Mata Uang", path: "/settings/currencies" },
+      { label: "Perangkat Kios/HP", path: "/settings/devices" },
+      { label: "Pengguna & Hak Akses", path: "/settings/users" },
+      { label: "Integrasi Odoo", path: "/settings/integration" },
+      { label: "WhatsApp Gateway", path: "/settings/wa" },
+      // PRA-0A.1 — kontrak urutan historis H5.7: Printer dipasang SETELAH Audit Log.
+      { label: "Log Audit Sistem", path: "/settings/audit-log" },
+      // Sprint C.3 — toggle & kesiapan analytics (dekat item audit).
+      { label: "Analitik", path: "/settings/analytics" },
+      // Sprint F.3 — observability AI (tepat setelah Analitik).
+      { label: "AI Observability", path: "/settings/ai-observability" },
+      { label: "Printer Thermal", path: "/settings/printers" },
+      // PRA-0A.1 (K4-c) — tiga halaman ini sudah punya route di `App.tsx`
+      // (`SETTINGS_ROLES`) tetapi belum punya menu, jadi tak bisa ditemukan user.
+      // Read-only/monitoring → diletakkan setelah Audit Log.
+      { label: "Permission Matrix", path: "/settings/permissions" },
+      { label: "Sync Monitor", path: "/settings/sync" },
+      { label: "Product Audit", path: "/settings/audit" },
+    ],
+  },
+  { id: "ai", label: "Asisten AI", icon: Bot, path: "/ai/chat", topbar: [] },
 ];
 
 /**
  * F13/13.2-13.3 — alias path yang TIDAK diawali `path` app-nya sendiri.
  *
- * Ini penambahan NILAI (bukan perubahan struktur `NAV_APPS`): dipakai `findAppByPath`
- * supaya Sidebar (sorotan app aktif), TopBar (judul + menu konteks), `BottomNav`, dan
- * `RoleGuardFallback` mengenali app pemilik path-path berikut:
- *
- *  - `/bundles`, `/workshop`, `/work-orders` = route alur produksi v2 yang berdiri sendiri
- *    (sekarang dipetakan ke app `production`, konsisten dengan `RoleRoute`-nya = PRODUCTION_ROLES);
- *  - `/dashboard` = alias app Dashboard (di `NAV_APPS` app Dashboard memakai path `/`);
- *  - `/dashboard/executive` = H4.7 dashboard eksekutif (menunya di app `reports`; guard
- *    route-nya `SUPERVISOR_ROLES`). SENGAJA bukan app `dashboard` supaya
- *    `appLandingPath` app Dashboard tetap `/` (lihat `tests/unit/app/route-fix.test.ts`);
- *  - `/master/products*` = H1.1 CRUD master produk (keputusan modul: menunya di app
- *    `inventory`), guard-nya `INVENTORY_ROLES` — sama seperti `/inventory/*`;
- *  - `/master/uoms*` = H1.2 CRUD master UoM (menunya juga di app `inventory`);
- *  - `/master/taxes*` = H3.6 CRUD master pajak (menu di app `inventory`);
- *  - `/master/warehouses*` = H1.3 CRUD master gudang (menunya juga di app `inventory`).
- *  - `/master/locations*` = H1.4 CRUD master lokasi (menunya juga di app `inventory`).
- *  - `/master/boms*` = H1.5 CRUD master BOM (menunya juga di app `inventory`).
- *  - `/master/partners*` = H1.6 CRUD master partner (menunya juga di app `inventory`).
- *  - `/master/work-centers*` = H1.7 CRUD master work center (menu di app `inventory`).
- *  - `/master/production-lines*` = H1.8 CRUD master production line (menu di app `inventory`).
- *  - `/master/routings*` = H1.9 CRUD master routing DAG (menu di app `inventory`).
+ * OPSI B: `/master/work-centers`, `/master/production-lines`, `/master/routings`
+ * dipetakan ke app `production` (menunya di `production.topbar`), sementara
+ * `/master/*` lain tetap di `inventory`.
  */
 export const LEGACY_APP_PATHS: readonly { prefix: string; appId: string }[] = [
-  { prefix: '/bundles', appId: 'production' },
-  { prefix: '/workshop', appId: 'production' },
-  { prefix: '/work-orders', appId: 'production' },
-  { prefix: '/dashboard', appId: 'dashboard' },
-  // H4.7 — dashboard eksekutif: menu di app `reports` (prefix TERPANJANG menang atas
-  // `/dashboard`), sehingga app `dashboard` (patokan `appLandingPath = '/'`) tetap utuh.
-  { prefix: '/dashboard/executive', appId: 'reports' },
-  { prefix: '/master/products', appId: 'inventory' },
-  { prefix: '/master/uoms', appId: 'inventory' },
-  // H3.6 — master pajak (tax) juga menempel ke app `inventory`.
-  { prefix: '/master/taxes', appId: 'inventory' },
-  { prefix: '/master/warehouses', appId: 'inventory' },
-  { prefix: '/master/locations', appId: 'inventory' },
-  { prefix: '/master/boms', appId: 'inventory' },
-  { prefix: '/master/partners', appId: 'inventory' },
-  { prefix: '/master/work-centers', appId: 'inventory' },
-  { prefix: '/master/production-lines', appId: 'inventory' },
-  { prefix: '/master/routings', appId: 'inventory' },
+  // PRA-0A.1 (K4-a) — app `production` kini ber-path `/production/work-orders`, sehingga
+  // `/production/scan`, `/production/qc`, `/production/buffer-queue`, dst. TIDAK lagi cocok
+  // dengan `app.path`. Tanpa prefix ini `findAppByPath('/production/qc')` = undefined →
+  // Sidebar tidak menyorot app Produksi saat operator berada di layar Scan/QC.
+  // Prefix `/production` memetakan SELURUH route produksi ke app `production`.
+  { prefix: "/production", appId: "production" },
+  // Sprint C.3 — app analytics (metrik read-only).
+  { prefix: "/analytics", appId: "analytics" },
+  { prefix: "/bundles", appId: "production" },
+  { prefix: "/workshop", appId: "production" },
+  { prefix: "/work-orders", appId: "production" },
+  { prefix: "/dashboard", appId: "dashboard" },
+  // H4.7 — dashboard eksekutif: menu di app `reports` (prefix TERPANJANG menang).
+  { prefix: "/dashboard/executive", appId: "reports" },
+  // Master inventory (tetap di `inventory`).
+  { prefix: "/master/products", appId: "inventory" },
+  { prefix: "/master/uoms", appId: "inventory" },
+  { prefix: "/master/taxes", appId: "inventory" },
+  { prefix: "/master/warehouses", appId: "inventory" },
+  { prefix: "/master/locations", appId: "inventory" },
+  { prefix: "/master/boms", appId: "inventory" },
+  { prefix: "/master/partners", appId: "inventory" },
+  // OPSI B — master produksi (pindah ke `production`).
+  { prefix: "/master/work-centers", appId: "production" },
+  { prefix: "/master/production-lines", appId: "production" },
+  { prefix: "/master/routings", appId: "production" },
 ];
 
 /**
@@ -272,7 +249,8 @@ export function legacyAppIdForPath(pathname: string): string | undefined {
   );
 
   return bySpecificity.find(
-    (entry) => pathname === entry.prefix || pathname.startsWith(`${entry.prefix}/`),
+    (entry) =>
+      pathname === entry.prefix || pathname.startsWith(`${entry.prefix}/`),
   )?.appId;
 }
 
@@ -292,7 +270,9 @@ export function findAppByPath(pathname: string): NavApp | undefined {
     if (legacyApp !== undefined) return legacyApp;
   }
 
-  const bySpecificity = [...NAV_APPS].sort((a, b) => b.path.length - a.path.length);
+  const bySpecificity = [...NAV_APPS].sort(
+    (a, b) => b.path.length - a.path.length,
+  );
 
   return bySpecificity.find(
     (app) => pathname === app.path || pathname.startsWith(`${app.path}/`),
@@ -310,10 +290,6 @@ export function findAppById(id: string): NavApp | undefined {
 /**
  * PURE - halaman PERTAMA sebuah app: item pertama `topbar` (atau anak pertamanya), dan
  * `app.path` kalau app tidak punya menu (mis. Dashboard `/`, AI `/ai/chat`).
- *
- * Dipakai `AppIndexRedirect` + `Sidebar`/`RootRoute` (FIX ROUTE) supaya path app yang hanya
- * PREFIX (mis. `/production`, lihat catatan di `menu-config.ts`) tetap mendarat di halaman
- * nyata, bukan `RoleGuardFallback`/404.
  */
 export function appLandingPath(app: NavApp | undefined): string | undefined {
   if (app === undefined) return undefined;
@@ -327,7 +303,10 @@ export function appLandingPath(app: NavApp | undefined): string | undefined {
 /**
  * PURE - path menu (topbar) yang aktif untuk `pathname`, mis. `/production/scan/42`.
  */
-export function findActiveMenu(app: NavApp, pathname: string): string | undefined {
+export function findActiveMenu(
+  app: NavApp,
+  pathname: string,
+): string | undefined {
   return app.topbar.find(
     (menu) => pathname === menu.path || pathname.startsWith(`${menu.path}/`),
   )?.path;
@@ -339,10 +318,10 @@ export function findActiveMenu(app: NavApp, pathname: string): string | undefine
  * merender BottomNav supaya tombol aksi besar tidak bertabrakan dengan navigasi.
  */
 const IMMERSIVE_PREFIXES = [
-  '/production/scan',
-  '/production/shop-floor',
-  '/production/bundles',
-  '/production/qc',
+  "/production/scan",
+  "/production/shop-floor",
+  "/production/bundles",
+  "/production/qc",
 ];
 
 export function isImmersiveOperatorPath(pathname: string): boolean {

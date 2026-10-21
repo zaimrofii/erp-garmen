@@ -151,17 +151,18 @@ describe('H2.1 — route, guard & nav (sumber)', () => {
     expect(APP).toContain('<SalesOrderFormPage />');
     expect(APP).toContain('<SalesOrderDetailPage />');
     expect(APP).toMatch(/path="\/sales\/orders"[\s\S]{0,260}SALES_ROLES/);
-    expect(APP).toMatch(/const SALES_ROLES: Role\[\] = \['admin', 'owner'\];/);
+    expect(APP).toMatch(/const SALES_ROLES: Role\[\] = \["admin", "owner"\];/);
   });
 
   it('nav punya app `sales` dengan item Orders (link biasa)', () => {
     const sales = NAV_APPS.find((app) => app.id === 'sales');
-    const item = sales?.topbar.find((menu) => menu.label === 'Orders');
+    // PRA-0A.1 (K2) — cari lewat PATH (label bebas berubah; kini "Pesanan Masuk (SO)").
+    const item = sales?.topbar.find((menu) => menu.path === '/sales/orders');
 
-    expect(sales?.path).toBe('/sales');
+    expect(sales?.path).toBe('/sales/orders');
     expect(item?.path).toBe('/sales/orders');
     expect(item?.children).toBeUndefined();
-    expect(NAV).toContain("id: 'sales'");
+    expect(NAV).toContain('id: "sales"');
   });
 });
 

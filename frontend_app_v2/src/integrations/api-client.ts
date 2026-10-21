@@ -70,6 +70,18 @@ export interface ApiClient {
     options?: Omit<RequestOptions, "method" | "body">,
   ): Promise<ApiResponse<T>>;
   /**
+   * K5.3 — POST multipart (`FormData`), mis. unggah gambar master.
+   *
+   * Additive: `post` (JSON) TIDAK berubah. `Content-Type` sengaja tidak di-set
+   * (browser menambah `multipart/form-data; boundary=…`); CSRF + `credentials:
+   * include` tetap dikirim seperti POST biasa.
+   */
+  postForm<T>(
+    path: string,
+    formData: FormData,
+    options?: Omit<RequestOptions, "method" | "body">,
+  ): Promise<ApiResponse<T>>;
+  /**
    * H4.8 — POST yang membalas **berkas binary** (export xlsx/pdf).
    *
    * Additive: `request`/`get`/`post` TIDAK berubah. Error (403/400/500) tetap
@@ -199,6 +211,22 @@ export const PUBLIC_GET_PREFIXES = [
 ] as const;
 
 /**
+ * Prefix GET yang **WAJIB sesi** walau berada di bawah prefix publik.
+ *
+ * K4.2 (fix 403 kanban): `/garmen/bundles/` memang publik (resource generik F2 —
+ * `AllowAny`), tetapi TURUNANNYA `/garmen/bundles/kanban/` memakai `IsAuthenticated`
+ * di backend (papan memuat data produksi + tombol aksi `POST …/<ACTION_ID>/`).
+ * Tanpa pengecualian ini, `startsWith("/garmen/bundles/")` membuat kanban ikut dianggap
+ * publik -> cookie sesi tidak dikirim -> backend melihat anonim -> **403**.
+ *
+ * Dicek SEBELUM `PUBLIC_GET_PREFIXES`; daftar sengaja SEMPIT (hanya endpoint kanban).
+ */
+export const AUTH_REQUIRED_GET_PREFIXES = [
+  "/garmen/bundles/kanban/",
+  "/garmen/work-orders/kanban/",
+] as const;
+
+/**
  * PURE — normalkan path request supaya cocok walau ditulis lengkap.
  *
  * Prefix `/api/v1` dibuang (klien boleh menulis `/master/uoms/` MAUPUN
@@ -217,10 +245,16 @@ export function normalizeApiPath(path: string): string {
 /**
  * PURE — true kalau GET ini **butuh sesi** (default), false hanya untuk prefix publik.
  *
- * Logikanya "default aman" (lihat `PUBLIC_GET_PREFIXES` untuk alasan + bukti probe).
+ * Logikanya "default aman" (lihat `PUBLIC_GET_PREFIXES` untuk alasan + bukti probe),
+ * KHUSUS `AUTH_REQUIRED_GET_PREFIXES` diperiksa lebih dulu karena endpoint itu turunan
+ * dari prefix publik tetapi ber-permission `IsAuthenticated` (fix 403 kanban, K4.2).
  */
 export function isAuthScopedGetPath(path: string): boolean {
   const candidate = normalizeApiPath(path);
+
+  if (AUTH_REQUIRED_GET_PREFIXES.some((prefix) => candidate.startsWith(prefix))) {
+    return true;
+  }
 
   return !PUBLIC_GET_PREFIXES.some((prefix) => candidate.startsWith(prefix));
 }
@@ -309,13 +343,28 @@ export function readRetryAfterSeconds(value: string | null): number | null {
   return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
 }
 
+/**
+ * K5.3 — `true` kalau body adalah `FormData` (unggah gambar multipart).
+ *
+ * Deteksi lewat `instanceof` (bukan duck-typing) supaya JSON biasa tetap dikirim
+ * sebagai `application/json`; dijaga `typeof FormData` supaya aman di lingkungan
+ * tanpa FormData.
+ */
+export function isFormDataBody(value: unknown): value is FormData {
+  return typeof FormData !== "undefined" && value instanceof FormData;
+}
+
 function buildHeaders(
   config: ApiClientConfig,
   options: RequestOptions,
 ): Record<string, string> {
   const headers: Record<string, string> = {};
 
-  if (options.body !== undefined) headers["Content-Type"] = "application/json";
+  // K5.3: FormData TIDAK diberi Content-Type manual — browser menuliskan
+  // `multipart/form-data; boundary=…` sendiri (kalau di-set, boundary bisa hilang).
+  if (options.body !== undefined && !isFormDataBody(options.body)) {
+    headers["Content-Type"] = "application/json";
+  }
 
   const token = config.getAccessToken?.() ?? null;
   if (typeof token === "string" && token.length > 0)
@@ -502,7 +551,10 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
       init.credentials = "include";
     }
 
-    if (options.body !== undefined) init.body = JSON.stringify(options.body);
+    if (options.body !== undefined) {
+      // K5.3: FormData dikirim apa adanya (multipart, tanpa stringify).
+      init.body = isFormDataBody(options.body) ? options.body : JSON.stringify(options.body);
+    }
     if (options.signal !== undefined) init.signal = options.signal;
 
     let response: Response;
@@ -513,6 +565,19 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
     }
 
     return await toApiResponse<T>(response);
+  }
+
+  /**
+   * K5.3 — POST `FormData`: `request()` yang sama (header/CSRF/credentials/penanganan
+   * error identik) dengan body multipart. Dipisah supaya pemanggil tidak perlu tahu
+   * detail `request`.
+   */
+  async function requestFormData<T>(
+    path: string,
+    formData: FormData,
+    options: Omit<RequestOptions, "method" | "body"> = {},
+  ): Promise<ApiResponse<T>> {
+    return request<T>(path, { ...options, method: "POST", body: formData });
   }
 
   async function requestBlob(
@@ -570,6 +635,7 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
     get: (path, options) => request(path, { ...options, method: "GET" }),
     post: (path, body, options) =>
       request(path, { ...options, method: "POST", body }),
+    postForm: (path, formData, options) => requestFormData(path, formData, options),
     requestBlob,
   };
 }

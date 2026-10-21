@@ -34,6 +34,7 @@ export const MODE: Record<string, AdapterMode> = {
   metadata: 'real',
   devices: 'real',
   aiChat: 'real', // stub {ok:false} tapi endpoint ADA
+  aiObservability: 'real', // Sprint F.3 — GET /ai/observability/ (ADMIN/OWNER)
   print: 'real',
   wa: 'real',
 
@@ -142,6 +143,12 @@ export const MODE: Record<string, AdapterMode> = {
   // H2.4 — Bundle MES (create/preview/update/delete/split/merge).
   // F13 `bundles` (list/detail tipis + aksi) TETAP terpisah & tidak diubah.
   bundlesCrud: 'real',
+  // FASE K3 - papan kanban (K2): SATU request untuk semua kolom; endpoint
+  // `GET /garmen/bundles/kanban/` + `GET /garmen/work-orders/kanban/`.
+  // Bukan pengganti `bundles`/`workOrders` (list F13) - keduanya tetap dipakai
+  // saat mode tampilan `list`.
+  bundlesKanban: 'real',
+  workOrdersKanban: 'real',
   // Endpoint /purchase/* BELUM ADA; `readiness` (key terpisah di atas) = kesiapan
   // material per-Order, BUKAN daftar PO/vendor -> bukan pengganti key ini (F2 recon §3).
   purchaseOrders: 'real', // F2C.2 - GET /purchase/orders/ (B10 + G5)
@@ -177,6 +184,13 @@ export const MODE: Record<string, AdapterMode> = {
   // F6.2 - auth hybrid (backend F6.1): POST login/login-operator/logout/change-password
   // + GET /auth/me/ (session cookie; `AuthGuard` + halaman login memakainya).
   auth: 'real',
+  // Sprint C.1 — analytics API (`/analytics/metrics/<domain>/`, `/metric/<id>/`, `/health/`).
+  analyticsMetrics: 'real',
+  analyticsMetric: 'real',
+  analyticsHealth: 'real',
+  // Sprint C.2 — toggle analytics (settings + readiness).
+  analyticsConfig: 'real',
+  analyticsReadiness: 'real',
 };
 
 /** PURE - pilih implementasi real atau dummy sesuai `MODE[resource]`. */

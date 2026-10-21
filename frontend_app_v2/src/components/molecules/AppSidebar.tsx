@@ -1,5 +1,5 @@
-import { Factory, type LucideIcon } from 'lucide-react';
-import { cn } from '@/lib/cn';
+import { Factory, type LucideIcon } from "lucide-react";
+import { cn } from "@/lib/cn";
 
 /**
  * AppSidebar - rel ikon aplikasi (sisi kiri, gaya Odoo).
@@ -33,11 +33,17 @@ interface AppSidebarProps {
   className?: string;
 }
 
-export function AppSidebar({ items, activeId, onNavigate, user, className }: AppSidebarProps) {
+export function AppSidebar({
+  items,
+  activeId,
+  onNavigate,
+  user,
+  className,
+}: AppSidebarProps) {
   return (
     <aside
       className={cn(
-        'hidden w-16 shrink-0 bg-transparent lg:sticky lg:top-0 lg:z-50 lg:flex lg:h-screen lg:flex-col lg:items-center md:mx-4',
+        "hidden w-16 shrink-0 bg-transparent lg:sticky lg:top-0 lg:z-50 lg:flex lg:h-screen lg:flex-col lg:items-center mx-0 xl:mx-2",
         className,
       )}
     >
@@ -47,7 +53,7 @@ export function AppSidebar({ items, activeId, onNavigate, user, className }: App
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col items-center gap-2 overflow-visible py-4">
+      <nav className="flex flex-1 flex-col items-center gap-1 xl:gap-2 overflow-visible py-4">
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = item.id === activeId;
@@ -58,15 +64,19 @@ export function AppSidebar({ items, activeId, onNavigate, user, className }: App
                 type="button"
                 onClick={() => onNavigate(item.path)}
                 aria-label={item.label}
-                aria-current={isActive ? 'page' : undefined}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  'flex h-11 w-11 items-center justify-center rounded-full transition-colors',
+                  "flex h-9 w-9 xl:h-11 xl:w-11 items-center justify-center rounded-full transition-colors",
                   isActive
-                    ? 'bg-primary/5 text-primary'
-                    : 'bg-card text-muted-foreground hover:bg-primary/5 hover:text-foreground',
+                    ? "bg-primary/5 text-primary"
+                    : "bg-card text-muted-foreground hover:bg-primary/5 hover:text-foreground",
                 )}
               >
-                <Icon className="h-5 w-5 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+                <Icon
+                  className="h-5 w-4 lg:h-5 lg:w-5 shrink-0"
+                  strokeWidth={1.5}
+                  aria-hidden="true"
+                />
               </button>
 
               <span

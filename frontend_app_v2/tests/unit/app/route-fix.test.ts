@@ -58,7 +58,7 @@ describe('FIX ROUTE — appLandingPath (pure): prefix app → halaman pertama', 
     expect(appLandingPath(findAppById('production'))).toBe('/production/scan');
     expect(appLandingPath(findAppById('settings'))).toBe('/settings/routing');
     expect(appLandingPath(findAppById('finance'))).toBe('/finance/invoices');
-    expect(appLandingPath(findAppById('inventory'))).toBe('/inventory/products');
+    expect(appLandingPath(findAppById('inventory'))).toBe('/master/products');
     expect(appLandingPath(findAppById('purchase'))).toBe('/purchase/orders');
     expect(appLandingPath(findAppById('quality'))).toBe('/quality/defects');
     expect(appLandingPath(findAppById('reports'))).toBe('/reports/line-efficiency');
@@ -74,14 +74,14 @@ describe('FIX ROUTE — appLandingPath (pure): prefix app → halaman pertama', 
 
 describe('FIX ROUTE — firstAllowedPathForRole (pure): anti-loop', () => {
   it('role tanpa app Dashboard diarahkan ke app pertamanya (bukan /dashboard, bukan /)', () => {
-    expect(firstAllowedPathForRole('inventory')).toBe('/inventory/products');
+    expect(firstAllowedPathForRole('inventory')).toBe('/master/products');
     expect(firstAllowedPathForRole('purchasing')).toBe('/purchase/orders');
   });
 
   it('Dashboard (`/`) selalu DILEWATI supaya tidak memantul ke dirinya sendiri', () => {
     // admin/owner punya app dashboard, tapi fungsi ini dipakai hanya saat role TIDAK punya
     // dashboard → harus melewati '/' dan memberi path app lain yang nyata.
-    expect(firstAllowedPathForRole('admin')).toBe('/inventory/products');
+    expect(firstAllowedPathForRole('admin')).toBe('/master/products');
     expect(firstAllowedPathForRole('owner')).toBe('/production/scan');
     expect(firstAllowedPathForRole('operator')).toBe('/production/scan');
     expect(firstAllowedPathForRole('qc')).toBe('/production/scan');

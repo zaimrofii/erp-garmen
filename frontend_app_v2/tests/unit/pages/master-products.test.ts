@@ -130,13 +130,13 @@ describe('H1.1 — route & guard (App.tsx)', () => {
 
   it('path `/master/products*` dipetakan ke app inventory (nav-config alias)', () => {
     expect(read('src/app/nav-config.ts')).toContain(
-      "{ prefix: '/master/products', appId: 'inventory' }",
+      '{ prefix: "/master/products", appId: "inventory" }',
     );
   });
 
   it('menu Inventory punya item Master Products (link biasa, bukan dropdown)', () => {
     const inventory = NAV_APPS.find((app) => app.id === 'inventory');
-    const item = inventory?.topbar.find((menu) => menu.label === 'Master Products');
+    const item = inventory?.topbar.find((menu) => menu.path === '/master/products');
 
     expect(item?.path).toBe('/master/products');
     // Tanpa `children` ⇒ TopBar merender LINK (sesuai F16).
@@ -150,8 +150,10 @@ describe('H1.1 — render halaman (react-dom/server)', () => {
 
     expect(text).toContain('Master Products');
     expect(text).toContain('Produk Baru');
+    // FASE K3: `DenseTable` merender header hanya saat data siap; saat SSR query
+    // masih pending (skeleton) → label kolom diuji dari SUMBER halaman.
     for (const label of ['Kode', 'Nama', 'Kategori', 'UoM', 'Harga Jual', 'Status', 'Odoo ID']) {
-      expect(text, label).toContain(label);
+      expect(read(LIST_PAGE), label).toContain(`label: "${label}"`);
     }
     expect(text).toContain('Semua');
     expect(text).toContain('Nonaktif');
@@ -189,13 +191,14 @@ describe('H1.1 — sumber halaman (wiring API & placeholder)', () => {
   it('list: memakai adapter real, filter server, dan tabel dense (tanpa <table> baru)', () => {
     const page = read(LIST_PAGE);
 
-    expect(page).toContain("from '@/api/masterProducts'");
+    // K3.6 — halaman sudah memakai kutip ganda (migrasi gaya kutip).
+    expect(page).toContain('from "@/api/masterProducts"');
     expect(page).toContain('fetchProducts(client, {');
     expect(page).toContain('PRODUCTS_LIMIT_MAX');
-    expect(page).toContain("queryKey: ['master-products'");
-    expect(page).toContain("from '@/components/molecules/DenseTable'");
+    expect(page).toContain('queryKey: ["master-products"');
+    expect(page).toContain('from "@/components/molecules/DenseTable"');
     expect(page).not.toContain('<table');
-    expect(page).toContain("'/master/products/new'");
+    expect(page).toContain('"/master/products/new"');
   });
 
   it('form: create & update lewat adapter + validasi pure + submit handler', () => {
@@ -221,7 +224,10 @@ describe('H1.1 — sumber halaman (wiring API & placeholder)', () => {
     expect(page).toContain('Tooltip content="Sync manual tersedia di H2');
     expect(page).toContain('/master/products/${String(productId)}/edit');
     expect(page).not.toContain('useMutation');
-    expect(page).not.toContain('deleteProduct');
+    // K5.3 — detail kini boleh menghapus GAMBAR (`deleteProductImage`), tetapi
+    // tetap TIDAK boleh menonaktifkan produk (`deleteProduct(client, …)`).
+    expect(page).not.toMatch(/\bdeleteProduct\(/);
+    expect(page).toContain('deleteProductImage(client, productId)');
   });
 });
 

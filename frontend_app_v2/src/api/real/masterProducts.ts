@@ -23,6 +23,8 @@ import type {
   MasterProductSaved,
 } from '@/types/master-product';
 import { unwrap } from '../client';
+import { deleteMasterImage, masterImagePath, postMasterImage } from './_image';
+import type { MasterImagePayload } from '@/types/master-image';
 import {
   buildQueryPath,
   getParsed,
@@ -85,6 +87,10 @@ export function readMasterProductRow(raw: unknown): MasterProductRow | null {
     price_updated_at: readNullableStr(raw['price_updated_at']),
     weight: readNullableNum(raw['weight']),
     image_url: readStr(raw['image_url']),
+    // K5.3 — URL gambar unggahan + thumbnail (aditif; backend K5.2).
+    image_file_url: readNullableStr(raw['image_file_url']),
+    image_display_url: readNullableStr(raw['image_display_url']),
+    image_thumbnail_url: readNullableStr(raw['image_thumbnail_url']),
     active: readBool(raw['active']),
     odoo_id: readNullableNum(raw['odoo_id']),
     created_at: readNullableStr(raw['created_at']),
@@ -286,3 +292,25 @@ export async function deleteProduct(client: ApiClient, id: number): Promise<void
   unwrap(await client.request<unknown>(`${MASTER_PRODUCTS_PATH}${id}/`, { method: 'DELETE' }));
 }
 
+/* ---------------------------------------------------------------------- K5.3 ---- */
+/** URL endpoint gambar produk: `/master/products/<id>/image/` (backend K5.2). */
+export function masterProductImagePath(id: number): string {
+  return masterImagePath(MASTER_PRODUCTS_PATH, id);
+}
+
+/** Unggah gambar produk (multipart field `image`; izin ADMIN/OWNER) — K5.2 backend. */
+export async function uploadProductImage(
+  client: ApiClient,
+  id: number,
+  file: File,
+): Promise<MasterImagePayload> {
+  return postMasterImage(client, masterProductImagePath(id), file);
+}
+
+/** Hapus gambar produk (idempotent; balasan memuat `deleted_files`). */
+export async function deleteProductImage(
+  client: ApiClient,
+  id: number,
+): Promise<MasterImagePayload> {
+  return deleteMasterImage(client, masterProductImagePath(id));
+}

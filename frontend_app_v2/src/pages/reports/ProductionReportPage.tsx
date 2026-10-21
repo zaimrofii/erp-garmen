@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Layers, RefreshCw, TrendingDown, TrendingUp, Wallet, FileText } from 'lucide-react';
 import { Button } from '@/components/atoms/Button';
@@ -8,6 +9,8 @@ import { DenseTable, type DenseTableColumn } from '@/components/molecules/DenseT
 import { ExportButton } from '@/components/molecules/ExportButton';
 import { KpiCard } from '@/components/molecules/KpiCard';
 import { PageHeader } from '@/components/molecules/PageHeader';
+import { FloatingAIAssistant } from '@/components/organisms/FloatingAIAssistant';
+import { buildChatContext } from '@/lib/ai-context';
 import {
   fetchProductionReport,
   PRODUCTION_GROUP_BY_VALUES,
@@ -126,6 +129,15 @@ export function ProductionReportPage() {
   const [lineId, setLineId] = useState('');
   /** Naik +1 setiap Muat Ulang -> `?_nocache=1` dipakai sekali (force refresh). */
   const [forceRefresh, setForceRefresh] = useState(0);
+  const location = useLocation();
+
+  // Sprint E.4 — konteks REPORT produksi (period/group_by/work center/line).
+  const aiContext = buildChatContext(location, {}, 'report', 'report', {
+    period,
+    group_by: groupBy,
+    work_center_id: workCenterId,
+    line_id: lineId,
+  });
 
   const workCenters = useQuery({
     queryKey: ['reports-production-work-centers'],
@@ -315,6 +327,8 @@ export function ProductionReportPage() {
           : `Rentang ${report.data.period.from} s/d ${report.data.period.to} - basis output ${basis?.output ?? '-'} · scrap ${basis?.scrap ?? '-'}`}
         {report.data?.cached === true ? ' - dari cache backend (5 menit)' : ''}
       </p>
+
+      <FloatingAIAssistant context={aiContext} />
     </div>
   );
 }

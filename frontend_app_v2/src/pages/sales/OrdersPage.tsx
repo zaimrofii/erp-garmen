@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { Badge } from '@/components/atoms/Badge';
 import { Button } from '@/components/atoms/Button';
 import { DenseTable, type DenseTableColumn } from '@/components/molecules/DenseTable';
 import { PageHeader } from '@/components/molecules/PageHeader';
+import { FloatingAIAssistant } from '@/components/organisms/FloatingAIAssistant';
+import { buildChatContext } from '@/lib/ai-context';
 import { PaginationBar } from '@/components/molecules/PaginationBar';
 import { TableToolbar } from '@/components/molecules/TableToolbar';
 import { fetchOrders, SALES_ORDERS_LIMIT_MAX } from '@/api/salesOrders';
@@ -103,6 +105,13 @@ export function OrdersPage() {
 
   const [search, setSearch] = useState('');
   const [state, setState] = useState('all');
+  const location = useLocation();
+
+  // Sprint E.4 — konteks LIST: filter order aktif.
+  const aiContext = buildChatContext(location, {}, 'list', 'order', {
+    search,
+    state,
+  });
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ['sales-orders', search, state],
@@ -192,6 +201,8 @@ export function OrdersPage() {
           }
         />
       </section>
+
+      <FloatingAIAssistant context={aiContext} />
 
       <PaginationBar
         page={pagination.page}

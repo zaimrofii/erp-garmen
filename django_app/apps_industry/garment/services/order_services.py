@@ -611,7 +611,8 @@ def done_order(order: Order, request=None) -> OrderWriteResult:
         )
 
     order.state = "DONE"
-    order.save(update_fields=("state", "updated_at"))
+    order.completed_at = timezone.now()
+    order.save(update_fields=("state", "completed_at", "updated_at"))
 
     record = _arm_push(order)
     _audit(ACTION_DONE, order, request, {"work_orders": work_orders.count()})

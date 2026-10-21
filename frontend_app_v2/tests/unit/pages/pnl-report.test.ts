@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -22,17 +23,16 @@ const PAGE = 'src/pages/reports/PnlReportPage.tsx';
 
 describe('H4.5 - route & nav', () => {
   const app = read('src/App.tsx');
-  const nav = read('src/app/nav-config.ts');
 
   it('route /reports/pnl + guard role REPORTS', () => {
     expect(app).toContain('path="/reports/pnl"');
     expect(app).toContain('<PnlReportPage />');
-    expect(app).toContain("import('@/pages/reports/PnlReportPage')");
+    expect(app).toContain('import("@/pages/reports/PnlReportPage")');
     expect(app).toContain('roles={REPORTS_ROLES}');
   });
 
   it('topbar Reports menambah item Laba-Rugi', () => {
-    expect(nav).toContain("{ label: 'Laba-Rugi', path: '/reports/pnl' }");
+    expect(topbarPaths('reports')).toContain('/reports/pnl');
   });
 });
 

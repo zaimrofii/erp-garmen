@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createElement, type ReactElement } from 'react';
@@ -44,7 +45,6 @@ function read(relative: string): string {
 }
 
 const APP = read('src/App.tsx');
-const NAV = read('src/app/nav-config.ts');
 
 /** Konteks feedback palsu — `useFeedback()` di halaman butuh provider (pola H5.6/H5.8). */
 const FEEDBACK: FeedbackRuntime = {
@@ -108,12 +108,12 @@ describe('H5.4 — route, guard & nav', () => {
   it('App.tsx: /settings/permissions dengan guard SETTINGS_ROLES', () => {
     expect(APP).toContain('path="/settings/permissions"');
     expect(APP).toContain('<PermissionMatrixPage />');
-    expect(APP).toContain("import('@/pages/settings/PermissionMatrixPage')");
+    expect(APP).toContain('import("@/pages/settings/PermissionMatrixPage")');
     expect(APP).toContain('roles={SETTINGS_ROLES}');
   });
 
   it('nav-config menambah "Permissions" (TERAKHIR) + landing tetap Routing', () => {
-    expect(NAV).toContain("label: 'Permissions', path: '/settings/permissions'");
+    expect(topbarPaths('settings')).toContain('/settings/permissions');
 
     const settings = NAV_APPS.find((app) => app.id === 'settings');
     const paths = settings?.topbar.map((item) => item.path) ?? [];

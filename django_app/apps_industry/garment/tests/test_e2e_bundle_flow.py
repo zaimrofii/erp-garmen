@@ -31,7 +31,7 @@ from integrations.erp_sync.models import SyncRecord, SyncStatus
 from integrations.erp_sync.tasks import push_wip_issue
 
 SYNC_URL = "/api/v1/sync/odoo/WIP/"
-DELAY_WIP = "integrations.erp_sync.api.push_wip_issue.delay"
+DELAY_WIP = "integrations.erp_sync.api.push_wip_issue.apply_async"
 
 
 class RecordedChannelLayer:

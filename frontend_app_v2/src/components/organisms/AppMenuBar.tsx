@@ -1,7 +1,7 @@
-import { Dropdown, type DropdownItem } from '@/components/atoms/Dropdown';
-import { findMenuItemPath, type MenuItem } from '@/app/menu-config';
-import { cn } from '@/lib/cn';
-import { PILL } from '@/lib/tokens';
+import { Dropdown, type DropdownItem } from "@/components/atoms/Dropdown";
+import { findMenuItemPath, type MenuItem } from "@/app/menu-config";
+import { cn } from "@/lib/cn";
+import { PILL } from "@/lib/tokens";
 
 /**
  * AppMenuBar.tsx (organism) — **menu DALAM app yang sedang aktif** (TopBar).
@@ -37,13 +37,18 @@ function toDropdownItems(children: readonly MenuItem[]): DropdownItem[] {
   }));
 }
 
-export function AppMenuBar({ items, currentPath, onNavigate, className }: AppMenuBarProps) {
+export function AppMenuBar({
+  items,
+  currentPath,
+  onNavigate,
+  className,
+}: AppMenuBarProps) {
   return (
     <nav
       role="menubar"
       aria-label="Menu aplikasi"
       data-app-menu-bar="true"
-      className={cn('flex flex-wrap items-center gap-1', className)}
+      className={cn("flex flex-wrap items-center gap-1", className)}
     >
       {items.map((item) => {
         const key = item.path ?? item.id ?? item.label;
@@ -57,10 +62,13 @@ export function AppMenuBar({ items, currentPath, onNavigate, className }: AppMen
               key={key}
               label={item.label}
               items={toDropdownItems(children)}
-              {...(activeChildPath === undefined ? {} : { activeId: activeChildPath })}
+              {...(activeChildPath === undefined
+                ? {}
+                : { activeId: activeChildPath })}
               onSelect={(id) => {
                 const child = children.find(
-                  (candidate) => (candidate.path ?? candidate.id ?? candidate.label) === id,
+                  (candidate) =>
+                    (candidate.path ?? candidate.id ?? candidate.label) === id,
                 );
                 if (child?.path === undefined) return;
 
@@ -77,7 +85,7 @@ export function AppMenuBar({ items, currentPath, onNavigate, className }: AppMen
             key={key}
             type="button"
             role="menuitem"
-            aria-current={isActive ? 'page' : undefined}
+            aria-current={isActive ? "page" : undefined}
             disabled={item.disabled === true}
             onClick={() => {
               if (item.path === undefined) return;
@@ -85,12 +93,12 @@ export function AppMenuBar({ items, currentPath, onNavigate, className }: AppMen
             }}
             className={cn(
               PILL,
-              'px-3 py-1.5 text-sm font-medium transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              "px-2 xl:px-3 py-1.5 text-xs   xl:text-sm font-medium transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               isActive
-                ? 'bg-primary text-primary-foreground shadow-pill'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-              item.disabled === true && 'cursor-not-allowed opacity-70',
+                ? "bg-primary text-primary-foreground shadow-pill"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              item.disabled === true && "cursor-not-allowed opacity-70",
             )}
           >
             {item.label}

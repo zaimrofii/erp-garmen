@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -67,6 +68,6 @@ describe('F9/9.2 — halaman', () => {
 
 describe('F9/9.4 — nav item', () => {
   it('Settings punya item Audit dengan path yang benar', () => {
-    expect(read('src/app/nav-config.ts')).toContain("{ label: 'Audit', path: '/settings/audit' }");
+    expect(topbarPaths('settings')).toContain('/settings/audit');
   });
 });

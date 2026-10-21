@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createElement, type ReactElement } from 'react';
@@ -40,7 +41,6 @@ function read(relative: string): string {
 }
 
 const APP = read('src/App.tsx');
-const NAV = read('src/app/nav-config.ts');
 
 /** Konteks feedback palsu — `useFeedback()` di halaman butuh provider. */
 const FEEDBACK: FeedbackRuntime = {
@@ -84,12 +84,12 @@ describe('H5.8 — route, guard & nav', () => {
   it('App.tsx: /settings/wa dengan guard SETTINGS_ROLES', () => {
     expect(APP).toContain('path="/settings/wa"');
     expect(APP).toContain('<WAConfigPage />');
-    expect(APP).toContain("import('@/pages/settings/WAConfigPage')");
+    expect(APP).toContain('import("@/pages/settings/WAConfigPage")');
     expect(APP).toContain('roles={SETTINGS_ROLES}');
   });
 
   it('nav-config menambah "WA Gateway" di app Settings TANPA mengubah item pertama', () => {
-    expect(NAV).toContain("label: 'WA Gateway', path: '/settings/wa'");
+    expect(topbarPaths('settings')).toContain('/settings/wa');
 
     const settings = NAV_APPS.find((app) => app.id === 'settings');
 

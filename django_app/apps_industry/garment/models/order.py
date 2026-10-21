@@ -68,6 +68,13 @@ class Order(models.Model):
         help_text="Angka BESAR = lebih prioritas (dipakai priority scheduler).",
     )
     deadline = models.DateTimeField("deadline", null=True, blank=True)
+    completed_at = models.DateTimeField(
+        "selesai pada",
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Waktu order masuk DONE; null = belum selesai.",
+    )
     created_at = models.DateTimeField("dibuat pada", auto_now_add=True)
     updated_at = models.DateTimeField("diubah pada", auto_now=True)
 
@@ -75,6 +82,13 @@ class Order(models.Model):
         verbose_name = "Order"
         verbose_name_plural = "Orders"
         ordering = ("-created_at",)
+
+    @property
+    def is_late(self) -> bool:
+        """True bila order selesai melewati deadline."""
+        if not self.completed_at or not self.deadline:
+            return False
+        return self.completed_at > self.deadline
 
     def __str__(self) -> str:
         return f"{self.code} [{self.state}]"

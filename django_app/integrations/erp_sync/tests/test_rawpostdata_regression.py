@@ -24,7 +24,7 @@ from integrations.erp_sync.idempotency import STAGE_WIP
 
 URL_WIP = "/api/v1/sync/odoo/WIP/"
 BODY = {"resource": "work_order", "resource_id": "WO-REG-1", "payload": {"qty": 1}}
-DELAY_WIP = "integrations.erp_sync.api.push_wip_issue.delay"
+DELAY_WIP = "integrations.erp_sync.api.push_wip_issue.apply_async"
 
 
 class SyncOdooViewRawPostDataRegressionTests(TestCase):

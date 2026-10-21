@@ -19,6 +19,7 @@ import {
   buildRequestUrl,
   createApiClient,
   isAuthScopedGetPath,
+  isFormDataBody,
   isCrossOriginRequest,
   needsCredentials,
   normalizeApiPath,
@@ -175,6 +176,10 @@ describe('D5 — kredensial & CSRF', () => {
     expect(needsCredentials('GET', '/reconciliation/report/?days=7')).toBe(true);
     expect(needsCredentials('GET', '/garmen/orders/1/readiness/')).toBe(true);
     expect(needsCredentials('GET', '/garmen/bundles/')).toBe(false);
+  // K4.2 (fix 403): kanban = turunan prefix publik tetapi `IsAuthenticated` di backend,
+  // jadi WAJIB kirim cookie sesi walau list generiknya publik.
+  expect(needsCredentials('GET', '/garmen/bundles/kanban/?limit=50')).toBe(true);
+  expect(needsCredentials('GET', '/garmen/work-orders/kanban/')).toBe(true);
     expect(isAuthScopedGetPath('/audit/products-missing-odoo-id/')).toBe(true);
     expect(isAuthScopedGetPath('/reconciliation/report/?days=7')).toBe(true);
     // F9/9.0b — readiness (§5.4) juga IsAuthenticated: dulu false (celah lintas origin).
@@ -298,3 +303,73 @@ describe('FIX 403 (H3.4) — GET endpoint sesi (master/routing) wajib membawa co
   });
 });
 
+describe('K4.2 — kanban butuh sesi walau turunan prefix publik (fix 403)', () => {
+  it('GET kanban BUNDLE mengirim cookie sesi', () => {
+    expect(needsCredentials('GET', '/garmen/bundles/kanban/?limit=50')).toBe(true);
+    expect(needsCredentials('GET', '/garmen/bundles/kanban/')).toBe(true);
+  });
+
+  it('GET kanban WORK ORDER juga butuh sesi; list generik tetap publik', () => {
+    expect(needsCredentials('GET', '/garmen/work-orders/kanban/')).toBe(true);
+    expect(needsCredentials('GET', '/garmen/bundles/')).toBe(false);
+    expect(needsCredentials('GET', '/garmen/order-lines/')).toBe(false);
+  });
+});
+
+describe('K5.3 — postForm (multipart unggah gambar)', () => {
+  it('postForm mengirim FormData apa adanya, TANPA Content-Type JSON', async () => {
+    const calls = stubFetch({ id: 7, message: 'ok' });
+    const client = createApiClient({ baseUrl: BASE_URL });
+    const file = new File([new Uint8Array([1, 2, 3])], 'kaos.png', { type: 'image/png' });
+    const formData = new FormData();
+    formData.append('image', file, file.name);
+
+    const result = await client.postForm('/master/products/7/image/', formData);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.init.body).toBe(formData);
+    expect(headersOf(calls[0]!)).not.toHaveProperty('Content-Type');
+    expect(calls[0]?.url).toBe('http://localhost:8000/api/v1/master/products/7/image/');
+    expect(result.ok).toBe(true);
+  });
+
+  it('postForm mengirim credentials: include + X-CSRFToken (pola POST biasa)', async () => {
+    stubCookie('sessionid=abc; csrftoken=csrf-999');
+    const calls = stubFetch({ id: 7, message: 'ok' });
+    const client = createApiClient({ baseUrl: BASE_URL });
+
+    await client.postForm('/master/partners/7/image/', new FormData());
+
+    expect(calls[0]?.init.credentials).toBe('include');
+    expect(headersOf(calls[0]!)['X-CSRFToken']).toBe('csrf-999');
+    expect(calls[0]?.init.method).toBe('POST');
+  });
+
+  it('postForm gagal (400) → union error terstruktur, bukan throw', async () => {
+    stubFetch({ detail: 'Format tidak didukung. Gunakan .jpg, .jpeg, .png, .webp.' }, 400);
+    const client = createApiClient({ baseUrl: BASE_URL });
+
+    const result = await client.postForm('/master/products/7/image/', new FormData());
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe(400);
+    expect((result.error?.message ?? '').length).toBeGreaterThan(0);
+  });
+
+  it('post tetap memakai Content-Type JSON (tanpa regresi)', async () => {
+    const calls = stubFetch({ ok: true });
+    const client = createApiClient({ baseUrl: BASE_URL });
+
+    await client.post('/garmen/bundles/16/BUNDLE_START/', { action: 'BUNDLE_START' });
+
+    expect(headersOf(calls[0]!)['Content-Type']).toBe('application/json');
+    expect(calls[0]?.init.body).toBe(JSON.stringify({ action: 'BUNDLE_START' }));
+  });
+
+  it('isFormDataBody membedakan FormData dari body JSON/objek biasa', () => {
+    expect(isFormDataBody(new FormData())).toBe(true);
+    expect(isFormDataBody({ image: 'x' })).toBe(false);
+    expect(isFormDataBody('{"image":"x"}')).toBe(false);
+    expect(isFormDataBody(undefined)).toBe(false);
+  });
+});

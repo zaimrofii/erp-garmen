@@ -17,6 +17,8 @@ industri, dan ``/api/v1/<industry>/...`` hanya menerima industri yang lolos
 whitelist (``apps_industry/garment/api/industries.py``).
 """
 
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path
@@ -128,6 +130,7 @@ from core.auth.api import (
 from core.device_profile.api import DeviceBindView, DeviceMeView, DeviceUnbindView
 from integrations.ai.api import AiChatView
 from integrations.ai.hitl_views import HitlApproveView, HitlQueueView, HitlRejectView
+from integrations.ai_agent.api.observability_views import AiObservabilityView
 from integrations.erp_sync.api import (
     OrderReadinessView,
     ProductAuditView,
@@ -172,6 +175,7 @@ from integrations.erp_sync.monitoring import (
 from integrations.erp_sync.export import ExportReportView
 from integrations.printing.api import PrintBundleTagView, PrintCouponView
 from integrations.wa_bot.api import WASendView
+from integrations.wa_bot.views import WaWebhookView
 from master.api import (
     MasterAccountDetailView,
     MasterAccountListView,
@@ -182,12 +186,14 @@ from master.api import (
     MasterLocationDetailView,
     MasterLocationListCreateView,
     MasterPartnerDetailView,
+    MasterPartnerImageEndpoint,
     MasterPartnerListCreateView,
     MasterProductionLineDetailView,
     MasterProductionLineListCreateView,
     MasterWorkCenterDetailView,
     MasterWorkCenterListCreateView,
     MasterProductDetailView,
+    MasterProductImageEndpoint,
     MasterProductListCreateView,
     # H3.5 — endpoint khusus harga (update + riwayat audit trail).
     MasterProductPriceHistoryView,
@@ -668,6 +674,8 @@ urlpatterns = [
     # Fase F — WhatsApp (gateway mock, `WA_BACKEND`).
     path("api/v1/wa/send/", WASendView.as_view(), name="wa_send"),
     path("api/v1/wa/send", WASendView.as_view(), name="wa_send_noslash"),
+    # Sprint F.2.3 — webhook balasan WA "APPROVE <id>" / "REJECT <id> <alasan>".
+    path("api/v1/wa/webhook/", WaWebhookView.as_view(), name="wa_webhook"),
     # Fase F — AI chat stub: SELALU 200 `{ok:false, reason:"not_implemented"}`
     # (bukan 404) supaya `ai-chat.ts` dapat respons valid. Alias tanpa `v1`
     # disediakan karena brief menyebut jalur `POST /ai/chat`.
@@ -677,6 +685,12 @@ urlpatterns = [
     # F5.4.2 / B29 — HITL queue (approval manusia). `ai` BUKAN nama industri →
     # WAJIB di section kontrak core (SEBELUM `include` industri).
     path("api/v1/ai/hitl/queue/", HitlQueueView.as_view(), name="hitl_queue"),
+    # Sprint F.3.2 — dashboard observability AI (ADMIN/OWNER, cache 60 dtk).
+    path(
+        "api/v1/ai/observability/",
+        AiObservabilityView.as_view(),
+        name="ai_observability",
+    ),
     path(
         "api/v1/ai/hitl/<int:request_id>/approve/",
         HitlApproveView.as_view(),
@@ -787,6 +801,13 @@ urlpatterns = [
         MasterProductPriceHistoryView.as_view(),
         name="master_product_price_history",
     ),
+    # K5.2 — unggah/hapus gambar produk (multipart, ADMIN/OWNER). Gambar
+    # MES-only: TIDAK ada SyncRecord/push Odoo, hanya berkas + AuditLog.
+    path(
+        "api/v1/master/products/<int:product_id>/image/",
+        MasterProductImageEndpoint.as_view(),
+        name="master_product_image",
+    ),
     # H3.6 — CRUD master Tax (`/api/v1/master/taxes/`, MES = source of truth).
     # Resource baru `master.tax` (SyncRecord) + task `erp_sync.push_master_tax`.
     # Izin tulis ADMIN/OWNER (master config keuangan); DELETE = soft delete
@@ -881,6 +902,12 @@ urlpatterns = [
         "api/v1/master/partners/<int:partner_id>/",
         MasterPartnerDetailView.as_view(),
         name="master_partner_detail",
+    ),
+    # K5.2 — unggah/hapus gambar partner (multipart, ADMIN/OWNER).
+    path(
+        "api/v1/master/partners/<int:partner_id>/image/",
+        MasterPartnerImageEndpoint.as_view(),
+        name="master_partner_image",
     ),
     # H1.7 — CRUD master Work Center (`/api/v1/master/work-centers/`).
     # MES-only: model `garment.WorkCenter` (dipakai bundle/routing/device/scrap).
@@ -1159,7 +1186,15 @@ urlpatterns = [
         StockTransferListCreateView.as_view(),
         name="stock_transfer_create",
     ),
+    # Sprint B — analytics (toggle settings + readiness; metrics menyusul B.7).
+    # Didaftarkan SEBELUM catch-all `api/` supaya path spesifik menang.
+    path("api/v1/", include("integrations.analytics.api.urls")),
     # 3) API industri (catch-all) — PALING AKHIR, jangan dinaikkan urutannya.
     path("api/", include("apps_industry.garment.api.urls")),
 ]
+
+# K5.2 — serve MEDIA hanya saat DEBUG (dev). Di production file media dilayani
+# Nginx (lihat docker-compose.prod.yml); Django tidak men-serve media di prod.
+if settings.DEBUG:  # pragma: no cover - hanya jalur dev
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

@@ -221,7 +221,7 @@ describe('F6.2 — redirect & "Ingat saya"', () => {
 
     expect(LOGIN_PATH).toBe('/login');
     expect(app).toContain('const LoginPage = lazy(');
-    expect(app).toContain("import('@/pages/auth/LoginPage')");
+    expect(app).toContain('import("@/pages/auth/LoginPage")');
   });
 
   it('persistRememberedUsername menyimpan/menghapus username di localStorage', () => {

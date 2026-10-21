@@ -142,6 +142,8 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "apps_industry.garment",   # domain garmen
     "integrations.erp_sync",  # adapter Odoo + Celery task
+    "integrations.analytics",  # analytics event-driven (Sprint B) — label: analytics
+    "integrations.ai_agent",  # AI agent decision gate + MCP (Sprint D) — label: ai_agent
     "integrations.printing",  # printer thermal ESC/POS: bundle tag + kupon — label: printing
     "integrations.wa_bot",    # WhatsApp gateway (stub, mock-first) — label: wa_bot
     "master",                  # master data dari Odoo
@@ -246,8 +248,15 @@ USE_TZ = True
 # ---------------------------------------------------------------------------
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-MEDIA_URL = "media/"
+# K5.2 — WAJIB diawali "/" supaya `static(MEDIA_URL, ...)` (serve media dev) dan
+# `image_file.url` menghasilkan URL dari root, bukan relatif terhadap halaman.
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+# Batas unggahan gambar (K5.2): berkas > 5 MB dialirkan ke disk (bukan ditolak) —
+# penolakan 5 MB ada di `master/image_services.validate_image()`. Batas ini juga
+# menahan body JSON/form non-berkas supaya worker tidak kehabisan memori.
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
@@ -477,6 +486,29 @@ CELERY_BEAT_SCHEDULE = {
     "reconcile-stock": {
         "task": "erp_sync.reconcile_stock",
         "schedule": crontab(day_of_week=1, hour=3, minute=0),
+    },
+    # Sprint B — analytics (B.8): 3 entry baru (total 14 → 17).
+    "analytics-aggregate-hourly": {
+        "task": "analytics.aggregate_hourly",
+        "schedule": crontab(minute=0),
+    },
+    "analytics-aggregate-daily": {
+        "task": "analytics.aggregate_daily",
+        "schedule": crontab(minute=5, hour=0),
+    },
+    "analytics-cleanup-cache": {
+        "task": "analytics.cleanup_cache",
+        "schedule": crontab(minute=0),
+    },
+    # Sprint F.1.8 — HITL kedaluwarsa (PENDING > auto_expire_hours → EXPIRED).
+    "ai-hitl-expire": {
+        "task": "ai_agent.hitl_expire_pending",
+        "schedule": crontab(minute="*/30"),
+    },
+    # Sprint F.4.3 — drift intent harian (distribusi 7 hari vs 30 hari sebelumnya).
+    "ai-detect-drift": {
+        "task": "ai_agent.detect_drift",
+        "schedule": crontab(hour=2, minute=0),
     },
 }
 
@@ -760,3 +792,21 @@ SPECTACULAR_SETTINGS = {
     ),
     "SERVE_INCLUDE_SCHEMA": False,
 }
+
+# ---------------------------------------------------------------------------
+# AI Agent (Sprint D)
+# ---------------------------------------------------------------------------
+# Master switch: FALSE (default) → `integrations/ai/api.py` memakai stub lama
+# (`{ok:false, reason:"not_implemented"}`). TRUE → delegasi ke ai_agent.
+AI_AGENT_ENABLED = env_bool("AI_AGENT_ENABLED", False)
+
+# Sprint G — LLM provider (read-only + context injection, tanpa KG/vector DB).
+AI_LLM_PROVIDER = env("AI_LLM_PROVIDER", "deepseek")
+AI_LLM_MODEL = env("AI_LLM_MODEL", "deepseek-chat")
+AI_LLM_API_KEY = env("AI_LLM_API_KEY", "")
+AI_LLM_TIMEOUT_SECONDS = env_float("AI_LLM_TIMEOUT_SECONDS", 30)
+AI_LLM_BASE_URL = env("AI_LLM_BASE_URL", "")
+AI_LLM_GEMINI_API_KEY = env("AI_LLM_GEMINI_API_KEY", AI_LLM_API_KEY)
+AI_LLM_GEMINI_BASE_URL = env(
+    "AI_LLM_GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta"
+)

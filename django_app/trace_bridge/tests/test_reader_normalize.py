@@ -80,6 +80,25 @@ class ReadTraceTests(unittest.TestCase):
 
             self.assertEqual(len(result), 3)
 
+    def test_read_trace_membaca_ekor_bukan_kepala(self):
+        """PRA-0A.2 — baris TERBARU di ekor file besar tetap terbaca.
+
+        Regresi: versi lama membaca ``max_lines`` baris PERTAMA sehingga trace
+        baru tidak ketemu begitu ``mes.jsonl`` > 5000 baris (test e2e "flake").
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            log_dir = Path(tmp)
+            _write_jsonl(
+                log_dir / "mes.jsonl",
+                [{"request_id": "LAMA", "message": str(i)} for i in range(20)]
+                + [{"request_id": "BARU", "message": "terakhir"}],
+            )
+
+            result = read_trace("BARU", log_dir, max_lines=5)
+
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result[0]["request_id"], "BARU")
+
 
 class ToSpansTests(unittest.TestCase):
     """``to_spans`` membentuk spans + ringkasan waktu."""

@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -21,17 +22,16 @@ const PAGE = 'src/pages/reports/ProductionReportPage.tsx';
 
 describe('H4.6 - route & nav', () => {
   const app = read('src/App.tsx');
-  const nav = read('src/app/nav-config.ts');
 
   it('route /reports/production + guard role REPORTS', () => {
     expect(app).toContain('path="/reports/production"');
     expect(app).toContain('<ProductionReportPage />');
-    expect(app).toContain("import('@/pages/reports/ProductionReportPage')");
+    expect(app).toContain('import("@/pages/reports/ProductionReportPage")');
     expect(app).toContain('roles={REPORTS_ROLES}');
   });
 
   it('topbar Reports menambah item Produksi', () => {
-    expect(nav).toContain("{ label: 'Produksi', path: '/reports/production' }");
+    expect(topbarPaths('reports')).toContain('/reports/production');
   });
 });
 

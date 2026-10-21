@@ -6,7 +6,7 @@ respons **valid** (bukan 404/501) supaya jalur UI-nya bisa diuji tanpa LLM.
 
 from __future__ import annotations
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from integrations.ai.api import REASON_NOT_IMPLEMENTED, SCHEMA_VERSION
@@ -14,6 +14,7 @@ from integrations.ai.api import REASON_NOT_IMPLEMENTED, SCHEMA_VERSION
 URL = "/api/v1/ai/chat"
 
 
+@override_settings(AI_AGENT_ENABLED=False)
 class AiChatStubTests(TestCase):
     """Stub kontrak: 200 + `{ok:false, reason:'not_implemented'}`."""
 

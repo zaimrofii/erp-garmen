@@ -122,14 +122,14 @@ describe('H1.4 — route & guard (App.tsx)', () => {
   });
 
   it('path `/master/locations*` dipetakan ke app inventory (nav-config alias)', () => {
-    expect(NAV).toContain("{ prefix: '/master/locations', appId: 'inventory' }");
+    expect(NAV).toContain('{ prefix: "/master/locations", appId: "inventory" }');
     expect(legacyAppIdForPath('/master/locations')).toBe('inventory');
     expect(legacyAppIdForPath('/master/locations/12/edit')).toBe('inventory');
   });
 
   it('menu Inventory punya item Master Lokasi (link biasa, bukan dropdown)', () => {
     const inventory = NAV_APPS.find((app) => app.id === 'inventory');
-    const item = inventory?.topbar.find((menu) => menu.label === 'Master Lokasi');
+    const item = inventory?.topbar.find((menu) => menu.path === '/master/locations');
 
     expect(item?.path).toBe('/master/locations');
     expect(item?.children).toBeUndefined();

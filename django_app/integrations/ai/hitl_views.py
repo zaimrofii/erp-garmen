@@ -99,6 +99,21 @@ def _require_approver(request) -> None:
         )
 
 
+def _delegate(instance, request, target_cls) -> None:
+    """Sprint F — delegasi ke AIHitlQueue saat `AI_AGENT_ENABLED=true`.
+
+    `AI_AGENT_ENABLED=false` (default) → perilaku stub lama (HITLRequest) utuh.
+    """
+    if not getattr(settings, "AI_AGENT_ENABLED", False):
+        return
+
+    instance.permission_classes = tuple(target_cls.permission_classes)
+    method = request.method.lower()
+    handler = getattr(target_cls, method, None)
+    if callable(handler):
+        setattr(instance, method, handler.__get__(instance, type(instance)))
+
+
 def serialize_hitl(row: HITLRequest) -> dict:
     """Satu ``HITLRequest`` → JSON kontrak B29 (dipakai queue & keputusan)."""
     return {
@@ -222,6 +237,12 @@ class HitlQueueView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    def dispatch(self, request, *args, **kwargs):
+        from integrations.ai_agent.api import hitl_views as agent_hitl
+
+        _delegate(self, request, agent_hitl.AiHitlQueueView)
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request):
         """List antrean HITL; lihat docstring kelas."""
         limit, offset, error = _list_params(request)
@@ -281,6 +302,12 @@ class HitlApproveView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    def dispatch(self, request, *args, **kwargs):
+        from integrations.ai_agent.api import hitl_views as agent_hitl
+
+        _delegate(self, request, agent_hitl.AiHitlApproveView)
+        return super().dispatch(request, *args, **kwargs)
+
     def post(self, request, request_id: int):
         """Setujui permintaan; lihat docstring kelas."""
         return _decide(
@@ -298,6 +325,12 @@ class HitlRejectView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+
+    def dispatch(self, request, *args, **kwargs):
+        from integrations.ai_agent.api import hitl_views as agent_hitl
+
+        _delegate(self, request, agent_hitl.AiHitlRejectView)
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, request_id: int):
         """Tolak permintaan (note wajib); lihat docstring kelas."""

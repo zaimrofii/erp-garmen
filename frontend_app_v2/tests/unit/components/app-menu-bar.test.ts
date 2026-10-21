@@ -48,7 +48,7 @@ function links(tree: unknown): { label: string; current: string | undefined }[] 
 }
 
 describe('F16 — item tanpa children dirender LINK (bukan dropdown)', () => {
-  it('4 menu Inventory jadi 4 link, tanpa satu pun dropdown', () => {
+  it('12 menu Inventory jadi 12 link, tanpa satu pun dropdown', () => {
     const { tree } = renderItem(inventoryTopbar(), '/inventory/products');
 
     expect(attrOf(tree, 'data-app-menu-bar')).toBe('true');
@@ -57,8 +57,11 @@ describe('F16 — item tanpa children dirender LINK (bukan dropdown)', () => {
     expect(attrsOf(tree, 'data-dropdown-trigger')).toEqual([]);
 
     const text = textOf(tree);
-    for (const label of ['Products', 'Operations', 'Reporting', 'Configuration']) {
-      expect(text, label).toContain(label);
+    // PRA-0A.1 (K2) — label topbar kini Bahasa Indonesia; pakai SUMBER TUNGGAL NAV_APPS
+    // (bukan pin string) supaya perubahan copy nav-config tidak mematahkan test.
+    expect(inventoryTopbar()).toHaveLength(12);
+    for (const item of inventoryTopbar()) {
+      expect(text, item.label).toContain(item.label);
     }
     // Daftar APP (duplikat Sidebar) TIDAK lagi muncul di baris ini: yang dirender
     // PERSIS label topbar app aktif. Dibandingkan sebagai LABEL UTUH, bukan
@@ -78,22 +81,33 @@ describe('F16 — item tanpa children dirender LINK (bukan dropdown)', () => {
       links(tree)
         .filter((item) => item.current === 'page')
         .map((item) => item.label),
-    ).toEqual(['Operations']);
+    ).toEqual(
+      inventoryTopbar()
+        .filter((item) => item.path === '/inventory/operations')
+        .map((item) => item.label),
+    );
   });
 
   it('sub-route ikut dianggap aktif (mis. /inventory/products/42)', () => {
-    const { tree } = renderItem(inventoryTopbar(), '/inventory/products/42');
+    const { tree } = renderItem(inventoryTopbar(), '/master/products/42');
 
     expect(links(tree).filter((item) => item.current === 'page')).toEqual([
-      { label: 'Products', current: 'page' },
+      {
+        label: inventoryTopbar().find((item) => item.path === '/master/products')?.label,
+        current: 'page',
+      },
     ]);
   });
 
   it('klik link memicu onNavigate dengan path item', () => {
     const { tree, onNavigate } = renderItem(inventoryTopbar(), '/inventory/products');
+    const reportingLabel = inventoryTopbar().find(
+      (item) => item.path === '/inventory/reporting',
+    )?.label;
     const reporting = findElement(
       tree as never,
-      (candidate) => candidate.type === 'button' && candidate.props['children'] === 'Reporting',
+      (candidate) =>
+        candidate.type === 'button' && candidate.props['children'] === reportingLabel,
     );
 
     callProp(reporting!, 'onClick');
@@ -174,10 +188,13 @@ describe('F16 — helper menu aktif (menu-config)', () => {
     const production = NAV_APPS.find((app) => app.id === 'production')?.topbar ?? [];
     const { tree } = renderItem(production, '/production/qc');
 
-    expect(textOf(tree)).toContain('Shop Floor');
-    expect(textOf(tree)).toContain('QC');
+    const shopFloor = production.find((item) => item.path === '/production/scan')?.label;
+    const qc = production.find((item) => item.path === '/production/qc')?.label;
+
+    expect(textOf(tree)).toContain(shopFloor);
+    expect(textOf(tree)).toContain(qc);
     expect(links(tree).filter((item) => item.current === 'page').map((item) => item.label)).toEqual([
-      'QC',
+      qc,
     ]);
   });
 });
@@ -187,7 +204,8 @@ describe('F16 — TopBar memakai menu APP AKTIF (bukan daftar app)', () => {
 
   it('mengambil `app.topbar` dan mengirim sebagai `items`', () => {
     expect(source).toContain('const items = app?.topbar ?? [];');
-    expect(source).toContain('<AppMenuBar items={items}');
+    expect(source).toContain('<AppMenuBar');
+    expect(source).toContain('items={items}');
   });
 
   it('TIDAK lagi memakai daftar app (menuAppsForIds/useVisibleApps)', () => {

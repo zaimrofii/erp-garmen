@@ -105,17 +105,31 @@ class ErpSyncConfig(AppConfig):
         harus di-import eksplisit agar ``@shared_task`` ter-registrasi di worker
         (kalau tidak → "Received unregistered task").
 
+        Sprint F (bugfix PRA-0B.1): import juga modul push transaksi
+        (``tasks_*_push``) — sebelumnya tidak diimpor sehingga task
+        ``erp_sync.push_inventory_adjustment`` (dan 8 task push lain) dibuang
+        worker sebagai *unregistered*.
+
         Listener invoice (Fase I5) didaftarkan di sini: listener async dijalankan
         worker lewat task ``event_bus.dispatch_event`` (lihat
         ``core/event_bus/registry.py``).
         """
         from . import (  # noqa: F401
+            tasks_customer_invoice_push,
+            tasks_inventory_adjustment_push,
             tasks_invoice,
+            tasks_journal_entry_push,
             tasks_master,
+            tasks_master_push,
             tasks_order,
+            tasks_order_push,
+            tasks_payment_push,
+            tasks_purchase_order_push,
             tasks_reconciliation,
             tasks_scrap,
+            tasks_stock_transfer_push,
             tasks_vendor_bill,
+            tasks_vendor_bill_push,
         )
 
         from core.event_bus.registry import register_listener

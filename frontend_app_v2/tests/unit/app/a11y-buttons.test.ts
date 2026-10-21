@@ -94,6 +94,8 @@ describe('F12/12.4 — a11y tombol ikon', () => {
       'components/atoms/Button.tsx',
       // teks dari prop `trigger` (label app di menu bar)
       'components/atoms/Dropdown.tsx',
+      // PRA-0A.1 (K3) — avatar profil: teks `{initials}` dinamis dari user (bukan offender)
+      'components/molecules/ProfileMenu.tsx',
       // FIX ROUTE — tombol fallback error boundary (teks dari konstanta di atas)
       'components/organisms/RouteErrorBoundary.tsx',
       // teks dari ternary `{save.isPending ? 'Menyimpan...' : 'Simpan'}`

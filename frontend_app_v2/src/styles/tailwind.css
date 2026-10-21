@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 /* ============================================================
    THEME TOKENS — OKLCH
@@ -64,7 +64,9 @@
   --spacing: 0.25rem;
 
   /* ---------- FONT ---------- */
-  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  --animate-bounce-squash: bounce-squash 14s cubic-bezier(0.28, 0.84, 0.42, 1)
+    infinite;
 }
 
 /* ============================================================
@@ -132,7 +134,7 @@
   --color-info: oklch(0.68 0.17 255);
   --color-info-foreground: oklch(0.16 0.02 255);
 
-  --bg-gradient-center: oklch(27.63% 0.06461 256.572);
+  --bg-gradient-center: oklch(23.362% 0.039 258.295);
   --bg-gradient-outer: oklch(0.1 0.02 260);
 }
 
@@ -196,5 +198,92 @@ body {
   .ring-pulse {
     animation: none;
     box-shadow: 0 0 0 3px var(--color-success);
+  }
+}
+
+@layer components {
+  .prose-chat {
+    @apply text-sm leading-relaxed space-y-1;
+  }
+
+  .prose-chat p {
+    @apply mb-1;
+  }
+
+  .prose-chat p:last-child {
+    @apply mb-0;
+  }
+}
+
+@keyframes bounce-squash {
+  /* === LOMPATAN 1 (0% → 4%) === */
+  0% {
+    transform: translateY(0) scale(1, 1);
+  }
+  1% {
+    transform: translateY(-14px) scale(0.98, 1.02);
+  }
+  2% {
+    transform: translateY(-16px) scale(1, 1);
+  }
+  3% {
+    transform: translateY(-4px) scale(0.99, 1.01);
+  }
+  3.5% {
+    transform: translateY(0) scale(1.1, 0.9);
+    animation-timing-function: ease-out;
+  }
+  3.8% {
+    transform: translateY(0) scale(1.1, 0.9);
+  }
+  4% {
+    transform: translateY(0) scale(1, 1);
+  }
+
+  /* === LOMPATAN 2 (4% → 8%) === */
+  5% {
+    transform: translateY(-14px) scale(0.98, 1.02);
+  }
+  6% {
+    transform: translateY(-16px) scale(1, 1);
+  }
+  7% {
+    transform: translateY(-4px) scale(0.99, 1.01);
+  }
+  7.5% {
+    transform: translateY(0) scale(1.1, 0.9);
+    animation-timing-function: ease-out;
+  }
+  7.8% {
+    transform: translateY(0) scale(1.1, 0.9);
+  }
+  8% {
+    transform: translateY(0) scale(1, 1);
+  }
+
+  /* === LOMPATAN 3 (8% → 12%) === */
+  9% {
+    transform: translateY(-14px) scale(0.98, 1.02);
+  }
+  10% {
+    transform: translateY(-16px) scale(1, 1);
+  }
+  11% {
+    transform: translateY(-4px) scale(0.99, 1.01);
+  }
+  11.5% {
+    transform: translateY(0) scale(1.1, 0.9);
+    animation-timing-function: ease-out;
+  }
+  11.8% {
+    transform: translateY(0) scale(1.1, 0.9);
+  }
+  12% {
+    transform: translateY(0) scale(1, 1);
+  }
+
+  /* === JEDA DIAM (12% → 100%) = ~7 detik === */
+  100% {
+    transform: translateY(0) scale(1, 1);
   }
 }

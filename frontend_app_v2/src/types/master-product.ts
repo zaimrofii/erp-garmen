@@ -9,7 +9,9 @@
  * Respons POST/PUT menambahkan info sinkronisasi (`sync_record_id`/`task_id`/`queued`)
  * → lihat `MasterProductSaved`.
  */
-export interface MasterProductRow {
+import type { MasterImageFields } from '@/types/master-image';
+
+export interface MasterProductRow extends MasterImageFields {
   id: number;
   code: string;
   name: string;

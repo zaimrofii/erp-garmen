@@ -798,14 +798,14 @@ class OdooAdapter(ERPAdapter):
             target = before + delta
 
             # 2) tulis target absolut ke `inventory_quantity` (butuh `inventory_mode`).
-            values = {
-                "product_id": product_id,
-                "location_id": location_id,
-                "inventory_quantity": target,
-            }
+            #    Odoo 17: `product_id`/`location_id` DILARANG di `write()` quant yang
+            #    sudah ada (UserError "Quant's editing is restricted") — field itu
+            #    hanya boleh saat CREATE quant baru.
+            values = {"inventory_quantity": target}
             if quant_id:
                 self.client.execute_kw("stock.quant", "write", [[quant_id], values], {"context": ctx})
             else:
+                values.update({"product_id": product_id, "location_id": location_id})
                 created = self.client.execute_kw("stock.quant", "create", [values], {"context": ctx})
                 quant_id = created[0] if isinstance(created, (list, tuple)) and created else created
 

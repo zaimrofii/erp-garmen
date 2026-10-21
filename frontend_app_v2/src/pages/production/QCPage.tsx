@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Plus, RefreshCw, Trash2, WifiOff } from 'lucide-react';
 import { Badge } from '@/components/atoms/Badge';
 import { Button } from '@/components/atoms/Button';
@@ -16,6 +16,8 @@ import { useFeedback, useOffline } from '@/app/app-runtime';
 import { submitQCRecord } from '@/api/qc';
 import { useApiClient } from '@/hooks/useApiClient';
 import { useBundle } from '@/hooks/useBundle';
+import { FloatingAIAssistant } from '@/components/organisms/FloatingAIAssistant';
+import { buildChatContext } from '@/lib/ai-context';
 import { cn } from '@/lib/cn';
 import { BUNDLE_ACTION_IDS, canSubmitBundleAction, hasAllowedAction } from '@/lib/action-runner';
 import { canSyncScrap, runScrapSync } from '@/lib/sync-actions';
@@ -68,12 +70,30 @@ const QC_DECISIONS: QCDecision[] = ['rework', 'scrap'];
 
 export function QCPage() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const { trigger } = useFeedback();
   const { isOnline, pendingCount } = useOffline();
   const client = useApiClient();
 
   const { data: bundle, isLoading, error: loadError, refetch } = useBundle(id);
+
+  // Sprint E.4 — konteks chat dari bundle yang sedang di-QC.
+  const aiContext = buildChatContext(
+    location,
+    { id },
+    'detail',
+    'bundle',
+    {},
+    bundle === undefined
+      ? {}
+      : {
+          code: bundle.code,
+          state: bundle.state,
+          qty: bundle.qty,
+          qty_done: bundle.qty_done,
+        },
+  );
 
   const defects = useQCDefects();
   const [selectedRegions, setSelectedRegions] = useState<DefectRegion[]>([]);
@@ -242,6 +262,7 @@ export function QCPage() {
     return (
       <div className="flex min-h-full items-center justify-center p-8">
         <Spinner size="lg" />
+        <FloatingAIAssistant context={aiContext} />
       </div>
     );
   }
@@ -608,6 +629,8 @@ export function QCPage() {
           ))}
         </ul>
       </Modal>
+
+      <FloatingAIAssistant context={aiContext} />
 
       {conflict !== null ? (
         <ConflictResolver

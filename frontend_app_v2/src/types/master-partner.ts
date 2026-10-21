@@ -15,7 +15,9 @@
  *   * `address` = alamat bebas (Odoo `street`; tarikan menggabung `street`+`street2`).
  */
 
-export interface MasterPartnerRow {
+import type { MasterImageFields } from '@/types/master-image';
+
+export interface MasterPartnerRow extends MasterImageFields {
   id: number;
   code: string;
   name: string;

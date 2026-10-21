@@ -19,7 +19,7 @@ from core.auth.models import User
 from integrations.erp_sync.models import SyncStatus
 
 SYNC_URL = "/api/v1/sync/odoo/WIP/"
-DELAY_WIP = "integrations.erp_sync.api.push_wip_issue.delay"
+DELAY_WIP = "integrations.erp_sync.api.push_wip_issue.apply_async"
 SYNC_BODY = {
     "resource": "work_order",
     "resource_id": "WO-AUDIT-1",

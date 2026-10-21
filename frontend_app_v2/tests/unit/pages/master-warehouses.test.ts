@@ -112,13 +112,13 @@ describe('H1.3 — route & guard (App.tsx)', () => {
 
   it('path `/master/warehouses*` dipetakan ke app inventory (nav-config alias)', () => {
     expect(read('src/app/nav-config.ts')).toContain(
-      "{ prefix: '/master/warehouses', appId: 'inventory' }",
+      '{ prefix: "/master/warehouses", appId: "inventory" }',
     );
   });
 
   it('menu Inventory punya item Master Gudang (link biasa, bukan dropdown)', () => {
     const inventory = NAV_APPS.find((app) => app.id === 'inventory');
-    const item = inventory?.topbar.find((menu) => menu.label === 'Master Gudang');
+    const item = inventory?.topbar.find((menu) => menu.path === '/master/warehouses');
 
     expect(item?.path).toBe('/master/warehouses');
     expect(item?.children).toBeUndefined();

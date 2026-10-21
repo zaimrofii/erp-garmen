@@ -134,14 +134,14 @@ describe('H1.6 — route & guard (App.tsx)', () => {
   });
 
   it('path `/master/partners*` dipetakan ke app inventory (nav-config alias)', () => {
-    expect(NAV).toContain("{ prefix: '/master/partners', appId: 'inventory' }");
+    expect(NAV).toContain('{ prefix: "/master/partners", appId: "inventory" }');
     expect(legacyAppIdForPath('/master/partners')).toBe('inventory');
     expect(legacyAppIdForPath('/master/partners/7/edit')).toBe('inventory');
   });
 
   it('menu Inventory punya item Master Partner (link biasa, bukan dropdown)', () => {
     const inventory = NAV_APPS.find((app) => app.id === 'inventory');
-    const item = inventory?.topbar.find((menu) => menu.label === 'Master Partner');
+    const item = inventory?.topbar.find((menu) => menu.path === '/master/partners');
 
     expect(item?.path).toBe('/master/partners');
     expect(item?.children).toBeUndefined();
@@ -154,8 +154,10 @@ describe('H1.6 — render halaman (react-dom/server)', () => {
 
     expect(text).toContain('Master Partner');
     expect(text).toContain('Partner Baru');
+    // FASE K3: `DenseTable` merender header hanya saat data siap; saat SSR query
+    // masih pending (skeleton) → label kolom diuji dari SUMBER halaman.
     for (const label of ['Kode', 'Nama', 'Peran', 'Kota', 'Telepon', 'NPWP', 'Status', 'Odoo ID']) {
-      expect(text, label).toContain(label);
+      expect(read(LIST_PAGE), label).toContain(`label: "${label}"`);
     }
     expect(text).toContain('Semua');
     expect(text).toContain('Pelanggan');
@@ -205,12 +207,13 @@ describe('H1.6 — sumber halaman (wiring API)', () => {
   it('list: adapter real, filter server (search + peran), tabel dense, klik → detail', () => {
     const page = read(LIST_PAGE);
 
-    expect(page).toContain("from '@/api/masterPartners'");
+    // K3.6 — halaman sudah memakai kutip ganda (migrasi gaya kutip).
+    expect(page).toContain('from "@/api/masterPartners"');
     expect(page).toContain('fetchPartners(client, {');
     expect(page).toContain('PARTNERS_LIMIT_MAX');
-    expect(page).toContain("queryKey: ['master-partners'");
+    expect(page).toContain('queryKey: ["master-partners"');
     expect(page).toContain('roleParamsForStatus(role)');
-    expect(page).toContain("from '@/components/molecules/DenseTable'");
+    expect(page).toContain('from "@/components/molecules/DenseTable"');
     expect(page).not.toContain('<table');
     expect(page).toContain("navigate(`/master/partners/${String(row.id)}`)");
   });
@@ -236,7 +239,9 @@ describe('H1.6 — sumber halaman (wiring API)', () => {
     expect(page).toContain('/master/partners/${String(partnerId)}/edit');
     expect(page).toContain('ordersCountLabel(partner)');
     expect(page).not.toContain('useMutation');
-    expect(page).not.toContain('deletePartner');
+    // K5.3 — detail kini boleh menghapus GAMBAR (`deletePartnerImage`), bukan partner.
+    expect(page).not.toMatch(/\bdeletePartner\(/);
+    expect(page).toContain('deletePartnerImage(client, partnerId)');
   });
 });
 

@@ -184,7 +184,7 @@ describe('H3.5 — halaman riwayat harga (render + sumber)', () => {
   it('route riwayat harga terdaftar di App.tsx (INVENTORY_ROLES)', () => {
     expect(APP).toContain('path="/master/products/:id/price-history"');
     expect(APP).toContain('MasterProductPriceHistoryPage');
-    expect(APP).toContain("const INVENTORY_ROLES: Role[] = ['inventory', 'admin', 'owner'];");
+    expect(APP).toContain('const INVENTORY_ROLES: Role[] = ["inventory", "admin", "owner"];');
   });
 
   it('detail produk menautkan ke riwayat harga (kartu harga H3.5)', () => {

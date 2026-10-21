@@ -25,6 +25,7 @@ import re
 from django.urls import path, re_path
 
 from apps_industry.garment.api.actions.views import ActionView
+from apps_industry.garment.api.kanban import BundleKanbanView, WorkOrderKanbanView
 from apps_industry.garment.api.resources.create_view import (
     BundleCreateView,
     WorkOrderCreateView,
@@ -40,6 +41,20 @@ app_name = "garment"
 _RESOURCE_PATTERN = "|".join(re.escape(name) for name in sorted(SCHEMA_BUILDERS))
 
 urlpatterns = [
+    # FASE K2 — papan KANBAN (kolom + kartu + transisi dari `core.state_machine`).
+    # Didaftarkan PALING ATAS supaya `/kanban/` tidak pernah tertangkap pola
+    # `<int:id>` (detail/aksi) atau pola `list`; segment literal `kanban` juga
+    # membuat path ini tidak mungkin bertabrakan dengan resource lain.
+    path(
+        "v1/<str:industry>/bundles/kanban/",
+        BundleKanbanView.as_view(),
+        name="bundle_kanban",
+    ),
+    path(
+        "v1/<str:industry>/work-orders/kanban/",
+        WorkOrderKanbanView.as_view(),
+        name="work_order_kanban",
+    ),
     # FASE 3.4 (D1) — jalur CREATE (POST). WAJIB SEBELUM pola `list` (`re_path` di
     # bawah) supaya `POST /api/v1/<industry>/bundles/` tidak jatuh ke
     # ResourceListView (GET-only -> 405). `GET` pada path yang sama diteruskan

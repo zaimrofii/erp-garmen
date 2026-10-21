@@ -3,7 +3,8 @@
 + 1 task sync scrap (I4, per shift 06/14/22)
 + 1 task sync invoice (I5, tiap 15 menit)
 + 1 task recompute readiness (I3.4 + I6.3 dikonsolidasi di I7, harian 04:00)
-+ 1 task rekonsiliasi stok (I7, mingguan Senin 03:00) = 14 entry.
++ 1 task rekonsiliasi stok (I7, mingguan Senin 03:00) = 14 entry
++ 3 task analytics (Sprint B.8: agregasi hourly, daily, cleanup cache) = 17 entry.
 
 Memastikan tiap entry menunjuk **persis** ke ``name=`` task di
 ``integrations/erp_sync/tasks_master.py`` / ``tasks_order.py`` / ``tasks_scrap.py``
@@ -228,10 +229,31 @@ class BeatScheduleReconciliationTests(SimpleTestCase):
 
 
 class BeatScheduleTotalTests(SimpleTestCase):
-    """9 master + 1 SO + 1 scrap + 1 invoice + 1 recompute readiness + 1 rekonsiliasi = 14."""
+    """9 master + 1 SO + 1 scrap + 1 invoice + 1 readiness + 1 rekonsiliasi
+    + 3 analytics (B.8) = 17."""
 
-    def test_jumlah_entry_total_empat_belas(self):
-        self.assertEqual(len(BEAT), 14)
+    def test_jumlah_entry_total_sembilan_belas(self):
+        # Sprint F: 17 entry Sprint B + ai-hitl-expire + ai-detect-drift.
+        self.assertEqual(len(BEAT), 19)
+
+    def test_tiga_entry_analytics_ada(self):
+        for key in (
+            "analytics-aggregate-hourly",
+            "analytics-aggregate-daily",
+            "analytics-cleanup-cache",
+        ):
+            self.assertIn(key, BEAT)
+
+    def test_task_analytics_memakai_name_explisit(self):
+        self.assertEqual(
+            BEAT["analytics-aggregate-hourly"]["task"], "analytics.aggregate_hourly"
+        )
+        self.assertEqual(
+            BEAT["analytics-aggregate-daily"]["task"], "analytics.aggregate_daily"
+        )
+        self.assertEqual(
+            BEAT["analytics-cleanup-cache"]["task"], "analytics.cleanup_cache"
+        )
 
     def test_sembilan_entry_master_tetap_utuh(self):
         master_keys = [key for key in BEAT if key.startswith("sync-master-")]

@@ -108,6 +108,10 @@ def partner_row(partner: Partner) -> dict:
         "is_company": bool(partner.is_company),
         "customer_rank": partner.customer_rank,
         "supplier_rank": partner.supplier_rank,
+        # K5.2 — gambar unggahan partner + thumbnail 256px.
+        "image_file_url": partner.image_file.url if partner.image_file else None,
+        "image_display_url": partner.image_display_url,
+        "image_thumbnail_url": partner.image_thumbnail_url,
         "active": bool(partner.is_active),
         "odoo_id": partner.odoo_id,
         "created_at": _iso(partner.created_at),

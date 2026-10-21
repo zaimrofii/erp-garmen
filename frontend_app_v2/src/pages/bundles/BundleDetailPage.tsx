@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useBundle } from '@/hooks/useBundle';
 import { useChatter } from '@/hooks/useChatter';
 import { useChatterWs } from '@/hooks/useChatterWs';
@@ -10,6 +10,8 @@ import { ApiActionButton } from '@/components/molecules/ApiActionButton';
 import { ChatterBox } from '@/components/molecules/ChatterBox';
 import { PrintTagButton } from '@/components/molecules/PrintTagButton';
 import { Spinner } from '@/components/atoms/Spinner';
+import { FloatingAIAssistant } from '@/components/organisms/FloatingAIAssistant';
+import { buildChatContext } from '@/lib/ai-context';
 import { ConflictResolver } from '@/components/ConflictResolver';
 import type { ApiConflictCurrent } from '@/integrations/api-client';
 import type { OfflineAction } from '@/integrations/offline-queue';
@@ -21,7 +23,25 @@ interface ConflictState {
 
 export function BundleDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const { data: bundle, isLoading, error, refetch } = useBundle(id);
+
+  // Sprint E.4 — konteks chat dari bundle yang tampil.
+  const aiContext = buildChatContext(
+    location,
+    { id },
+    "detail",
+    "bundle",
+    {},
+    bundle === undefined
+      ? {}
+      : {
+          code: bundle.code,
+          qty: bundle.qty,
+          state: bundle.state,
+          size: bundle.size,
+        },
+  );
   const [conflict, setConflict] = useState<ConflictState | null>(null);
 
   // Chatter: container memegang datanya, ChatterBox hanya merender (Fase 15).
@@ -35,6 +55,7 @@ export function BundleDetailPage() {
     return (
       <div className="p-4">
         <Spinner />
+        <FloatingAIAssistant context={aiContext} />
       </div>
     );
   }
@@ -102,6 +123,8 @@ export function BundleDetailPage() {
         hasMore={chatter.data?.has_more ?? false}
         onLoadMore={() => setChatterCursor(chatter.data?.next_cursor ?? null)}
       />
+
+      <FloatingAIAssistant context={aiContext} />
 
       {conflict !== null ? (
         <ConflictResolver

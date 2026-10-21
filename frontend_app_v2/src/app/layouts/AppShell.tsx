@@ -1,13 +1,12 @@
-import type { ReactNode } from 'react';
-import { Sidebar } from '@/app/layouts/Sidebar';
-import { TopBar } from '@/app/layouts/TopBar';
-import { useOffline } from '@/app/app-runtime';
-import { findAppByPath, isImmersiveOperatorPath } from '@/app/nav-config';
-import { isAppAllowed, useRole, useVisibleApps } from '@/app/useRole';
-import { useCurrentPath } from '@/app/use-current-path';
-import { BottomNav } from '@/components/molecules/BottomNav';
-import { OfflineBanner } from '@/components/molecules/OfflineBanner';
-import { cn } from '@/lib/cn';
+import type { ReactNode } from "react";
+import { Sidebar } from "@/app/layouts/Sidebar";
+import { TopBar } from "@/app/layouts/TopBar";
+import { useOffline } from "@/app/app-runtime";
+import { findAppByPath, isImmersiveOperatorPath } from "@/app/nav-config";
+import { isAppAllowed, useRole, useVisibleApps } from "@/app/useRole";
+import { useCurrentPath } from "@/app/use-current-path";
+import { BottomNav } from "@/components/molecules/BottomNav";
+import { OfflineBanner } from "@/components/molecules/OfflineBanner";
 
 /**
  * AppShell.tsx - kerangka Odoo-style (Blueprint v3 bagian 5.1).
@@ -41,31 +40,50 @@ export function AppShell({ children }: AppShellProps) {
 
   const activeApp = findAppByPath(pathname);
   const authorizedApp =
-    activeApp !== undefined && isAppAllowed(role, activeApp.id) ? activeApp : undefined;
+    activeApp !== undefined && isAppAllowed(role, activeApp.id)
+      ? activeApp
+      : undefined;
   const immersive = isImmersiveOperatorPath(pathname);
 
   return (
     <div className="flex min-h-screen">
       <Sidebar currentPath={pathname} onNavigate={navigate} />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className={cn(immersive && 'hidden lg:block')}>
-          <TopBar app={authorizedApp} currentPath={pathname} onNavigate={navigate} />
-        </div>
+      <div className="flex flex-1 flex-col ">
+        {immersive ? (
+          <div className="hidden lg:block">
+            <TopBar
+              app={authorizedApp}
+              currentPath={pathname}
+              onNavigate={navigate}
+            />
+          </div>
+        ) : (
+          <TopBar
+            app={authorizedApp}
+            currentPath={pathname}
+            onNavigate={navigate}
+          />
+        )}
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 min-w-0">
           {!isOnline ? (
             <div className="px-4 pt-4 lg:px-6">
               <OfflineBanner pending={pendingCount} online={isOnline} />
             </div>
           ) : null}
 
+          {/* Konten utama — beri padding-top kalau TopBar fixed, TIDAK PERLU kalau sticky */}
           {children}
         </main>
       </div>
 
       {immersive ? null : (
-        <BottomNav items={visibleApps} activeId={activeApp?.id ?? ''} onNavigate={navigate} />
+        <BottomNav
+          items={visibleApps}
+          activeId={activeApp?.id ?? ""}
+          onNavigate={navigate}
+        />
       )}
     </div>
   );

@@ -118,13 +118,13 @@ describe('H3.6 — route & guard (App.tsx)', () => {
 
   it('path `/master/taxes*` dipetakan ke app inventory (nav-config alias)', () => {
     expect(read('src/app/nav-config.ts')).toContain(
-      "{ prefix: '/master/taxes', appId: 'inventory' }",
+      '{ prefix: "/master/taxes", appId: "inventory" }',
     );
   });
 
   it('menu Inventory punya item Master Pajak (link biasa, bukan dropdown)', () => {
     const inventory = NAV_APPS.find((app) => app.id === 'inventory');
-    const item = inventory?.topbar.find((menu) => menu.label === 'Master Pajak');
+    const item = inventory?.topbar.find((menu) => menu.path === '/master/taxes');
 
     expect(item?.path).toBe('/master/taxes');
     expect(item?.children).toBeUndefined();

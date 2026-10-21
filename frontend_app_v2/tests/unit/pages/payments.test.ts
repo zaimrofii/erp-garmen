@@ -155,12 +155,13 @@ describe('H3.3 — route & guard (App.tsx)', () => {
     const finance = NAV_APPS.find((app) => app.id === 'finance');
     const labels = (finance?.topbar ?? []).map((menu) => menu.label);
 
-    expect(labels).toContain('Invoices');
-    expect(labels).toContain('Customer Invoices');
-    expect(labels).toContain('Vendor Bills');
-    expect(labels).toContain('Payments');
-    expect(finance?.topbar.find((menu) => menu.label === 'Payments')?.path).toBe(
-      '/finance/payments',
+    // PRA-0A.1 (K2) — copy nav-config kini Bahasa Indonesia.
+    expect(labels).toContain('Faktur Tagihan');
+    expect(labels).toContain('Faktur Pelanggan');
+    expect(labels).toContain('Tagihan Vendor');
+    expect(labels).toContain('Pembayaran');
+    expect(finance?.topbar.find((menu) => menu.path === '/finance/payments')?.label).toBe(
+      'Pembayaran',
     );
   });
 

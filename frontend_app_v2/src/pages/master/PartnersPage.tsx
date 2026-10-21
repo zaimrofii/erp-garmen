@@ -1,24 +1,38 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
-import { Badge } from '@/components/atoms/Badge';
-import { Button } from '@/components/atoms/Button';
-import { DenseTable, type DenseTableColumn } from '@/components/molecules/DenseTable';
-import { PageHeader } from '@/components/molecules/PageHeader';
-import { PaginationBar } from '@/components/molecules/PaginationBar';
-import { TableToolbar } from '@/components/molecules/TableToolbar';
-import { fetchPartners, PARTNERS_LIMIT_MAX } from '@/api/masterPartners';
-import { useApiClient } from '@/hooks/useApiClient';
-import { useCsvExport, type CsvColumn } from '@/hooks/use-csv-export';
-import { usePagination } from '@/hooks/use-pagination';
-import { cn } from '@/lib/cn';
-import { displayOrDash, formatNpwp, partnerRoleLabels } from '@/lib/master-partner';
-import { CARD } from '@/lib/tokens';
-import type { MasterPartnerRow } from '@/types/master-partner';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Plus, Users } from "lucide-react";
+import { Badge } from "@/components/atoms/Badge";
+import { Button } from "@/components/atoms/Button";
+import {
+  DenseTable,
+  type DenseTableColumn,
+} from "@/components/molecules/DenseTable";
+import { GridCard } from "@/components/molecules/GridCard";
+import { PageHeader } from "@/components/molecules/PageHeader";
+import { PaginationBar } from "@/components/molecules/PaginationBar";
+import { TableToolbar } from "@/components/molecules/TableToolbar";
+import { ViewToggle } from "@/components/molecules/ViewToggle";
+import { fetchPartners, PARTNERS_LIMIT_MAX } from "@/api/masterPartners";
+import { useApiClient } from "@/hooks/useApiClient";
+import { useCsvExport, type CsvColumn } from "@/hooks/use-csv-export";
+import { usePagination } from "@/hooks/use-pagination";
+import { cn } from "@/lib/cn";
+import {
+  displayOrDash,
+  formatNpwp,
+  partnerRoleLabels,
+} from "@/lib/master-partner";
+import { CARD } from "@/lib/tokens";
+import {
+  readViewMode,
+  VIEW_STORAGE_KEYS,
+  type ViewMode,
+} from "@/lib/view-mode";
+import type { MasterPartnerRow } from "@/types/master-partner";
 
 /**
- * PartnersPage - route `/master/partners` (H1.6, app Inventory).
+ * PartnersPage - route `/master/partners` (H1.6, app Inventory) + mode GRID (FASE K3).
  *
  * MES = source of truth master (docs/REPLACE-NOTICE.md): daftar partner NYATA dari
  * `GET /api/v1/master/partners/` (`api/masterPartners.ts` → MODE.masterPartners='real').
@@ -26,7 +40,10 @@ import type { MasterPartnerRow } from '@/types/master-partner';
  *   * filter server: `?search=` (kode/nama/email/kota) + `?is_customer=`/`?is_vendor=`;
  *   * tab peran: Semua / Pelanggan (`is_customer=true`) / Supplier (`is_vendor=true`);
  *   * kolom: Kode, Nama, Peran, Kota, Telepon, NPWP, Status, Odoo ID;
- *   * klik baris → detail (`/master/partners/:id`); "Partner Baru" → `/master/partners/new`;
+ *   * MODE GRID (K3): `ViewToggle` list/grid (preferensi `localStorage['mes-view-partners']`);
+ *     `GridCard` memakai `image_display_url` partner (URL relatif di-resolve
+ *     `lib/media-url.ts`); tanpa gambar → ikon pengganti (`Users`) — K5.5;
+ *   * klik baris/kartu → detail (`/master/partners/:id`); "Partner Baru" → `/master/partners/new`;
  *   * Export CSV via `useCsvExport` (kolom = bentuk backend).
  *
  * Guard route: `INVENTORY_ROLES` (konsisten H1.1–H1.5); izin **tulis** API hanya
@@ -35,15 +52,18 @@ import type { MasterPartnerRow } from '@/types/master-partner';
 
 const EMPTY_ROWS: MasterPartnerRow[] = [];
 
+/** Mode yang ditawarkan halaman master ini (kanban hanya untuk bundle/WO). */
+const MODES: readonly ViewMode[] = ["grid", "list"];
+
 const ROLE_FILTERS: { id: string; label: string }[] = [
-  { id: 'all', label: 'Semua' },
-  { id: 'customer', label: 'Pelanggan' },
-  { id: 'vendor', label: 'Supplier' },
+  { id: "all", label: "Semua" },
+  { id: "customer", label: "Pelanggan" },
+  { id: "vendor", label: "Supplier" },
 ];
 
 const ROLE_IDS: readonly string[] = ROLE_FILTERS.map((filter) => filter.id);
 
-type PartnerRoleFilter = 'all' | 'customer' | 'vendor';
+type PartnerRoleFilter = "all" | "customer" | "vendor";
 
 /** PURE - menyempitkan `string` dari Tabs ke filter peran TANPA cast `as`. */
 function isRoleFilter(value: string): value is PartnerRoleFilter {
@@ -55,22 +75,22 @@ function roleParamsForStatus(status: PartnerRoleFilter): {
   is_customer: boolean | null;
   is_vendor: boolean | null;
 } {
-  if (status === 'customer') return { is_customer: true, is_vendor: null };
-  if (status === 'vendor') return { is_customer: null, is_vendor: true };
+  if (status === "customer") return { is_customer: true, is_vendor: null };
+  if (status === "vendor") return { is_customer: null, is_vendor: true };
 
   return { is_customer: null, is_vendor: null };
 }
 
 const COLUMNS: DenseTableColumn<MasterPartnerRow>[] = [
   {
-    key: 'code',
-    label: 'Kode',
+    key: "code",
+    label: "Kode",
     render: (row) => <span className="font-mono tabular-nums">{row.code}</span>,
   },
-  { key: 'name', label: 'Nama' },
+  { key: "name", label: "Nama" },
   {
-    key: 'is_customer',
-    label: 'Peran',
+    key: "is_customer",
+    label: "Peran",
     render: (row) => (
       <span className="flex flex-wrap gap-1">
         {partnerRoleLabels(row).map((label) => (
@@ -81,26 +101,30 @@ const COLUMNS: DenseTableColumn<MasterPartnerRow>[] = [
       </span>
     ),
   },
-  { key: 'city', label: 'Kota', render: (row) => displayOrDash(row.city) },
-  { key: 'phone', label: 'Telepon', render: (row) => displayOrDash(row.phone) },
+  { key: "city", label: "Kota", render: (row) => displayOrDash(row.city) },
+  { key: "phone", label: "Telepon", render: (row) => displayOrDash(row.phone) },
   {
-    key: 'npwp',
-    label: 'NPWP',
+    key: "npwp",
+    label: "NPWP",
     render: (row) => (
-      <span className="font-mono text-xs tabular-nums">{formatNpwp(row.npwp)}</span>
+      <span className="font-mono text-xs tabular-nums">
+        {formatNpwp(row.npwp)}
+      </span>
     ),
   },
   {
-    key: 'active',
-    label: 'Status',
+    key: "active",
+    label: "Status",
     render: (row) => (
-      <Badge tone={row.active ? 'blue' : 'muted'}>{row.active ? 'Aktif' : 'Nonaktif'}</Badge>
+      <Badge tone={row.active ? "blue" : "muted"}>
+        {row.active ? "Aktif" : "Nonaktif"}
+      </Badge>
     ),
   },
   {
-    key: 'odoo_id',
-    label: 'Odoo ID',
-    align: 'right',
+    key: "odoo_id",
+    label: "Odoo ID",
+    align: "right",
     render: (row) =>
       row.odoo_id === null ? (
         <span className="text-muted-foreground">-</span>
@@ -111,17 +135,17 @@ const COLUMNS: DenseTableColumn<MasterPartnerRow>[] = [
 ];
 
 const CSV_COLUMNS: CsvColumn<MasterPartnerRow>[] = [
-  { key: 'code', label: 'code' },
-  { key: 'name', label: 'name' },
-  { key: 'email', label: 'email' },
-  { key: 'phone', label: 'phone' },
-  { key: 'city', label: 'city' },
-  { key: 'npwp', label: 'npwp' },
-  { key: 'is_customer', label: 'is_customer' },
-  { key: 'is_vendor', label: 'is_vendor' },
-  { key: 'is_company', label: 'is_company' },
-  { key: 'active', label: 'active' },
-  { key: 'odoo_id', label: 'odoo_id' },
+  { key: "code", label: "code" },
+  { key: "name", label: "name" },
+  { key: "email", label: "email" },
+  { key: "phone", label: "phone" },
+  { key: "city", label: "city" },
+  { key: "npwp", label: "npwp" },
+  { key: "is_customer", label: "is_customer" },
+  { key: "is_vendor", label: "is_vendor" },
+  { key: "is_company", label: "is_company" },
+  { key: "active", label: "active" },
+  { key: "odoo_id", label: "odoo_id" },
 ];
 
 export function PartnersPage() {
@@ -129,11 +153,14 @@ export function PartnersPage() {
   const navigate = useNavigate();
   const { exportCsv } = useCsvExport();
 
-  const [search, setSearch] = useState('');
-  const [role, setRole] = useState<PartnerRoleFilter>('all');
+  const [view, setView] = useState<ViewMode>(() =>
+    readViewMode(VIEW_STORAGE_KEYS.partners, MODES),
+  );
+  const [search, setSearch] = useState("");
+  const [role, setRole] = useState<PartnerRoleFilter>("all");
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ['master-partners', search, role],
+    queryKey: ["master-partners", search, role],
     queryFn: () =>
       fetchPartners(client, {
         search,
@@ -146,7 +173,7 @@ export function PartnersPage() {
   const rows = data?.rows ?? EMPTY_ROWS;
   const pagination = usePagination(rows, { pageSize: 20 });
 
-  const hasFilter = search.trim().length > 0 || role !== 'all';
+  const hasFilter = search.trim().length > 0 || role !== "all";
 
   function handleSearch(value: string): void {
     setSearch(value);
@@ -161,8 +188,8 @@ export function PartnersPage() {
   }
 
   function resetFilters(): void {
-    setSearch('');
-    setRole('all');
+    setSearch("");
+    setRole("all");
     pagination.reset();
   }
 
@@ -172,17 +199,29 @@ export function PartnersPage() {
         title="Master Partner"
         subtitle={`Pelanggan & supplier MES — ${String(data?.total_count ?? 0)} baris`}
         breadcrumb={[
-          { label: 'Inventory', href: '/inventory/products' },
-          { label: 'Master Partner' },
+          { label: "Inventory", href: "/inventory/products" },
+          { label: "Master Partner" },
         ]}
         actions={
-          <Button icon={Plus} onClick={() => navigate('/master/partners/new')}>
-            Partner Baru
-          </Button>
+          <>
+            <ViewToggle
+              modes={MODES}
+              value={view}
+              onChange={setView}
+              storageKey={VIEW_STORAGE_KEYS.partners}
+              label="Mode tampilan partner"
+            />
+            <Button
+              icon={Plus}
+              onClick={() => navigate("/master/partners/new")}
+            >
+              Partner Baru
+            </Button>
+          </>
         }
       />
 
-      <section className={cn(CARD, 'flex flex-col gap-3 p-4')}>
+      <section className={cn(CARD, "flex flex-col gap-3 p-4")}>
         <TableToolbar
           search={search}
           onSearchChange={handleSearch}
@@ -192,7 +231,7 @@ export function PartnersPage() {
           activeFilter={role}
           onFilterChange={handleRole}
           exportDisabled={rows.length === 0}
-          onExport={() => exportCsv(rows, 'master-partners.csv', CSV_COLUMNS)}
+          onExport={() => exportCsv(rows, "master-partners.csv", CSV_COLUMNS)}
           refreshing={isFetching}
           onRefresh={() => {
             void refetch();
@@ -200,29 +239,69 @@ export function PartnersPage() {
         />
 
         <div className="flex flex-wrap items-end gap-3">
-          <Button variant="secondary" size="sm" disabled={!hasFilter} onClick={resetFilters}>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={!hasFilter}
+            onClick={resetFilters}
+          >
             Reset Filter
           </Button>
         </div>
       </section>
 
-      <section className={cn(CARD, 'p-0')}>
-        <DenseTable
-          columns={COLUMNS}
-          rows={pagination.pageRows}
-          loading={isLoading}
-          error={error === null ? null : 'Gagal memuat master partner.'}
-          onRetry={() => {
-            void refetch();
-          }}
-          onRowClick={(row) => navigate(`/master/partners/${String(row.id)}`)}
-          emptyMessage={
-            hasFilter
-              ? 'Tidak ada partner yang cocok dengan filter.'
-              : 'Belum ada partner. Tambahkan lewat tombol "Partner Baru".'
-          }
-        />
-      </section>
+      {view === "grid" ? (
+        rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {hasFilter
+              ? "Tidak ada partner yang cocok dengan filter."
+              : 'Belum ada partner. Tambahkan lewat tombol "Partner Baru".'}
+          </p>
+        ) : (
+          <section className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {pagination.pageRows.map((row) => (
+              <GridCard
+                key={row.id}
+                title={row.name}
+                subtitle={`${row.code} · ${displayOrDash(row.city)}`}
+                imageUrl={row.image_display_url}
+                fallbackIcon={Users}
+                badges={
+                  <>
+                    {partnerRoleLabels(row).map((label) => (
+                      <Badge key={label} tone="muted">
+                        {label}
+                      </Badge>
+                    ))}
+                    <Badge tone={row.active ? "blue" : "muted"}>
+                      {row.active ? "Aktif" : "Nonaktif"}
+                    </Badge>
+                  </>
+                }
+                onClick={() => navigate(`/master/partners/${String(row.id)}`)}
+              />
+            ))}
+          </section>
+        )
+      ) : (
+        <section className={cn(CARD, "p-0")}>
+          <DenseTable
+            columns={COLUMNS}
+            rows={pagination.pageRows}
+            loading={isLoading}
+            error={error === null ? null : "Gagal memuat master partner."}
+            onRetry={() => {
+              void refetch();
+            }}
+            onRowClick={(row) => navigate(`/master/partners/${String(row.id)}`)}
+            emptyMessage={
+              hasFilter
+                ? "Tidak ada partner yang cocok dengan filter."
+                : 'Belum ada partner. Tambahkan lewat tombol "Partner Baru".'
+            }
+          />
+        </section>
+      )}
 
       <PaginationBar
         page={pagination.page}

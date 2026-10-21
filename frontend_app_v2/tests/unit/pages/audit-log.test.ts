@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createElement, type ReactElement } from 'react';
@@ -41,7 +42,6 @@ function read(relative: string): string {
 }
 
 const APP = read('src/App.tsx');
-const NAV = read('src/app/nav-config.ts');
 
 function renderPage(
   element: ReactElement,
@@ -89,12 +89,12 @@ describe('H5.5 — route, guard & nav', () => {
   it('App.tsx: /settings/audit-log dengan guard SETTINGS_ROLES', () => {
     expect(APP).toContain('path="/settings/audit-log"');
     expect(APP).toContain('<AuditLogPage />');
-    expect(APP).toContain("import('@/pages/settings/AuditLogPage')");
+    expect(APP).toContain('import("@/pages/settings/AuditLogPage")');
     expect(APP).toContain('roles={SETTINGS_ROLES}');
   });
 
   it('nav-config menambah "Audit Log" setelah WA Gateway + F9 /settings/audit TETAP', () => {
-    expect(NAV).toContain("label: 'Audit Log', path: '/settings/audit-log'");
+    expect(topbarPaths('settings')).toContain('/settings/audit-log');
 
     const settings = NAV_APPS.find((app) => app.id === 'settings');
     const paths = settings?.topbar.map((item) => item.path) ?? [];

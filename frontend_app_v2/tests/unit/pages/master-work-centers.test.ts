@@ -112,7 +112,7 @@ const VALID_FORM: WorkCenterFormValues = {
 };
 
 describe('H1.7 — route & guard (App.tsx)', () => {
-  it('4 route work center terdaftar dengan guard INVENTORY_ROLES', () => {
+  it('4 route work center terdaftar dengan guard PRODUCTION_ROLES', () => {
     for (const routePath of [
       '/master/work-centers',
       '/master/work-centers/new',
@@ -125,18 +125,18 @@ describe('H1.7 — route & guard (App.tsx)', () => {
     expect(APP).toContain('<MasterWorkCentersPage />');
     expect(APP).toContain('<MasterWorkCenterFormPage />');
     expect(APP).toContain('<MasterWorkCenterDetailPage />');
-    expect(APP).toMatch(/path="\/master\/work-centers"[\s\S]{0,220}INVENTORY_ROLES/);
+    expect(APP).toMatch(/path="\/master\/work-centers"[\s\S]{0,220}PRODUCTION_ROLES/);
   });
 
   it('path `/master/work-centers*` dipetakan ke app inventory (nav-config alias)', () => {
-    expect(NAV).toContain("{ prefix: '/master/work-centers', appId: 'inventory' }");
-    expect(legacyAppIdForPath('/master/work-centers')).toBe('inventory');
-    expect(legacyAppIdForPath('/master/work-centers/5/edit')).toBe('inventory');
+    expect(NAV).toContain('{ prefix: "/master/work-centers", appId: "production" }');
+    expect(legacyAppIdForPath('/master/work-centers')).toBe('production');
+    expect(legacyAppIdForPath('/master/work-centers/5/edit')).toBe('production');
   });
 
   it('menu Inventory punya item Master Work Center (link biasa)', () => {
-    const inventory = NAV_APPS.find((app) => app.id === 'inventory');
-    const item = inventory?.topbar.find((menu) => menu.label === 'Master Work Center');
+    const production = NAV_APPS.find((app) => app.id === 'production');
+    const item = production?.topbar.find((menu) => menu.path === '/master/work-centers');
 
     expect(item?.path).toBe('/master/work-centers');
     expect(item?.children).toBeUndefined();

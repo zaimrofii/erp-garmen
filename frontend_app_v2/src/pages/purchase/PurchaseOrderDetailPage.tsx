@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle2, FileText, Pencil, RefreshCw, Trash2, XCircle } from 'lucide-react';
 import { Badge } from '@/components/atoms/Badge';
@@ -7,6 +7,8 @@ import { Button } from '@/components/atoms/Button';
 import { Spinner } from '@/components/atoms/Spinner';
 import { Toast, type ToastTone } from '@/components/atoms/Toast';
 import { DenseTable, type DenseTableColumn } from '@/components/molecules/DenseTable';
+import { FloatingAIAssistant } from '@/components/organisms/FloatingAIAssistant';
+import { buildChatContext } from '@/lib/ai-context';
 import { PageHeader } from '@/components/molecules/PageHeader';
 import {
   deletePurchaseOrderMes,
@@ -99,6 +101,7 @@ function actionIcon(action: string) {
 
 export function PurchaseOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const client = useApiClient();
   const queryClient = useQueryClient();
@@ -116,6 +119,23 @@ export function PurchaseOrderDetailPage() {
     enabled: poId !== null,
     staleTime: 15_000,
   });
+
+  // Sprint E.4 — konteks chat dari PO yang tampil.
+  const aiContext = buildChatContext(
+    location,
+    { id },
+    'detail',
+    'purchase_order',
+    {},
+    po === undefined
+      ? {}
+      : {
+          code: po.code,
+          vendor_name: po.vendor_name ?? '',
+          state: po.state,
+          total: po.amount_total,
+        },
+  );
 
   const action = useMutation({
     mutationFn: async (name: PurchaseOrderMesAction) =>
@@ -330,6 +350,8 @@ export function PurchaseOrderDetailPage() {
           </section>
         </>
       ) : null}
+
+      <FloatingAIAssistant context={aiContext} />
 
       <Toast
         open={toast !== null}

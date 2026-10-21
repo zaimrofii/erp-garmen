@@ -22,6 +22,8 @@ import type {
   MasterPartnerSaved,
 } from '@/types/master-partner';
 import { unwrap } from '../client';
+import { deleteMasterImage, masterImagePath, postMasterImage } from './_image';
+import type { MasterImagePayload } from '@/types/master-image';
 import {
   buildQueryPath,
   getParsed,
@@ -90,6 +92,10 @@ export function readMasterPartnerRow(raw: unknown): MasterPartnerRow | null {
     is_company: readBool(raw['is_company']),
     customer_rank: readNum(raw['customer_rank']),
     supplier_rank: readNum(raw['supplier_rank']),
+    // K5.3 — URL gambar unggahan + thumbnail (aditif; backend K5.2).
+    image_file_url: readNullableStr(raw['image_file_url']),
+    image_display_url: readNullableStr(raw['image_display_url']),
+    image_thumbnail_url: readNullableStr(raw['image_thumbnail_url']),
     active: readBool(raw['active']),
     odoo_id: readNullableNum(raw['odoo_id']),
     created_at: readNullableStr(raw['created_at']),
@@ -204,4 +210,27 @@ export async function updatePartner(
 /** Nonaktifkan partner (DELETE = **soft delete**; baris tidak dihapus dari DB). */
 export async function deletePartner(client: ApiClient, id: number): Promise<void> {
   unwrap(await client.request<unknown>(`${MASTER_PARTNERS_PATH}${id}/`, { method: 'DELETE' }));
+}
+
+/* ---------------------------------------------------------------------- K5.3 ---- */
+/** URL endpoint gambar partner: `/master/partners/<id>/image/` (backend K5.2). */
+export function masterPartnerImagePath(id: number): string {
+  return masterImagePath(MASTER_PARTNERS_PATH, id);
+}
+
+/** Unggah gambar partner (multipart field `image`; izin ADMIN/OWNER) — K5.2 backend. */
+export async function uploadPartnerImage(
+  client: ApiClient,
+  id: number,
+  file: File,
+): Promise<MasterImagePayload> {
+  return postMasterImage(client, masterPartnerImagePath(id), file);
+}
+
+/** Hapus gambar partner (idempotent; balasan memuat `deleted_files`). */
+export async function deletePartnerImage(
+  client: ApiClient,
+  id: number,
+): Promise<MasterImagePayload> {
+  return deleteMasterImage(client, masterPartnerImagePath(id));
 }

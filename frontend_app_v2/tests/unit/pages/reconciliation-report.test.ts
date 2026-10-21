@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -81,9 +82,7 @@ describe('F9/9.1 — halaman', () => {
 
 describe('F9/9.4 — nav item', () => {
   it('Reports punya item Reconciliation dengan path yang benar', () => {
-    expect(read('src/app/nav-config.ts')).toContain(
-      "{ label: 'Reconciliation', path: '/reports/reconciliation' }",
-    );
+    expect(topbarPaths('reports')).toContain('/reports/reconciliation');
   });
 
   it('menu-config TIDAK menyalin daftar (tetap turunan NAV_APPS)', () => {

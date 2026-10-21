@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 
+from django.conf import settings
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import AllowAny
@@ -48,6 +49,16 @@ class AiChatView(APIView):
     """`POST /api/v1/ai/chat` — selalu 200 + `{ok:false, reason:'not_implemented'}`."""
 
     permission_classes = [AllowAny]  # auth menyusul Fase G
+
+    def dispatch(self, request, *args, **kwargs):
+        """Thin adapter: `AI_AGENT_ENABLED=true` → delegasi ke ai_agent (D.5)."""
+        if getattr(settings, "AI_AGENT_ENABLED", False):
+            from integrations.ai_agent.api.views import AiChatView as AgentChatView
+
+            self.permission_classes = tuple(AgentChatView.permission_classes)
+            self.post = AgentChatView.post.__get__(self, type(self))
+
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request):
         """Balas stub valid; body request (message/context) dicatat di log DEBUG."""

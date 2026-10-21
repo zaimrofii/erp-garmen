@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react';
-import { AlertOctagon } from 'lucide-react';
-import { Button } from '@/components/atoms/Button';
-import { Spinner } from '@/components/atoms/Spinner';
-import { cn } from '@/lib/cn';
-import { TABLE_CELL, TABLE_HEAD } from '@/lib/tokens';
+import type { ReactNode } from "react";
+import { AlertOctagon } from "lucide-react";
+import { Button } from "@/components/atoms/Button";
+import { Spinner } from "@/components/atoms/Spinner";
+import { cn } from "@/lib/cn";
+import { TABLE_CELL, TABLE_HEAD } from "@/lib/tokens";
 
 /**
  * DenseTable - tabel padat GENERIC untuk halaman Inventory/Purchase (Fase 20).
@@ -15,7 +15,7 @@ import { TABLE_CELL, TABLE_HEAD } from '@/lib/tokens';
  * `Object.entries()` (TANPA cast `as`, jadi tipe tetap strict).
  */
 
-export type DenseTableAlign = 'left' | 'right' | 'center';
+export type DenseTableAlign = "left" | "right" | "center";
 
 export interface DenseTableColumn<T> {
   key: string;
@@ -26,9 +26,9 @@ export interface DenseTableColumn<T> {
 }
 
 const ALIGN_CLASS: Record<DenseTableAlign, string> = {
-  left: '',
-  right: 'text-right',
-  center: 'text-center',
+  left: "",
+  right: "text-right",
+  center: "text-center",
 };
 
 function readCell(row: object, key: string): unknown {
@@ -36,11 +36,12 @@ function readCell(row: object, key: string): unknown {
 }
 
 function formatCell(value: unknown): string {
-  if (value === null || value === undefined) return '-';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value === null || value === undefined) return "-";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean")
+    return String(value);
 
-  return JSON.stringify(value) ?? '-';
+  return JSON.stringify(value) ?? "-";
 }
 
 interface DenseTableProps<T extends object> {
@@ -63,7 +64,7 @@ export function DenseTable<T extends object>({
   error = null,
   onRetry,
   onRowClick,
-  emptyMessage = 'Belum ada data.',
+  emptyMessage = "Belum ada data.",
   className,
   rowKey,
 }: DenseTableProps<T>) {
@@ -71,8 +72,11 @@ export function DenseTable<T extends object>({
   const showRows = !loading && !hasError;
 
   return (
-    <div className={cn('overflow-x-auto', className)}>
-      <table className="w-full border-collapse" aria-busy={loading || undefined}>
+    <div className={cn("overflow-x-auto", className)}>
+      <table
+        className="w-full border-collapse"
+        aria-busy={loading || undefined}
+      >
         <thead>
           <tr className="border-b border-border/80">
             {columns.map((column) => (
@@ -81,7 +85,9 @@ export function DenseTable<T extends object>({
                 scope="col"
                 className={cn(
                   TABLE_HEAD,
-                  column.align === undefined ? undefined : ALIGN_CLASS[column.align],
+                  column.align === undefined
+                    ? undefined
+                    : ALIGN_CLASS[column.align],
                   column.className,
                 )}
               >
@@ -108,7 +114,10 @@ export function DenseTable<T extends object>({
                     role="alert"
                     className="flex items-center gap-2 text-sm font-medium text-accent-coral"
                   >
-                    <AlertOctagon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <AlertOctagon
+                      className="h-4 w-4 shrink-0"
+                      aria-hidden="true"
+                    />
                     {error}
                   </p>
                   {onRetry !== undefined ? (
@@ -123,7 +132,10 @@ export function DenseTable<T extends object>({
 
           {showRows && rows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="p-6 text-center text-sm text-muted-foreground">
+              <td
+                colSpan={columns.length}
+                className="p-6 text-center text-sm text-muted-foreground"
+              >
                 {emptyMessage}
               </td>
             </tr>
@@ -132,11 +144,19 @@ export function DenseTable<T extends object>({
           {showRows
             ? rows.map((row, index) => (
                 <tr
-                  key={rowKey === undefined ? ((row as { id?: number | string }).id ?? index) : rowKey(row)}
-                  onClick={onRowClick === undefined ? undefined : () => onRowClick(row)}
+                  key={
+                    rowKey === undefined
+                      ? ((row as { id?: number | string }).id ?? index)
+                      : rowKey(row)
+                  }
+                  onClick={
+                    onRowClick === undefined ? undefined : () => onRowClick(row)
+                  }
                   className={cn(
-                    'transition-colors',
-                    onRowClick !== undefined ? 'cursor-pointer hover:bg-muted/50' : 'hover:bg-muted/30',
+                    "transition-colors",
+                    onRowClick !== undefined
+                      ? "cursor-pointer hover:bg-muted/50"
+                      : "hover:bg-muted/30",
                   )}
                 >
                   {columns.map((column) => (
@@ -144,7 +164,9 @@ export function DenseTable<T extends object>({
                       key={column.key}
                       className={cn(
                         TABLE_CELL,
-                        column.align === undefined ? undefined : ALIGN_CLASS[column.align],
+                        column.align === undefined
+                          ? undefined
+                          : ALIGN_CLASS[column.align],
                         column.className,
                       )}
                     >

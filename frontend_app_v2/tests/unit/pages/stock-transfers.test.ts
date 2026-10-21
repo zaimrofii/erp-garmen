@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createElement, type ReactElement } from 'react';
@@ -40,7 +41,6 @@ function read(relative: string): string {
 }
 
 const APP = read('src/App.tsx');
-const NAV = read('src/app/nav-config.ts');
 
 function renderPage(
   element: ReactElement,
@@ -321,11 +321,11 @@ describe('H2.6 — halaman Stock Transfer (render + sumber)', () => {
     expect(APP).toContain('StockTransferListPage');
     expect(APP).toContain('StockTransferFormPage');
     expect(APP).toContain('StockTransferDetailPage');
-    expect(APP).toContain("const INVENTORY_ROLES: Role[] = ['inventory', 'admin', 'owner'];");
+    expect(APP).toContain('const INVENTORY_ROLES: Role[] = ["inventory", "admin", "owner"];');
   });
 
   it('menu Inventory menambah entri Transfer (nav-config)', () => {
-    expect(NAV).toContain("{ label: 'Transfer', path: '/inventory/transfers' }");
+    expect(topbarPaths('inventory')).toContain('/inventory/transfers');
   });
 });
 

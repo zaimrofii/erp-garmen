@@ -63,7 +63,7 @@ export const ROLE_APPS: Record<Role, string[]> = {
   // menyorot Dashboard saat berada di `/` (route `/` tetap TANPA RoleRoute karena ia
   // target redirect netral — menjaga `/` berisiko loop redirect).
   operator: ["dashboard", "production"],
-  supervisor: ["dashboard", "production", "quality", "reports"],
+  supervisor: ["dashboard", "production", "quality", "reports", "analytics", "ai"],
   qc: ["dashboard", "production", "quality"],
   admin: [
     "dashboard",
@@ -71,6 +71,8 @@ export const ROLE_APPS: Record<Role, string[]> = {
     "purchase",
     "quality",
     "reports",
+    // Sprint C.3 — app Analytics (metrik read-only, guard ANALYTICS_ROLES).
+    "analytics",
     "settings",
     "ai",
     // F15 — app Finance jadi NYATA (antrean invoice Fase 4.4).
@@ -87,6 +89,7 @@ export const ROLE_APPS: Record<Role, string[]> = {
     "purchase",
     "quality",
     "reports",
+    "analytics",
     // H5: Settings (guard SETTINGS_ROLES = admin + owner).
     "settings",
     "ai",

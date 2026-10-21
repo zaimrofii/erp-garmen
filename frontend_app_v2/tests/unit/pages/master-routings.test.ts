@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createElement, type ReactElement } from 'react';
@@ -49,7 +50,6 @@ function read(relative: string): string {
 }
 
 const APP = read('src/App.tsx');
-const NAV = read('src/app/nav-config.ts');
 
 /** Konteks feedback palsu — `useFeedback()` di halaman detail/form butuh provider. */
 const FEEDBACK: FeedbackRuntime = {
@@ -123,7 +123,7 @@ const DETAIL: MasterRoutingDetail = {
 };
 
 describe('H1.9 — route, guard & nav', () => {
-  it('App.tsx: 4 route master routing (INVENTORY_ROLES) + /settings/routing tetap ada', () => {
+  it('App.tsx: 4 route master routing (PRODUCTION_ROLES) + /settings/routing tetap ada', () => {
     expect(APP).toContain('path="/master/routings"');
     expect(APP).toContain('path="/master/routings/new"');
     expect(APP).toContain('path="/master/routings/:id/edit"');
@@ -131,7 +131,7 @@ describe('H1.9 — route, guard & nav', () => {
     expect(APP).toContain('<MasterRoutingsPage />');
     expect(APP).toContain('<MasterRoutingFormPage />');
     expect(APP).toContain('<MasterRoutingDetailPage />');
-    expect(APP).toContain("import('@/pages/master/RoutingsPage')");
+    expect(APP).toContain('import("@/pages/master/RoutingsPage")');
     // endpoint = B22 di tempat: TIDAK ada endpoint API paralel /master/routings/
     expect(APP).not.toContain('api/v1/master/routings');
     // route editor DAG Settings (B22 F3A) tetap hidup
@@ -139,12 +139,12 @@ describe('H1.9 — route, guard & nav', () => {
   });
 
   it('nav-config menambah topbar "Master Routing" di app Inventory', () => {
-    expect(NAV).toContain("label: 'Master Routing', path: '/master/routings'");
-    expect(legacyAppIdForPath('/master/routings')).toBe('inventory');
+    expect(topbarPaths('production')).toContain('/master/routings');
+    expect(legacyAppIdForPath('/master/routings')).toBe('production');
 
-    const inventory = NAV_APPS.find((app) => app.id === 'inventory');
+    const production = NAV_APPS.find((app) => app.id === 'production');
 
-    expect(inventory?.topbar.some((item) => item.path === '/master/routings')).toBe(true);
+    expect(production?.topbar.some((item) => item.path === '/master/routings')).toBe(true);
   });
 });
 

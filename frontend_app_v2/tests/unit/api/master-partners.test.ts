@@ -3,9 +3,11 @@ import {
   buildMasterPartnersPath,
   createPartner,
   deletePartner,
+  deletePartnerImage,
   fetchPartner,
   fetchPartners,
   MASTER_PARTNERS_PATH,
+  masterPartnerImagePath,
   PARTNERS_LIMIT_DEFAULT,
   PARTNERS_LIMIT_MAX,
   readMasterPartnerDetail,
@@ -14,6 +16,7 @@ import {
   readMasterPartnerSaved,
   toMasterPartnerBody,
   updatePartner,
+  uploadPartnerImage,
 } from '@/api/masterPartners';
 import { MODE, isReal } from '@/api/_adapter';
 import type { ApiClient, ApiResponse } from '@/integrations/api-client';
@@ -42,6 +45,10 @@ const ROW: MasterPartnerRow = {
   is_company: true,
   customer_rank: 3,
   supplier_rank: 0,
+  // K5.3 — 3 URL gambar dari backend K5.2 (baris tanpa unggahan → null).
+  image_file_url: null,
+  image_display_url: null,
+  image_thumbnail_url: null,
   active: true,
   odoo_id: null,
   created_at: '2026-10-11T02:00:00+00:00',
@@ -199,6 +206,10 @@ describe('H1.6 — parsing baris (defensif, tanpa cast)', () => {
       is_company: false,
       customer_rank: 0,
       supplier_rank: 0,
+      // K5.3 — 3 URL gambar (backend K5.2 selalu mengirim; `null` = tanpa gambar).
+      image_file_url: null,
+      image_display_url: null,
+      image_thumbnail_url: null,
       active: false,
       odoo_id: null,
       created_at: null,
@@ -320,5 +331,82 @@ describe('H1.6 — detail & tulis (POST/PUT/DELETE)', () => {
     const { client } = stubClient({ ok: true });
 
     await expect(createPartner(client, INPUT)).rejects.toThrow(/tidak dikenali/);
+  });
+});
+
+/* ------------------------------------------------------------------ K5.3 ---- */
+/** Bentuk response endpoint gambar partner (K5.2 backend) untuk uji adapter. */
+const PARTNER_IMAGE_BODY = {
+  id: 7,
+  image_file_url: '/media/partners/2026/10/toko.jpg',
+  image_display_url: '/media/partners/2026/10/toko.jpg',
+  image_thumbnail_url: '/media/partners/2026/10/toko_thumb.jpg',
+  message: 'Gambar partner berhasil diunggah.',
+};
+
+function partnerImageFile(name = 'toko.png'): File {
+  return new File([new Uint8Array([4, 5, 6])], name, { type: 'image/png' });
+}
+
+describe('K5.3 — gambar partner (unggah/hapus)', () => {
+  it('uploadPartnerImage → POST multipart `/master/partners/7/image/` (field `image`)', async () => {
+    const stub = stubClient(PARTNER_IMAGE_BODY);
+    const file = partnerImageFile();
+
+    const payload = await uploadPartnerImage(stub.client, 7, file);
+
+    expect(stub.requests).toHaveLength(1);
+    expect(stub.requests[0]?.path).toBe('/master/partners/7/image/');
+    expect(stub.requests[0]?.method).toBe('POST');
+    const stored = (stub.requests[0]?.body as FormData).get('image') as File | null;
+    expect(stored?.name).toBe(file.name);
+    expect(stored?.size).toBe(file.size);
+    expect(payload).toEqual(PARTNER_IMAGE_BODY);
+  });
+
+  it('deletePartnerImage → DELETE + idempotent (deleted_files kosong tetap sukses)', async () => {
+    const stub = stubClient({
+      ...PARTNER_IMAGE_BODY,
+      image_file_url: null,
+      image_display_url: null,
+      image_thumbnail_url: null,
+      message: 'Gambar partner memang belum ada.',
+      deleted_files: [],
+    });
+
+    const payload = await deletePartnerImage(stub.client, 7);
+
+    expect(stub.requests[0]).toMatchObject({ path: '/master/partners/7/image/', method: 'DELETE' });
+    expect(payload.deleted_files).toEqual([]);
+    expect(payload.message).toBe('Gambar partner memang belum ada.');
+  });
+
+  it('respons galat backend → pesan dilempar apa adanya', async () => {
+    const failing = {
+      request: async () => ({
+        ok: false,
+        status: 403,
+        error: { kind: 'http_error', message: 'Hanya user dengan role ADMIN/OWNER yang boleh mengubah master UoM.' },
+      }),
+    } as unknown as ApiClient;
+
+    await expect(uploadPartnerImage(failing, 7, partnerImageFile())).rejects.toThrow(
+      'Hanya user dengan role ADMIN/OWNER',
+    );
+  });
+
+  it('readMasterPartnerRow memetakan 3 URL gambar (null kalau tidak dikirim)', () => {
+    const denganGambar = readMasterPartnerRow({ ...ROW, ...PARTNER_IMAGE_BODY });
+    expect(denganGambar?.image_display_url).toBe('/media/partners/2026/10/toko.jpg');
+    expect(denganGambar?.image_thumbnail_url).toBe('/media/partners/2026/10/toko_thumb.jpg');
+
+    const tanpaGambar = readMasterPartnerRow({ ...ROW });
+    expect(tanpaGambar?.image_file_url).toBeNull();
+    expect(tanpaGambar?.image_display_url).toBeNull();
+    expect(tanpaGambar?.image_thumbnail_url).toBeNull();
+  });
+
+  it('masterPartnerImagePath menyusun URL endpoint gambar', () => {
+    expect(masterPartnerImagePath(7)).toBe('/master/partners/7/image/');
   });
 });

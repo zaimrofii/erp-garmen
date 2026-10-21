@@ -69,7 +69,7 @@ describe('F6.2 — ProfileSummary & panel menu', () => {
     expect(textOf(ProfileSummary({ user: null }))).toContain('Belum login');
   });
 
-  it('panel = role="menu" dengan 2 item (Ganti Password, Logout)', () => {
+  it('panel = role="menu" dengan 3 item (Ganti Password, Mode Gelap, Logout)', () => {
     const tree = ProfileMenuPanel({
       user: ADMIN,
       onSelectPassword: () => undefined,
@@ -77,8 +77,15 @@ describe('F6.2 — ProfileSummary & panel menu', () => {
     });
 
     expect(attrOf(tree, 'data-profile-menu')).toBe('true');
-    expect(attrsOf(tree, 'role')).toEqual(['menu', 'menuitem', 'menuitem']);
+    // PRA-0A.1 (K3) — panel kini memuat toggle tema (role menuitemcheckbox).
+    expect(attrsOf(tree, 'role')).toEqual([
+      'menu',
+      'menuitem',
+      'menuitemcheckbox',
+      'menuitem',
+    ]);
     expect(textOf(tree)).toContain('Ganti Password');
+    expect(textOf(tree)).toContain('Mode Gelap');
     expect(textOf(tree)).toContain('Logout');
   });
 
@@ -202,7 +209,9 @@ describe('F6.2 — wiring TopBar ↔ ProfileMenu', () => {
   });
 
   it('ganti password: validasi klien → changePassword(old, new) → pesan sukses', () => {
-    expect(menu).toContain('passwordChangeError({ oldPassword, newPassword, confirmPassword })');
+    expect(menu).toMatch(
+      /passwordChangeError\(\{\s*oldPassword,\s*newPassword,\s*confirmPassword,?\s*\}\)/,
+    );
     expect(menu).toContain('await changePassword(oldPassword, newPassword)');
     expect(menu).toContain('setInfo(LOGIN_MESSAGES.passwordChanged)');
   });
@@ -235,8 +244,8 @@ describe('FIX — dropdown akun tidak ter-clip (mask ke lapisan dekoratif) + ite
     // layer dekoratif tetap membawa mask yang sama supaya batas bawah header tetap lembut
     expect(topBar).toContain('aria-hidden="true"');
     expect(topBar).toContain('data-topbar-fade="true"');
-    expect(topBar).toContain('pointer-events-none absolute inset-0 backdrop-blur');
-    expect(topBar).toContain('[mask-image:linear-gradient(to_bottom,black_70%,transparent_100%)]');
+    expect(topBar).toContain('pointer-events-none absolute inset-0 -z-10 backdrop-blur');
+    expect(topBar).toContain('[mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)]');
   });
 
   it('roleLabelFromCode: kode → label manusiawi (bukan kode mentah)', () => {
@@ -275,7 +284,7 @@ describe('FIX — dropdown akun tidak ter-clip (mask ke lapisan dekoratif) + ite
     const raw = /const SETTINGS_ROLES: Role\[\] = \[([^\]]*)\]/.exec(app)?.[1] ?? '';
     const codes = raw
       .split(',')
-      .map((part) => part.trim().replace(/^'|'$/g, '').toUpperCase())
+      .map((part) => part.trim().replace(/^['"]|['"]$/g, '').toUpperCase())
       .filter((part) => part.length > 0);
 
     expect(codes.length).toBeGreaterThan(0);
@@ -292,11 +301,22 @@ describe('FIX — dropdown akun tidak ter-clip (mask ke lapisan dekoratif) + ite
     const withSettings = ProfileMenuPanel({ ...base, onSelectSettings: () => undefined });
     const withoutSettings = ProfileMenuPanel(base);
 
-    expect(attrsOf(withSettings, 'role')).toEqual(['menu', 'menuitem', 'menuitem', 'menuitem']);
+    expect(attrsOf(withSettings, 'role')).toEqual([
+      'menu',
+      'menuitem',
+      'menuitemcheckbox',
+      'menuitem',
+      'menuitem',
+    ]);
     expect(attrOf(withSettings, 'data-profile-settings')).toBe('true');
     expect(textOf(withSettings)).toContain('Pengaturan');
 
-    expect(attrsOf(withoutSettings, 'role')).toEqual(['menu', 'menuitem', 'menuitem']);
+    expect(attrsOf(withoutSettings, 'role')).toEqual([
+      'menu',
+      'menuitem',
+      'menuitemcheckbox',
+      'menuitem',
+    ]);
     expect(attrOf(withoutSettings, 'data-profile-settings')).toBeUndefined();
     expect(textOf(withoutSettings)).not.toContain('Pengaturan');
   });
@@ -319,7 +339,7 @@ describe('FIX — dropdown akun tidak ter-clip (mask ke lapisan dekoratif) + ite
     expect(onSelectSettings).toHaveBeenCalledTimes(1);
     // wiring nyata (bagian ber-hook): guard pakai role_code + navigasi ke /settings
     expect(menu).toContain('canOpenSettings(user?.role_code)');
-    expect(menu).toContain("navigate('/settings')");
+    expect(menu).toContain('navigate("/settings")');
   });
 });
 

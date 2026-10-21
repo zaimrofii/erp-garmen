@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework.test import APIClient
@@ -61,6 +61,7 @@ def reject_url(pk: int) -> str:
     return f"/api/v1/ai/hitl/{pk}/reject/"
 
 
+@override_settings(AI_AGENT_ENABLED=False)
 class HitlQueueTests(TestCase):
     """Queue + keputusan HITL."""
 

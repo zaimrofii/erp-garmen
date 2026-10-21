@@ -3,14 +3,17 @@ import {
   buildMasterProductsPath,
   createProduct,
   deleteProduct,
+  deleteProductImage,
   fetchProduct,
   fetchProducts,
   MASTER_PRODUCTS_PATH,
+  masterProductImagePath,
   readMasterProductPage,
   readMasterProductRow,
   readMasterProductSaved,
   toMasterProductBody,
   updateProduct,
+  uploadProductImage,
 } from '@/api/masterProducts';
 import { MODE } from '@/api/_adapter';
 import type { ApiClient, ApiResponse } from '@/integrations/api-client';
@@ -36,6 +39,10 @@ const ROW: MasterProductRow = {
   cost_price: 9000,
   weight: 0.25,
   image_url: 'https://cdn.klien.com/kaos.png',
+  // K5.3 — 3 URL gambar dari backend K5.2 (baris tanpa unggahan → null).
+  image_file_url: null,
+  image_display_url: null,
+  image_thumbnail_url: null,
   active: true,
   odoo_id: null,
   // H3.5 — field aditif `price_updated_at` (null = harga belum pernah diubah).
@@ -252,3 +259,85 @@ describe('H1.1 — detail & tulis (POST/PUT/DELETE)', () => {
   });
 });
 
+/* ------------------------------------------------------------------ K5.3 ---- */
+/** Bentuk response endpoint gambar (K5.2 backend) untuk uji adapter. */
+const IMAGE_BODY = {
+  id: 7,
+  image_file_url: '/media/products/2026/10/kaos.jpg',
+  image_display_url: '/media/products/2026/10/kaos.jpg',
+  image_thumbnail_url: '/media/products/2026/10/kaos_thumb.jpg',
+  message: 'Gambar produk berhasil diunggah.',
+};
+
+function imageFile(name = 'kaos.png'): File {
+  return new File([new Uint8Array([1, 2, 3])], name, { type: 'image/png' });
+}
+
+describe('K5.3 — gambar produk (unggah/hapus)', () => {
+  it('uploadProductImage → POST multipart `/master/products/7/image/` (field `image`)', async () => {
+    const stub = stubClient(IMAGE_BODY);
+    const file = imageFile();
+
+    const payload = await uploadProductImage(stub.client, 7, file);
+
+    expect(stub.requests).toHaveLength(1);
+    expect(stub.requests[0]?.path).toBe('/master/products/7/image/');
+    expect(stub.requests[0]?.method).toBe('POST');
+    expect(stub.requests[0]?.body).toBeInstanceOf(FormData);
+    const stored = (stub.requests[0]?.body as FormData).get('image') as File | null;
+    expect(stored?.name).toBe(file.name);
+    expect(stored?.size).toBe(file.size);
+    expect(payload).toEqual(IMAGE_BODY);
+  });
+
+  it('deleteProductImage → DELETE tanpa body + membaca `deleted_files`', async () => {
+    const stub = stubClient({
+      ...IMAGE_BODY,
+      image_file_url: null,
+      image_display_url: null,
+      image_thumbnail_url: null,
+      message: 'Gambar produk dihapus.',
+      deleted_files: ['products/2026/10/kaos.jpg', 'products/2026/10/kaos_thumb.jpg'],
+    });
+
+    const payload = await deleteProductImage(stub.client, 7);
+
+    expect(stub.requests[0]).toMatchObject({ path: '/master/products/7/image/', method: 'DELETE' });
+    expect(stub.requests[0]?.body).toBeUndefined();
+    expect(payload.deleted_files).toEqual([
+      'products/2026/10/kaos.jpg',
+      'products/2026/10/kaos_thumb.jpg',
+    ]);
+    expect(payload.image_display_url).toBeNull();
+  });
+
+  it('respons galat backend → pesan dilempar apa adanya (tanpa menelan error)', async () => {
+    const failing = {
+      request: async () => ({
+        ok: false,
+        status: 400,
+        error: { kind: 'http_error', message: 'Format tidak didukung. Gunakan .jpg, .jpeg, .png, .webp.' },
+      }),
+    } as unknown as ApiClient;
+
+    await expect(uploadProductImage(failing, 7, imageFile('animasi.gif'))).rejects.toThrow(
+      'Format tidak didukung',
+    );
+  });
+
+  it('readMasterProductRow memetakan 3 URL gambar (null kalau backend tidak mengirim)', () => {
+    const denganGambar = readMasterProductRow({ ...ROW, ...IMAGE_BODY });
+    expect(denganGambar?.image_file_url).toBe('/media/products/2026/10/kaos.jpg');
+    expect(denganGambar?.image_display_url).toBe('/media/products/2026/10/kaos.jpg');
+    expect(denganGambar?.image_thumbnail_url).toBe('/media/products/2026/10/kaos_thumb.jpg');
+
+    const tanpaGambar = readMasterProductRow({ ...ROW });
+    expect(tanpaGambar?.image_file_url).toBeNull();
+    expect(tanpaGambar?.image_display_url).toBeNull();
+    expect(tanpaGambar?.image_thumbnail_url).toBeNull();
+  });
+
+  it('masterProductImagePath menyusun URL endpoint gambar', () => {
+    expect(masterProductImagePath(7)).toBe('/master/products/7/image/');
+  });
+});

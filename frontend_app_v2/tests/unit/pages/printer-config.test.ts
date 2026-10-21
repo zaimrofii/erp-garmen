@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createElement, type ReactElement } from 'react';
@@ -44,7 +45,6 @@ function read(relative: string): string {
 }
 
 const APP = read('src/App.tsx');
-const NAV = read('src/app/nav-config.ts');
 
 /** Konteks feedback palsu — `useFeedback()` di halaman butuh provider. */
 const FEEDBACK: FeedbackRuntime = {
@@ -101,12 +101,12 @@ describe('H5.7 — route, guard & nav', () => {
   it('App.tsx: /settings/printers dengan guard SETTINGS_ROLES', () => {
     expect(APP).toContain('path="/settings/printers"');
     expect(APP).toContain('<PrinterConfigPage />');
-    expect(APP).toContain("import('@/pages/settings/PrinterConfigPage')");
+    expect(APP).toContain('import("@/pages/settings/PrinterConfigPage")');
     expect(APP).toContain('roles={SETTINGS_ROLES}');
   });
 
   it('nav-config menambah "Printer" sebagai item TERAKHIR + landing tetap Routing', () => {
-    expect(NAV).toContain("label: 'Printer', path: '/settings/printers'");
+    expect(topbarPaths('settings')).toContain('/settings/printers');
 
     const settings = NAV_APPS.find((app) => app.id === 'settings');
     const paths = settings?.topbar.map((item) => item.path) ?? [];

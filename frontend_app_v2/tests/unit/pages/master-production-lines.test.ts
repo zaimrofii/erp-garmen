@@ -119,7 +119,7 @@ const VALID_FORM: ProductionLineFormValues = {
 };
 
 describe('H1.8 — route, guard & halaman (react-dom/server)', () => {
-  it('4 route production line terdaftar dengan guard INVENTORY_ROLES + alias nav', () => {
+  it('4 route production line terdaftar dengan guard PRODUCTION_ROLES + alias nav', () => {
     for (const routePath of [
       '/master/production-lines',
       '/master/production-lines/new',
@@ -132,14 +132,14 @@ describe('H1.8 — route, guard & halaman (react-dom/server)', () => {
     expect(APP).toContain('<MasterProductionLinesPage />');
     expect(APP).toContain('<MasterProductionLineFormPage />');
     expect(APP).toContain('<MasterProductionLineDetailPage />');
-    expect(APP).toMatch(/path="\/master\/production-lines"[\s\S]{0,220}INVENTORY_ROLES/);
+    expect(APP).toMatch(/path="\/master\/production-lines"[\s\S]{0,220}PRODUCTION_ROLES/);
 
-    expect(NAV).toContain("{ prefix: '/master/production-lines', appId: 'inventory' }");
-    expect(legacyAppIdForPath('/master/production-lines')).toBe('inventory');
-    expect(legacyAppIdForPath('/master/production-lines/3/edit')).toBe('inventory');
+    expect(NAV).toContain('{ prefix: "/master/production-lines", appId: "production" }');
+    expect(legacyAppIdForPath('/master/production-lines')).toBe('production');
+    expect(legacyAppIdForPath('/master/production-lines/3/edit')).toBe('production');
 
-    const inventory = NAV_APPS.find((app) => app.id === 'inventory');
-    const menu = inventory?.topbar.find((item) => item.label === 'Master Production Line');
+    const production = NAV_APPS.find((app) => app.id === 'production');
+    const menu = production?.topbar.find((item) => item.path === '/master/production-lines');
     expect(menu?.path).toBe('/master/production-lines');
     expect(menu?.children).toBeUndefined();
   });

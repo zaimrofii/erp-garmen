@@ -27,15 +27,18 @@ from __future__ import annotations
 
 import logging
 
+from django.core.exceptions import ValidationError
 from django.db.models import Count, Q
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .bom_services import bom_detail_row, bom_row, create_bom, deactivate_bom, update_bom
 from .account_services import account_row, list_queryset as account_queryset
+from .image_services import delete_image, image_payload, save_image, validate_image
 from .journal_services import journal_row, list_queryset as journal_queryset
 from .location_services import (
     create_location,
@@ -461,6 +464,116 @@ def require_master_admin(request) -> None:
             "Hanya user dengan role "
             f"{'/'.join(MASTER_ADMIN_ROLE_CODES)} yang boleh mengubah master UoM."
         )
+
+
+# ---------------------------------------------------------------------------
+# K5.2 — unggah/hapus gambar master (`/api/v1/master/<resource>/<id>/image/`)
+# ---------------------------------------------------------------------------
+class _MasterImageEndpoint(APIView):
+    """Base unggah/hapus gambar master: multipart + guard ADMIN/OWNER + audit.
+
+    Subclass menentukan `model` (`Product`/`Partner`), `folder` (`products`/
+    `partners`), `label` (pesan 404/sukses), `resource` (`master.product`/
+    `master.partner` untuk `AuditLog`), dan `id_kwarg` (nama parameter URL).
+    Format: jpg/jpeg/png/webp maks 5 MB (validasi di `master/image_services.py`).
+    Gambar bersifat **MES-only** — TIDAK ada `SyncRecord`/push Odoo.
+    """
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    model = None
+    folder = ""
+    label = "data"
+    resource = ""
+    id_kwarg = "pk"
+
+    def _get(self, kwargs: dict):
+        """Ambil objek dari URL; `None` kalau id tidak ada (pemanggil balas 404)."""
+        return self.model.objects.filter(pk=kwargs.get(self.id_kwarg)).first()
+
+    def post(self, request, **kwargs):
+        """Unggah `image` (multipart) → simpan berkas + thumbnail 256px."""
+        require_master_admin(request)
+
+        obj = self._get(kwargs)
+        if obj is None:
+            return Response(
+                {"detail": f"{self.label} {kwargs.get(self.id_kwarg)} tidak ditemukan."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        file = (request.FILES or {}).get("image")
+        ok, error = validate_image(file)
+        if not ok:
+            return Response({"detail": error}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            obj, warning = save_image(
+                obj, file, folder=self.folder, resource=self.resource, request=request
+            )
+        except ValidationError as exc:
+            detail = exc.messages[0] if getattr(exc, "messages", None) else str(exc)
+            return Response({"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
+
+        logger.info("master.image: unggah %s#%s (%s).", self.resource, obj.pk, self.folder)
+        payload = image_payload(obj, message=f"Gambar {self.label.lower()} berhasil diunggah.")
+        if warning:
+            payload["warning"] = warning
+
+        return Response(payload, status=status.HTTP_200_OK)
+
+    def delete(self, request, **kwargs):
+        """Hapus gambar (berkas asli + thumbnail + field). Idempotent → selalu 200."""
+        require_master_admin(request)
+
+        obj = self._get(kwargs)
+        if obj is None:
+            return Response(
+                {"detail": f"{self.label} {kwargs.get(self.id_kwarg)} tidak ditemukan."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        had_image = bool(obj.image_file)
+        deleted = delete_image(obj, resource=self.resource, request=request)
+        logger.info(
+            "master.image: hapus %s#%s (%s berkas).", self.resource, obj.pk, len(deleted)
+        )
+
+        label = self.label.lower()
+        payload = image_payload(
+            obj,
+            message=(
+                f"Gambar {label} dihapus."
+                if had_image
+                else f"Gambar {label} memang belum ada."
+            ),
+        )
+        payload["deleted_files"] = deleted
+
+        return Response(payload, status=status.HTTP_200_OK)
+
+
+class MasterProductImageEndpoint(_MasterImageEndpoint):
+    """`/api/v1/master/products/<product_id>/image/` — gambar produk (K5.2)."""
+
+    model = Product
+    folder = "products"
+    label = "Produk"
+    resource = "master.product"
+    id_kwarg = "product_id"
+
+
+class MasterPartnerImageEndpoint(_MasterImageEndpoint):
+    """`/api/v1/master/partners/<partner_id>/image/` — gambar partner (K5.2)."""
+
+    model = Partner
+    folder = "partners"
+    label = "Partner"
+    resource = "master.partner"
+    id_kwarg = "partner_id"
+
+
 
 
 def _uom_write_body(result) -> dict:

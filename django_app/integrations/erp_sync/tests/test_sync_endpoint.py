@@ -18,8 +18,8 @@ from core.auth.models import User
 
 URL_WIP = "/api/v1/sync/odoo/WIP/"
 URL_FG = "/api/v1/sync/odoo/FG/"
-DELAY_WIP = "integrations.erp_sync.api.push_wip_issue.delay"
-DELAY_FG = "integrations.erp_sync.api.push_fg_receipt.delay"
+DELAY_WIP = "integrations.erp_sync.api.push_wip_issue.apply_async"
+DELAY_FG = "integrations.erp_sync.api.push_fg_receipt.apply_async"
 PAYLOAD = {"product_ref": "PROD-1", "qty": 10, "ref": "WO-DEMO-1"}
 BODY = {"resource": "work_order", "resource_id": "WO-DEMO-1", "payload": PAYLOAD}
 
@@ -54,7 +54,13 @@ class SyncOdooViewTests(TestCase):
         record = SyncRecord.objects.get(pk=data["sync_record_id"])
         self.assertEqual(record.status, SyncStatus.PENDING)
         self.assertEqual(record.payload, PAYLOAD)
-        delay.assert_called_once_with("work_order", "WO-DEMO-1", PAYLOAD, record.pk)
+        # PRA-0A.3 — kode memakai `apply_async(args=…, headers=…)`, bukan `.delay(*args)`.
+        call_args, call_kwargs = delay.call_args
+        self.assertEqual(call_args, ())
+        self.assertEqual(
+            call_kwargs["args"], ["work_order", "WO-DEMO-1", PAYLOAD, record.pk]
+        )
+        self.assertIn("x-request-id", call_kwargs["headers"])
 
     def test_post_fg_memakai_task_fg(self):
         with patch(DELAY_WIP) as delay_wip, patch(

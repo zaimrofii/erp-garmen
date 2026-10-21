@@ -44,7 +44,10 @@ Konvensi:
 
 from decimal import Decimal
 
+from django.core.files.storage import default_storage
 from django.db import models
+
+from .image_services import thumbnail_name
 
 
 class Product(models.Model):
@@ -135,6 +138,32 @@ class Product(models.Model):
         default="",
         help_text="URL gambar produk (opsional, tidak diunggah ke repo).",
     )
+    # K5.2 — unggahan gambar (Pillow). `image_url` DIPERTAHANKAN (kompatibilitas).
+    image_file = models.ImageField(
+        "berkas gambar",
+        upload_to="products/%Y/%m/",
+        null=True,
+        blank=True,
+        help_text="Gambar unggahan MES (jpg/jpeg/png/webp, maks 5 MB).",
+    )
+
+    @property
+    def image_display_url(self) -> str | None:
+        """URL tampilan: unggahan (`image_file`) menang atas `image_url`."""
+        if self.image_file:
+            return self.image_file.url
+        return self.image_url or None
+
+    @property
+    def image_thumbnail_url(self) -> str | None:
+        """URL thumbnail 256px (K5.2); `None` kalau belum dibuat."""
+        if not self.image_file:
+            return None
+        name = thumbnail_name(self.image_file.name)
+        if not default_storage.exists(name):
+            return None
+        return default_storage.url(name)
+
     is_active = models.BooleanField("aktif", default=True)
     created_at = models.DateTimeField("dibuat pada", auto_now_add=True)
     updated_at = models.DateTimeField("diubah pada", auto_now=True)
@@ -391,6 +420,32 @@ class Partner(models.Model):
         default=0,
         help_text="Hitungan supplier dari Odoo (0 = belum pernah transaksi).",
     )
+    # K5.2 — unggahan gambar partner (Pillow).
+    image_file = models.ImageField(
+        "berkas gambar",
+        upload_to="partners/%Y/%m/",
+        null=True,
+        blank=True,
+        help_text="Gambar unggahan MES (jpg/jpeg/png/webp, maks 5 MB).",
+    )
+
+    @property
+    def image_display_url(self) -> str | None:
+        """URL tampilan partner (hanya unggahan; Partner tidak punya `image_url`)."""
+        if self.image_file:
+            return self.image_file.url
+        return None
+
+    @property
+    def image_thumbnail_url(self) -> str | None:
+        """URL thumbnail 256px (K5.2); `None` kalau belum dibuat."""
+        if not self.image_file:
+            return None
+        name = thumbnail_name(self.image_file.name)
+        if not default_storage.exists(name):
+            return None
+        return default_storage.url(name)
+
     is_active = models.BooleanField("aktif", default=True)
     created_at = models.DateTimeField("dibuat pada", auto_now_add=True)
     updated_at = models.DateTimeField("diubah pada", auto_now=True)

@@ -21,6 +21,20 @@ export const updateProduct = pickAdapter('masterProducts', real.updateProduct, r
 /** Nonaktifkan produk (`DELETE` = soft delete `active=False`) — REAL (H1.1). */
 export const deleteProduct = pickAdapter('masterProducts', real.deleteProduct, real.deleteProduct);
 
+/** K5.3 — unggah gambar produk (`POST /master/products/<id>/image/`) — REAL (K5.2). */
+export const uploadProductImage = pickAdapter(
+  'masterProducts',
+  real.uploadProductImage,
+  real.uploadProductImage,
+);
+
+/** K5.3 — hapus gambar produk (`DELETE /master/products/<id>/image/`) — REAL (K5.2). */
+export const deleteProductImage = pickAdapter(
+  'masterProducts',
+  real.deleteProductImage,
+  real.deleteProductImage,
+);
+
 /** H3.5 — ubah harga produk (`PUT /master/products/<id>/price/`) — REAL + audit trail. */
 export const updateProductPrice = pickAdapter(
   'masterProducts',
@@ -39,6 +53,7 @@ export {
   buildMasterProductsPath,
   buildPriceHistoryPath,
   MASTER_PRODUCTS_PATH,
+  masterProductImagePath,
   masterProductPriceHistoryPath,
   masterProductPricePath,
   PRODUCTS_LIMIT_DEFAULT,
@@ -52,6 +67,9 @@ export {
   toMasterProductPriceBody,
 } from './real/masterProducts';
 export type { MasterProductPage, MasterProductsParams } from './real/masterProducts';
+
+/** K5.3 — bentuk response endpoint gambar master (unggah/hapus). */
+export type { MasterImagePayload } from '@/types/master-image';
 export type {
   MasterProductInput,
   MasterProductPriceHistoryPage,

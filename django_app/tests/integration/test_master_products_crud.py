@@ -47,6 +47,10 @@ ROW_KEYS = {
     "price_updated_at",
     "weight",
     "image_url",
+    # K5.2 — URL gambar unggahan + thumbnail (aditif).
+    "image_file_url",
+    "image_display_url",
+    "image_thumbnail_url",
     "active",
     "odoo_id",
     "created_at",

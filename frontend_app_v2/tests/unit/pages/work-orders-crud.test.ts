@@ -201,7 +201,7 @@ describe('H2.3 — route, nav, dan halaman', () => {
       expect(APP).toContain(`path="${route}"`);
     }
 
-    expect(APP).toContain('const PRODUCTION_ROLES: Role[] = [\'operator\', \'supervisor\', \'owner\']');
+    expect(APP).toContain('const PRODUCTION_ROLES: Role[] = ["operator", "supervisor", "owner"]');
     // List memakai halaman F13 (bukan daftar kedua).
     expect(APP).toContain('WorkOrderListPage');
     // Route F13 lama HARUS tetap ada (non-breaking).
@@ -209,10 +209,10 @@ describe('H2.3 — route, nav, dan halaman', () => {
   });
 
   it('nav-config menambah topbar "Work Order" tanpa menghapus menu lain', () => {
-    expect(NAV).toContain("path: '/production/work-orders'");
-    expect(NAV).toContain("path: '/production/scan'");
-    expect(NAV).toContain("path: '/production/qc'");
-    expect(NAV).toContain("{ prefix: '/work-orders', appId: 'production' }");
+    expect(NAV).toContain('path: "/production/work-orders"');
+    expect(NAV).toContain('path: "/production/scan"');
+    expect(NAV).toContain('path: "/production/qc"');
+    expect(NAV).toContain('{ prefix: "/work-orders", appId: "production" }');
   });
 
   it('halaman F13 tetap memakai hook lama + tombol "Buat WO Baru" (aditif)', () => {

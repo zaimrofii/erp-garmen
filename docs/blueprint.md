@@ -265,7 +265,7 @@ odoo-garmen-project/
 
 `stage ∈ {WIP, FG}` · `entity ∈ {uom, location, warehouse, tax, journal, currency, product, bom, partner}`
 
-### 5.4 Endpoint Agregat F1–F3A (23 endpoint)
+### 5.4 Endpoint Agregat F1–F3A (26 endpoint)
 
 | ID | Group | Endpoint | Method | Test |
 |---|---|---|---|---|
@@ -424,6 +424,22 @@ frontend_app_v2/src/
 | Role filter | 7 role × 38 route, 0 mismatch |
 
 ---
+
+### 6.7 Kanban + Grid/List Toggle (FASE K3-K4)
+
+- **Mode toggle, bukan route baru**: Bundle & Work Order punya `list | kanban`, master Products & Partners punya `list | grid`; pilihan disimpan di `localStorage` (`mes-view-*`) via molecule `ViewToggle`.
+- **Papan kanban = data DB**: satu request `GET /api/v1/garmen/<resource>/kanban/` mengembalikan `columns[]` (dari `core.state_machine`) + `transitions[]` + kartu; frontend tidak menyimpan daftar state/transisi.
+- **Drag & drop HTML5 native** (tanpa library): transisi divalidasi dulu terhadap `transitions[]`; drop ilegal = batal + toast, drop legal = `onCardMove` -> `POST /garmen/<resource>/<id>/<ACTION_ID>/`.
+- **Optimistic + rollback**: hook `useKanbanMove` memindahkan kartu di cache (`moveCardInKanban`), rollback ke snapshot saat gagal jaringan/server, lalu `invalidateQueries` setelah settle (server tetap sumber kebenaran).
+- **Grid**: `GridCard` memakai `image_url` produk atau ikon pengganti; backend unggah gambar sudah tersedia di **K5.2** (§6.8) dengan `image_display_url` + thumbnail 256px — pemakaian di UI menyusul K5.3/K5.4.
+
+### 6.8 Gambar Produk/Partner (K5.2 — backend)
+
+- **Model**: `Product.image_file` & `Partner.image_file` (`ImageField`, `upload_to=products/%Y/%m/` | `partners/%Y/%m/`, null/blank). `Product.image_url` dipertahankan sebagai jalur lama; properti `image_display_url` = unggahan menang atas `image_url`, `image_thumbnail_url` = thumbnail 256px (null kalau belum dibuat).
+- **Endpoint**: `POST|DELETE /api/v1/master/products/<product_id>/image/` dan `POST|DELETE /api/v1/master/partners/<partner_id>/image/` — multipart field `image`, guard ADMIN/OWNER (anonim/operator 403), id tidak ada 404. Response: `id`, `image_file_url`, `image_display_url`, `image_thumbnail_url`, `message` (+ `warning` bila thumbnail gagal, + `deleted_files` saat hapus).
+- **Validasi** (`master/image_services.py`): ekstensi jpg/jpeg/png/webp **dan** verifikasi isi berkas lewat Pillow, maks 5 MB; thumbnail 256px dibuat best-effort (`<nama>_thumb.<ext>`) tanpa menggagalkan unggahan.
+- **Perilaku**: unggah ulang mengganti gambar (berkas + thumbnail lama dihapus), hapus idempotent (selalu 200), jejak `AuditLog` action `master.upload_image` / `master.delete_image`. Gambar bersifat MES-only — tidak ada `SyncRecord`/push Odoo.
+- **Baris API** produk & partner menambah `image_file_url`, `image_display_url`, `image_thumbnail_url` (aditif). Media disajikan Django hanya saat `DEBUG` (`/media/`); di produksi diproksikan Nginx. Unggahan bersifat opsional, jadi lantai produksi tetap jalan tanpa berkas gambar.
 
 ## 7. Integrasi Odoo
 

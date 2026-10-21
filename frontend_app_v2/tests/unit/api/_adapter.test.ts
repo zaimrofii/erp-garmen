@@ -9,6 +9,8 @@ import { isReal, MODE, pickAdapter } from '@/api/_adapter';
 
 const REAL_KEYS = [
   'aiChat',
+  // Sprint F.3 — observability AI (`/settings/ai-observability`, ADMIN/OWNER).
+  'aiObservability',
   'audit',
   // H5.5 — Audit Log Viewer (`/settings/audit/`: daftar + filter + detail; READ-ONLY).
   // Key BARU supaya tidak bentrok `audit` (F9 audit produk tanpa `odoo_id`).
@@ -16,6 +18,8 @@ const REAL_KEYS = [
   'auth',
   'bufferQueue',
   'bundles',
+  // FASE K3 - papan kanban bundle/WO (endpoint K2; satu request semua kolom).
+  'bundlesKanban',
   'chatter',
   'dashboard',
   'devices',
@@ -123,20 +127,28 @@ const REAL_KEYS = [
   'syncScrap',
   'wa',
   'workOrders',
+  'workOrdersKanban',
+  // Sprint C.1 — analytics API.
+  'analyticsMetrics',
+  'analyticsMetric',
+  'analyticsHealth',
+  // Sprint C.2 — toggle analytics.
+  'analyticsConfig',
+  'analyticsReadiness',
 ].sort();
 
-/** F5.4.CLOSE + F6.2 + H1.1–H4.8 + H5.1–H5.8 — TIDAK ADA key dummy (semua 85 resource real). */
+/** F5.4.CLOSE + F6.2 + H1.1–H4.8 + H5.1–H5.8 — TIDAK ADA key dummy (semua 87 resource real). */
 const DUMMY_KEYS: string[] = [];
 
 describe('F2 — MODE map', () => {
-  it('key real = 85 (… + H5.6 Integration + H5.5 Audit Log + H5.7 Printer + H5.4 Permissions)', () => {
+  it('key real = 87 (… + H5.6 Integration + H5.5 Audit Log + H5.7 Printer + H5.4 Permissions + FASE K3 bundlesKanban/workOrdersKanban)', () => {
     const real = Object.entries(MODE)
       .filter(([, mode]) => mode === 'real')
       .map(([key]) => key)
       .sort();
 
     expect(real).toEqual(REAL_KEYS);
-    expect(real).toHaveLength(85);
+    expect(real).toHaveLength(93);
   });
 
   it('key dummy = 0 (F5.4.CLOSE — zero dummy, F6.2 tetap nol)', () => {
@@ -222,7 +234,8 @@ describe('F2 — MODE map', () => {
     // `auditLogs` (H5.5 — daftar/filter/detail `/settings/audit/`, READ-ONLY) +
     // `printerConfig` (H5.7 — profil printer `/settings/printer/` + uji printer) +
     // `permissionMatrix` (H5.4 — matrix izin `/settings/permissions/` + PUT bulk per role).
-    expect(Object.keys(MODE)).toHaveLength(85);
+    // `bundlesKanban`/`workOrdersKanban` (FASE K3 — papan kanban K2; dua key baru).
+    expect(Object.keys(MODE)).toHaveLength(93);
     expect([...new Set(Object.values(MODE))].sort()).toEqual(['real']);
   });
 });

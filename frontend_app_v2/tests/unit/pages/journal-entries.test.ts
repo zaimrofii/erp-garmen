@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createElement, type ReactElement } from 'react';
@@ -34,7 +35,6 @@ const APP = read('src/App.tsx');
 const LIST_PAGE = 'src/pages/finance/JournalEntriesPage.tsx';
 const FORM_PAGE = 'src/pages/finance/JournalEntryFormPage.tsx';
 const DETAIL_PAGE = 'src/pages/finance/JournalEntryDetailPage.tsx';
-const NAV = read('src/app/nav-config.ts');
 const API_ADAPTER = read('src/api/journalEntries.ts');
 
 /** Konteks feedback palsu — `useFeedback()` di halaman form/detail butuh provider. */
@@ -78,7 +78,7 @@ describe('H3.4 — route, guard & nav', () => {
     expect(APP).toContain('<JournalEntriesPage />');
     expect(APP).toContain('<JournalEntryFormPage />');
     expect(APP).toContain('<JournalEntryDetailPage />');
-    expect(APP).toContain("import('@/pages/finance/JournalEntriesPage')");
+    expect(APP).toContain('import("@/pages/finance/JournalEntriesPage")');
     expect(APP).toContain('const FINANCE_ROLES: Role[] = ');
 
     // Non-breaking: jalur H3.1–H3.3 & F15 tetap terdaftar.
@@ -93,7 +93,7 @@ describe('H3.4 — route, guard & nav', () => {
   });
 
   it('nav Finance punya item Journal Entries & menu-config menurunkannya', () => {
-    expect(NAV).toContain("{ label: 'Journal Entries', path: '/finance/journal-entries' }");
+    expect(topbarPaths('finance')).toContain('/finance/journal-entries');
 
     const finance = NAV_APPS.find((app) => app.id === 'finance');
     const paths = (finance?.topbar ?? []).map((item) => item.path);

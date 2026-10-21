@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createElement } from 'react';
@@ -42,7 +43,6 @@ function read(relative: string): string {
 }
 
 const APP = read('src/App.tsx');
-const NAV = read('src/app/nav-config.ts');
 
 function renderPage(
   element: React.ReactElement,
@@ -281,10 +281,10 @@ describe('H2.5 — halaman Inventory Adjustment (render + sumber)', () => {
     expect(APP).toContain('InventoryAdjustmentListPage');
     expect(APP).toContain('InventoryAdjustmentFormPage');
     expect(APP).toContain('InventoryAdjustmentDetailPage');
-    expect(APP).toContain("const INVENTORY_ROLES: Role[] = ['inventory', 'admin', 'owner'];");
+    expect(APP).toContain('const INVENTORY_ROLES: Role[] = ["inventory", "admin", "owner"];');
   });
 
   it('menu Inventory menambah entri Adjustment (nav-config)', () => {
-    expect(NAV).toContain("{ label: 'Adjustment', path: '/inventory/adjustments' }");
+    expect(topbarPaths('inventory')).toContain('/inventory/adjustments');
   });
 });

@@ -112,6 +112,11 @@ def product_row(product: Product) -> dict:
         "price_updated_at": _iso(product.price_updated_at),
         "weight": product.weight,
         "image_url": product.image_url,
+        # K5.2 — gambar unggahan (multipart) + thumbnail 256px; `image_url`
+        # adalah jalur lama (URL eksternal) yang tetap didukung.
+        "image_file_url": product.image_file.url if product.image_file else None,
+        "image_display_url": product.image_display_url,
+        "image_thumbnail_url": product.image_thumbnail_url,
         "active": bool(product.is_active),
         "odoo_id": product.odoo_id,
         "created_at": _iso(product.created_at),

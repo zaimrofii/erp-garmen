@@ -136,14 +136,14 @@ describe('H1.5 — route & guard (App.tsx)', () => {
   });
 
   it('path `/master/boms*` dipetakan ke app inventory (nav-config alias)', () => {
-    expect(NAV).toContain("{ prefix: '/master/boms', appId: 'inventory' }");
+    expect(NAV).toContain('{ prefix: "/master/boms", appId: "inventory" }');
     expect(legacyAppIdForPath('/master/boms')).toBe('inventory');
     expect(legacyAppIdForPath('/master/boms/12/edit')).toBe('inventory');
   });
 
   it('menu Inventory punya item Master BOM (link biasa, bukan dropdown)', () => {
     const inventory = NAV_APPS.find((app) => app.id === 'inventory');
-    const item = inventory?.topbar.find((menu) => menu.label === 'Master BOM');
+    const item = inventory?.topbar.find((menu) => menu.path === '/master/boms');
 
     expect(item?.path).toBe('/master/boms');
     expect(item?.children).toBeUndefined();

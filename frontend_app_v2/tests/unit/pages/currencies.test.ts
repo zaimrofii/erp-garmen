@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createElement, type ReactElement } from 'react';
@@ -38,7 +39,6 @@ function read(relative: string): string {
 }
 
 const APP = read('src/App.tsx');
-const NAV = read('src/app/nav-config.ts');
 
 /** Konteks feedback palsu — `useFeedback()` di halaman butuh provider. */
 const FEEDBACK: FeedbackRuntime = {
@@ -75,12 +75,12 @@ describe('H5.2 — route, guard & nav', () => {
   it('App.tsx: /settings/currencies dengan guard SETTINGS_ROLES', () => {
     expect(APP).toContain('path="/settings/currencies"');
     expect(APP).toContain('<CurrenciesPage />');
-    expect(APP).toContain("import('@/pages/settings/CurrenciesPage')");
+    expect(APP).toContain('import("@/pages/settings/CurrenciesPage")');
     expect(APP).toContain('roles={SETTINGS_ROLES}');
   });
 
   it('nav-config menambah topbar "Currencies" di app Settings', () => {
-    expect(NAV).toContain("label: 'Currencies', path: '/settings/currencies'");
+    expect(topbarPaths('settings')).toContain('/settings/currencies');
 
     const settings = NAV_APPS.find((app) => app.id === 'settings');
 

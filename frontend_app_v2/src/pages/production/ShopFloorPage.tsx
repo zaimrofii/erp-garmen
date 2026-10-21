@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRightLeft, WifiOff } from 'lucide-react';
 import { Button } from '@/components/atoms/Button';
 import { Modal } from '@/components/atoms/Modal';
@@ -10,6 +10,8 @@ import { BundleCard } from '@/components/molecules/BundleCard';
 import { OfflineBanner } from '@/components/molecules/OfflineBanner';
 import { useBundle } from '@/hooks/useBundle';
 import { useWideViewport } from '@/hooks/use-wide-viewport';
+import { FloatingAIAssistant } from '@/components/organisms/FloatingAIAssistant';
+import { buildChatContext } from '@/lib/ai-context';
 import { cn } from '@/lib/cn';
 import { cardStatusFromState } from '@/lib/state-display';
 import { BADGE, CARD, PILL_GHOST } from '@/lib/tokens';
@@ -33,8 +35,26 @@ export function ShopFloorPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isWide = useWideViewport();
+  const location = useLocation();
 
   const { data: bundle, isLoading, error: loadError, refetch } = useBundle(id);
+
+  // Sprint E.4 — konteks chat dari bundle di lantai produksi.
+  const aiContext = buildChatContext(
+    location,
+    { id },
+    'detail',
+    'bundle',
+    {},
+    bundle === undefined
+      ? {}
+      : {
+          code: bundle.code,
+          state: bundle.state,
+          qty: bundle.qty,
+          qty_done: bundle.qty_done,
+        },
+  );
 
   const allowedActions = useMemo<AllowedAction[]>(
     () => bundle?.allowed_actions ?? [],
@@ -99,6 +119,7 @@ export function ShopFloorPage() {
     return (
       <div className="flex min-h-full items-center justify-center p-8">
         <Spinner size="lg" />
+        <FloatingAIAssistant context={aiContext} />
       </div>
     );
   }
@@ -267,6 +288,8 @@ export function ShopFloorPage() {
           </>
         }
       />
+
+      <FloatingAIAssistant context={aiContext} />
 
       {conflict !== null ? (
         <ConflictResolver

@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createElement, type ReactElement } from 'react';
@@ -40,7 +41,6 @@ function read(relative: string): string {
 }
 
 const APP = read('src/App.tsx');
-const NAV = read('src/app/nav-config.ts');
 
 /** Konteks feedback palsu — `useFeedback()` di halaman butuh provider. */
 const FEEDBACK: FeedbackRuntime = {
@@ -77,12 +77,12 @@ describe('Sprint C — route, guard & nav', () => {
   it('App.tsx: /settings/sequences dengan guard SETTINGS_ROLES', () => {
     expect(APP).toContain('path="/settings/sequences"');
     expect(APP).toContain('<SequencesPage />');
-    expect(APP).toContain("import('@/pages/settings/SequencesPage')");
+    expect(APP).toContain('import("@/pages/settings/SequencesPage")');
     expect(APP).toContain('roles={SETTINGS_ROLES}');
   });
 
   it('nav-config menambah topbar "Number Sequence" di app Settings', () => {
-    expect(NAV).toContain("label: 'Number Sequence', path: '/settings/sequences'");
+    expect(topbarPaths('settings')).toContain('/settings/sequences');
 
     const settings = NAV_APPS.find((app) => app.id === 'settings');
 

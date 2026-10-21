@@ -20,7 +20,7 @@ function routePaths(): string[] {
 }
 
 describe('F5 — MENU_APPS', () => {
-  it('11 app: 10 dari NAV_APPS (termasuk Finance F15 & Sales H2.1) + 1 placeholder (Master)', () => {
+  it('12 app: 11 dari NAV_APPS (termasuk Finance F15, Sales H2.1 & Analytics C.3) + 1 placeholder (Master)', () => {
     expect(MENU_APPS.map((app) => app.id)).toEqual([
       'dashboard',
       'production',
@@ -28,10 +28,11 @@ describe('F5 — MENU_APPS', () => {
       'sales',
       'purchase',
       'quality',
+      'finance',
       'reports',
+      'analytics',
       'settings',
       'ai',
-      'finance',
       'master',
     ]);
   });

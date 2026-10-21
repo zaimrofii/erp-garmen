@@ -198,6 +198,20 @@ class OdooTransport:
             return []
         return self.client.execute_kw(model, "search_read", [domain, fields])
 
+    def search_read(self, model, domain, fields, limit=None):
+        """Baca record read-only (publik); ``limit`` memotong hasil di sisi klien.
+
+        Ditambahkan Sprint F (bugfix PRA-0B.1): service inventory adjustment &
+        stock transfer memanggil ``transport.search_read(...)``; sebelumnya
+        ``OdooTransport`` hanya punya ``_search_read`` sehingga muncul
+        ``AttributeError`` (tracking produk tidak terbaca).
+        """
+        rows = self._search_read(model, domain, fields)
+        if isinstance(limit, int) and limit > 0:
+            return rows[:limit]
+        return rows
+
+
     # ------------------------------------------------------------ master data
     def fetch_products(self, since=None):
         """Baca ``product.product`` (field minimal)."""

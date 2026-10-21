@@ -49,3 +49,8 @@ sentry-sdk[django]>=2.19,<3
 # reportlab: platypus (Table) untuk .pdf.
 openpyxl>=3.1,<4.0
 reportlab>=4.0,<5.0
+
+# K5.2 — validasi gambar + thumbnail (unggah Product/Partner). `ImageField` Django
+# juga WAJIB Pillow. Persisten: `docker compose build django`; sesi berjalan:
+# `docker compose exec django pip install 'Pillow>=10.0,<11.0'`.
+Pillow>=10.0,<11.0

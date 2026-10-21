@@ -1,3 +1,4 @@
+import { topbarPaths } from '../../helpers/nav';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -25,7 +26,7 @@ describe('F15/B.6 — route finance', () => {
     expect(app).toContain('path="/finance/invoices"');
     expect(app).toContain('<InvoiceQueuePage />');
     expect(app).toMatch(/path="\/finance\/invoices"[\s\S]{0,180}FINANCE_ROLES/);
-    expect(app).toContain("const FINANCE_ROLES: Role[] = ['admin', 'owner'];");
+    expect(app).toContain('const FINANCE_ROLES: Role[] = ["admin", "owner"];');
   });
 });
 
@@ -77,12 +78,12 @@ describe('F15/B.7 — nav Finance nyata', () => {
   const menu = read('src/app/menu-config.ts');
 
   it('NAV_APPS punya app finance dengan item Invoices', () => {
-    expect(nav).toContain("id: 'finance'");
-    expect(nav).toContain("{ label: 'Invoices', path: '/finance/invoices' }");
+    expect(nav).toContain('id: "finance"');
+    expect(topbarPaths('finance')).toContain('/finance/invoices');
   });
 
   it('menu-config: Finance & Sales TIDAK lagi placeholder (Master tetap)', () => {
-    expect(menu).not.toContain("id: 'finance'");
+    expect(menu).not.toContain('id: "finance"');
     expect(menu).not.toContain("id: 'sales'");
     expect(menu).toContain("id: 'master'");
     expect(menu).toContain('NAV_APPS');

@@ -1,13 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronDown, KeyRound, LogOut, Settings, UserRound } from 'lucide-react';
-import type { AuthUser } from '@/api/auth';
-import { canOpenSettings, roleLabelFromCode } from '@/app/useRole';
-import { Button } from '@/components/atoms/Button';
-import { Input } from '@/components/atoms/Input';
-import { Modal } from '@/components/atoms/Modal';
-import { useAuth } from '@/hooks/auth-context';
-import { cn } from '@/lib/cn';
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  ChevronDown,
+  KeyRound,
+  LogOut,
+  Moon,
+  Settings,
+  Sun,
+  UserRound,
+} from "lucide-react";
+import type { AuthUser } from "@/api/auth";
+import { canOpenSettings, roleLabelFromCode } from "@/app/useRole";
+import { Button } from "@/components/atoms/Button";
+import { Input } from "@/components/atoms/Input";
+import { Modal } from "@/components/atoms/Modal";
+import { useAuth } from "@/hooks/auth-context";
+import { useThemeMode } from "@/hooks/use-theme-mode"; // ← BARU
+import { cn } from "@/lib/cn";
 import {
   displayNameOf,
   errorMessageOf,
@@ -15,8 +24,8 @@ import {
   LOGIN_MESSAGES,
   LOGIN_PATH,
   passwordChangeError,
-} from '@/lib/login-form';
-import { PILL } from '@/lib/tokens';
+} from "@/lib/login-form";
+import { PILL } from "@/lib/tokens";
 
 /**
  * ProfileMenu.tsx — pill user di TopBar (F6.2): avatar + nama + label role, membuka menu
@@ -33,18 +42,20 @@ import { PILL } from '@/lib/tokens';
  */
 
 const MENU_ITEM =
-  'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /** Identitas user di dalam menu (read-only). */
 export function ProfileSummary({ user }: { user: AuthUser | null }) {
-  const email = user?.email ?? '';
+  const email = user?.email ?? "";
 
   return (
     <div data-profile-summary="true" className="flex flex-col gap-0.5">
       <p className="text-sm font-semibold tracking-tight text-foreground">
         {displayNameOf(user)}
       </p>
-      <p className="text-xs text-muted-foreground">{email.length > 0 ? email : '—'}</p>
+      <p className="text-xs text-muted-foreground">
+        {email.length > 0 ? email : "—"}
+      </p>
       <span className="mt-1 text-[11px] font-semibold tracking-wider text-accent-blue">
         {roleLabelFromCode(user?.role_code)}
       </span>
@@ -56,11 +67,10 @@ export interface ProfileMenuPanelProps {
   user: AuthUser | null;
   onSelectPassword: () => void;
   onSelectLogout: () => void;
-  /**
-   * Klik "Pengaturan". Diisi HANYA kalau `canOpenSettings(user.role_code)`; `undefined`
-   * berarti item TIDAK dirender (role tanpa akses tidak melihat pintunya sama sekali).
-   */
   onSelectSettings?: () => void;
+  // ↓ BARU — dark mode toggle di dalam panel
+  isDark: boolean;
+  onToggleTheme: () => void;
 }
 
 /** Panel menu (presentasional). */
@@ -69,6 +79,8 @@ export function ProfileMenuPanel({
   onSelectPassword,
   onSelectLogout,
   onSelectSettings,
+  isDark, // ← BARU
+  onToggleTheme, // ← BARU
 }: ProfileMenuPanelProps) {
   return (
     <div
@@ -82,10 +94,42 @@ export function ProfileMenuPanel({
 
       <hr className="my-1 border-border/60" />
 
-      <button role="menuitem" type="button" onClick={onSelectPassword} className={MENU_ITEM}>
-        <KeyRound className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <button
+        role="menuitem"
+        type="button"
+        onClick={onSelectPassword}
+        className={MENU_ITEM}
+      >
+        <KeyRound
+          className="h-4 w-4 shrink-0 text-muted-foreground"
+          aria-hidden="true"
+        />
         Ganti Password
       </button>
+
+      {/* ↓ BARU — Dark Mode toggle (item menu, bukan button pill) */}
+      <button
+        role="menuitemcheckbox"
+        type="button"
+        aria-checked={isDark}
+        data-profile-theme="true"
+        onClick={onToggleTheme}
+        className={MENU_ITEM}
+      >
+        {isDark ? (
+          <Sun
+            className="h-4 w-4 shrink-0 text-accent-coral"
+            aria-hidden="true"
+          />
+        ) : (
+          <Moon
+            className="h-4 w-4 shrink-0 text-accent-blue"
+            aria-hidden="true"
+          />
+        )}
+        <span className="flex-1">{isDark ? "Mode Terang" : "Mode Gelap"}</span>
+      </button>
+
       {onSelectSettings === undefined ? null : (
         <button
           role="menuitem"
@@ -94,7 +138,10 @@ export function ProfileMenuPanel({
           onClick={onSelectSettings}
           className={MENU_ITEM}
         >
-          <Settings className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <Settings
+            className="h-4 w-4 shrink-0 text-muted-foreground"
+            aria-hidden="true"
+          />
           Pengaturan
         </button>
       )}
@@ -102,9 +149,12 @@ export function ProfileMenuPanel({
         role="menuitem"
         type="button"
         onClick={onSelectLogout}
-        className={cn(MENU_ITEM, 'text-accent-coral')}
+        className={cn(MENU_ITEM, "text-accent-coral")}
       >
-        <LogOut className="h-4 w-4 shrink-0 text-accent-coral" aria-hidden="true" />
+        <LogOut
+          className="h-4 w-4 shrink-0 text-accent-coral"
+          aria-hidden="true"
+        />
         Logout
       </button>
     </div>
@@ -177,14 +227,15 @@ interface ProfileMenuProps {
 /** Pill user + menu akun (Ganti Password / Logout). Butuh `<AuthProvider>` di atasnya. */
 export function ProfileMenu({ roleLabel }: ProfileMenuProps) {
   const { user, logout, changePassword } = useAuth();
+  const { isDark, toggle } = useThemeMode();
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const [open, setOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -195,21 +246,25 @@ export function ProfileMenu({ roleLabel }: ProfileMenuProps) {
 
     function handlePointer(event: MouseEvent): void {
       const target = event.target as Node | null;
-      if (containerRef.current !== null && target !== null && !containerRef.current.contains(target)) {
+      if (
+        containerRef.current !== null &&
+        target !== null &&
+        !containerRef.current.contains(target)
+      ) {
         setOpen(false);
       }
     }
 
     function handleKey(event: KeyboardEvent): void {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === "Escape") setOpen(false);
     }
 
-    document.addEventListener('mousedown', handlePointer);
-    document.addEventListener('keydown', handleKey);
+    document.addEventListener("mousedown", handlePointer);
+    document.addEventListener("keydown", handleKey);
 
     return () => {
-      document.removeEventListener('mousedown', handlePointer);
-      document.removeEventListener('keydown', handleKey);
+      document.removeEventListener("mousedown", handlePointer);
+      document.removeEventListener("keydown", handleKey);
     };
   }, [open]);
 
@@ -220,9 +275,9 @@ export function ProfileMenu({ roleLabel }: ProfileMenuProps) {
 
   function closePasswordModal(): void {
     setPasswordOpen(false);
-    setOldPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    setOldPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
     setError(null);
     setInfo(null);
   }
@@ -230,7 +285,11 @@ export function ProfileMenu({ roleLabel }: ProfileMenuProps) {
   async function submitPassword(): Promise<void> {
     if (busy) return;
 
-    const invalid = passwordChangeError({ oldPassword, newPassword, confirmPassword });
+    const invalid = passwordChangeError({
+      oldPassword,
+      newPassword,
+      confirmPassword,
+    });
     if (invalid !== null) {
       setError(invalid);
       setInfo(null);
@@ -244,9 +303,9 @@ export function ProfileMenu({ roleLabel }: ProfileMenuProps) {
     try {
       await changePassword(oldPassword, newPassword);
       setInfo(LOGIN_MESSAGES.passwordChanged);
-      setOldPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     } catch (caught) {
       setError(errorMessageOf(caught));
     } finally {
@@ -263,7 +322,7 @@ export function ProfileMenu({ roleLabel }: ProfileMenuProps) {
   /** Menu akun → app Settings (hanya role ber-akses; pintunya dijaga `canOpenSettings`). */
   function handleSettings(): void {
     setOpen(false);
-    navigate('/settings');
+    navigate("/settings");
   }
 
   return (
@@ -277,13 +336,17 @@ export function ProfileMenu({ roleLabel }: ProfileMenuProps) {
         onClick={() => setOpen((current) => !current)}
         className={cn(
           PILL,
-          'gap-2 border border-border/80 bg-card py-1 pr-2 pl-3 text-foreground hover:bg-muted',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          "gap-2 border border-border/80 bg-card py-1 pr-2 pl-3 text-foreground hover:bg-muted",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         )}
       >
         <span className="hidden text-right sm:block">
-          <span className="block text-xs font-semibold text-foreground">{displayNameOf(user)}</span>
-          <span className="block text-[11px] font-medium text-muted-foreground">{roleLabel}</span>
+          <span className="block text-xs font-semibold text-foreground">
+            {displayNameOf(user)}
+          </span>
+          <span className="block text-[11px] font-medium text-muted-foreground">
+            {roleLabel}
+          </span>
         </span>
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-primary text-[11px] font-semibold text-primary-foreground">
           {initials.length > 0 ? (
@@ -292,12 +355,17 @@ export function ProfileMenu({ roleLabel }: ProfileMenuProps) {
             <UserRound className="h-4 w-4" aria-hidden="true" />
           )}
         </span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <ChevronDown
+          className="h-4 w-4 shrink-0 text-muted-foreground"
+          aria-hidden="true"
+        />
       </button>
 
       {open ? (
         <ProfileMenuPanel
           user={user}
+          isDark={isDark}
+          onToggleTheme={toggle}
           onSelectPassword={() => {
             setOpen(false);
             setPasswordOpen(true);
@@ -349,4 +417,3 @@ export function ProfileMenu({ roleLabel }: ProfileMenuProps) {
     </div>
   );
 }
-
