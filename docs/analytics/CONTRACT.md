@@ -297,7 +297,38 @@ Definisi ini **terkunci** untuk Sprint B. Perubahan formula wajib menaikkan
 | Dimensi | `period` \| `line` (via bundle → order line → line) |
 | Catatan | Bukan "cycle time per WC"; itu metrik terpisah (backlog) |
 
-### 8.4 Stream alert (spike)
+### 8.4 `garment.line_balance`
+
+| Aspek | Nilai |
+|---|---|
+| Label / unit | Line Balance / `ratio` (0.0–1.0) |
+| Sumber | `garment.Bundle` (`qty_done` per WC per line), `garment.ProductionLine` |
+| Formula | `1 − (max_wc − avg_wc) / avg_wc` |
+| 1 WC | `1.0` (sempurna seimbang) |
+| Null policy | `no_line_returns_empty` |
+| Granularity | `day` (period grouping); `week` menyusul |
+| Dimensi | `period` \| `line` |
+| Formula version | `1.0` |
+| Implementasi | `integrations/analytics/plugins/garment/metrics/line_balance.py` |
+| Catatan | 1 query agregat (GROUP BY line + WC); **tanpa** query per baris |
+
+### 8.5 `garment.bottleneck`
+
+| Aspek | Nilai |
+|---|---|
+| Label / unit | Bottleneck / `score` |
+| Sumber | `garment.Bundle` (buffer × waktu tunggu per WC) |
+| Formula | `buffer_length × avg_wait_hours` |
+| Buffer | Count bundle **aktif** (state bukan `DONE`/`CANCELLED`) di WC |
+| Avg wait | Rata-rata `EXTRACT(EPOCH FROM now − updated_at)` per bundle (jam) |
+| Null policy | `no_active_returns_empty` |
+| Granularity | `hour`, `day` (snapshot; nilai tidak berubah oleh granularity) |
+| Dimensi | `period` \| `work_center` |
+| Formula version | `1.0` |
+| Implementasi | `.../metrics/bottleneck.py` |
+| Catatan | Postgres tidak punya `AVG(timestamptz)` → `AVG(EXTRACT(EPOCH ...))`, tetap 1 query |
+
+### 8.6 Stream alert (spike)
 
 Semua metrik memakai kontrak alert yang sama (implementasi Sprint B/F):
 
@@ -314,6 +345,19 @@ Semua metrik memakai kontrak alert yang sama (implementasi Sprint B/F):
 | Ambang absolut | `scrap_rate > 5%`, `rework_rate > 3%`, `lead_time p90 > 2× baseline` |
 | Cooldown | 1 alert per metrik per 30 menit |
 | Kanal | event bus `analytics.alert` → WS + (opsional) WA (lihat `integration-config.md` §1.5) |
+
+#### 8.6.1 `rework_spike`
+
+| Aturan | Nilai |
+|---|---|
+| Trigger | `value > max(baseline_7d + 3σ, 3.0%)` |
+| Baseline | rata-rata harian 7 hari terakhir (tidak termasuk hari ini) |
+| σ minimal | `0.5` poin persen |
+| Data minimum | baseline < 3 hari → tidak ada alert |
+| Severity | `HIGH` bila melewati ambang absolut `3%`, selain itu `MEDIUM` |
+| Kanal | WA **best-effort** (`ANALYTICS_ALERT_WA_TO` → `RECONCILIATION_ALERT_WA_TO`); error ditelan |
+| Implementasi | `plugins/garment/streams/rework_spike.py` + listener `SCRAP_RECORDED` |
+| Biaya | 0 token LLM (deterministik) |
 
 ---
 
@@ -359,6 +403,9 @@ Aturan:
     (lihat `../ai/MCP-REGISTRY.md`).
 11. Tiga metrik pertama & formulanya terkunci di §8; ubah formula = naikkan
     `formula_version`.
+12. **5 metrik aktif** (2026-10-21, Fase Ringan): `scrap_rate`, `rework_rate`,
+    `lead_time`, `line_balance`, `bottleneck`. `cost_variance` dideferred ke
+    Fase Berat.
 
 ---
 

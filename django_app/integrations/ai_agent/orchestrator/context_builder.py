@@ -81,6 +81,95 @@ RESOURCE_TABLE_MAP = {
     "sync_record": "erp_sync_syncrecord",
 }
 
+#: Entity yang boleh memicu klarifikasi (R.3).
+CANDIDATE_ENTITIES = (
+    "product",
+    "order",
+    "partner",
+    "bundle",
+    "work_center",
+    "production_line",
+)
+
+#: Label Indonesia untuk template klarifikasi.
+ENTITY_LABELS = {
+    "product": "produk",
+    "order": "order",
+    "partner": "customer",
+    "bundle": "bundle",
+    "work_center": "work center",
+    "production_line": "line",
+}
+
+#: Kata penanda pertanyaan daftar/agregat → JANGAN klarifikasi.
+LIST_QUERY_HINTS = frozenset(
+    {
+        "apa",
+        "saja",
+        "semua",
+        "daftar",
+        "berapa",
+        "jumlah",
+        "total",
+        "top",
+        "paling",
+        "tertinggi",
+        "terendah",
+        "termahal",
+        "termurah",
+        "aktif",
+        "statistik",
+        "laporan",
+        "rekap",
+        "tren",
+        "minggu",
+        "bulan",
+        "hari",
+        "tahun",
+        "periode",
+        "per",
+        "bandingkan",
+    }
+)
+
+#: Kata umum yang bukan penanda entitas spesifik.
+QUESTION_STOPWORDS = frozenset(
+    {
+        "kenapa",
+        "mengapa",
+        "gimana",
+        "bagaimana",
+        "kapan",
+        "siapa",
+        "status",
+        "detail",
+        "info",
+        "jelaskan",
+        "tampilkan",
+        "sebutkan",
+        "carikan",
+        "cari",
+        "lihat",
+        "tolong",
+        "coba",
+        "yang",
+        "mana",
+        "itu",
+        "ini",
+        "dan",
+        "atau",
+        "untuk",
+        "dari",
+        "pada",
+        "dengan",
+        "adalah",
+        "bisa",
+        "kah",
+        "sih",
+        "dong",
+    }
+)
+
 
 def _max_rows() -> int:
     return int(AI_CONFIG.get("mcp", {}).get("max_rows_to_llm", 50))
@@ -208,6 +297,128 @@ def _label_lines(rows: list[dict]) -> list[dict]:
 
 def _matches(text: str, pattern: str) -> bool:
     return re.search(pattern, text, flags=re.IGNORECASE) is not None
+
+
+def _candidate_haystack(row: dict) -> str:
+    return " ".join(
+        str(value) for value in row.values() if value not in (None, "")
+    ).lower()
+
+
+def _candidate_attrs(entity: str, row: dict) -> dict:
+    attrs: dict = {}
+    if row.get("code"):
+        attrs["kode"] = row["code"]
+    if row.get("state"):
+        attrs["status"] = row["state"]
+    if entity == "order" and row.get("customer_name"):
+        attrs["customer"] = row["customer_name"]
+    if entity == "bundle" and row.get("product_name"):
+        attrs["produk"] = row["product_name"]
+    if entity == "production_line" and row.get("name"):
+        attrs["nama"] = row["name"]
+    return attrs
+
+
+def _candidate_rows(entity: str, data: dict) -> list[dict]:
+    key = ENTITY_DATA_KEYS.get(entity, "")
+    existing = data.get(key)
+    if isinstance(existing, list) and existing:
+        return existing
+    repo = get_repo(entity)
+    if repo is None:
+        return []
+    try:
+        return repo.get_list(limit=20)
+    except Exception:
+        return []
+
+
+def _specific_lookup(normalized: dict) -> tuple[str, list[str]] | None:
+    """Deteksi pencarian SATU entitas (bukan daftar/agregat).
+
+    Return `(entity, tokens_spesifik)` atau `None` bila query bersifat daftar.
+    """
+    tokens = list(normalized.get("tokens") or [])
+    if not tokens or any(token in LIST_QUERY_HINTS for token in tokens):
+        return None
+
+    entity = None
+    for canonical in normalized.get("canonicals") or []:
+        resolved = resolve_entity(canonical)
+        if resolved in CANDIDATE_ENTITIES:
+            entity = resolved
+            break
+    if entity is None:
+        return None
+
+    specificity = [
+        token
+        for token in tokens
+        if len(token) >= 2
+        and token not in QUESTION_STOPWORDS
+        and token not in LIST_QUERY_HINTS
+        and resolve_entity(token) is None
+    ]
+    if not specificity:
+        return None
+    return entity, specificity
+
+
+def _collect_candidates(
+    normalized: dict, data: dict
+) -> tuple[list[dict], str | None]:
+    """Kandidat {id,label,attrs,score} untuk klarifikasi (R.3)."""
+    lookup = _specific_lookup(normalized)
+    if lookup is None:
+        return [], None
+
+    entity, tokens = lookup
+    rows = _candidate_rows(entity, data)
+
+    # Pilih baris dengan jumlah token cocok TERBANYAK (hindari melebar ke semua
+    # produk hanya karena satu kata sama).
+    scored = []
+    for row in rows:
+        haystack = _candidate_haystack(row)
+        hits = sum(1 for token in tokens if token in haystack)
+        if hits:
+            scored.append((hits, row))
+    best_hits = max((hits for hits, _row in scored), default=0)
+    matched = [row for hits, row in scored if hits == best_hits]
+
+    # Token berangka (mis. KPP-DEWASA-V2) boleh menghasilkan EMPTY yang tegas.
+    if not matched and not any(
+        char.isdigit() for token in tokens for char in token
+    ):
+        return [], None
+
+    score = 0.9 if len(matched) == 1 else 0.7
+    candidates = [
+        {
+            "id": row.get("id"),
+            "label": str(
+                row.get("name") or row.get("code") or f"{entity} #{row.get('id')}"
+            ),
+            "attrs": _candidate_attrs(entity, row),
+            "score": score,
+            "entity": entity,
+        }
+        for row in matched[:20]
+    ]
+    return candidates, entity
+
+
+def _metric_result(user, metric_id: str, dimension: str) -> dict:
+    """Ambil satu metrik via MCP analytics; gagal aman (tidak raise)."""
+    try:
+        return mcp_analytics.handle_request(
+            "get_metric",
+            {"metric_id": metric_id, "dimension": dimension},
+            user=user,
+        )
+    except Exception:
+        return {"ok": False, "error": "exception", "metric_id": metric_id}
 
 
 def _collect_stock(user) -> tuple[list[dict], list[dict]]:
@@ -764,6 +975,20 @@ def _auto_detect_keywords(
         data["metrics_by_line"] = metrics
         errors.extend(metric_errors)
 
+    # R.4 — metrik line_balance & bottleneck (diminta eksplisit).
+    if "seimbang" in text or "balance" in tokens or "line_balance" in tokens:
+        data["line_balance"] = _metric_result(
+            user, "garment.line_balance", "line"
+        )
+
+    if any(
+        keyword in text
+        for keyword in ("bottleneck", "penyumbat", "hambatan", "menumpuk")
+    ):
+        data["bottleneck"] = _metric_result(
+            user, "garment.bottleneck", "work_center"
+        )
+
     if "lambat" in canonicals or "late" in tokens:
         try:
             data["order_late_stats"] = METRICS.order_late_percentage()
@@ -951,6 +1176,34 @@ def build_context(
     detail_data, detail_errors = _expand_detail_context(page_context)
     data.update(detail_data)
     errors.extend(detail_errors)
+
+    # 4) R.3 — kandidat klarifikasi (query spesifik) atau hasil pilihan user.
+    resolved = page_context.get("_resolved_candidate")
+    if isinstance(resolved, dict) and resolved.get("id") is not None:
+        entity = str(resolved.get("entity") or "")
+        repo = get_repo(entity)
+        data_key = ENTITY_DATA_KEYS.get(entity, "")
+        rows: list[dict] = []
+        if repo is not None and data_key:
+            try:
+                rows = repo.get_list(filters={"id": resolved["id"]}, limit=1)
+            except Exception:
+                errors.append({"tool": "clarification", "error": "exception"})
+        if rows:
+            data[data_key] = rows
+        data["_resolved_candidate"] = rows[0] if rows else dict(resolved)
+        data["_candidates"] = []
+        data["_entity_label"] = ENTITY_LABELS.get(entity, "data")
+    else:
+        has_specific_code = any(
+            str(key).endswith("_specific") and bool(value)
+            for key, value in data.items()
+        )
+        if not has_specific_code:
+            candidates, entity = _collect_candidates(effective_norm, data)
+            if entity is not None:
+                data["_candidates"] = candidates
+                data["_entity_label"] = ENTITY_LABELS.get(entity, "data")
 
 
     if "mcp-odoo-rpc" in data["tools"]:

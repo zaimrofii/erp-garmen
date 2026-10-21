@@ -235,6 +235,49 @@ Aturan tambahan:
 
 ---
 
+## 9b. Epistemic Clarification (Fase Ringan, 2026-10)
+
+Lapisan **deterministik** sebelum LLM: `integrations/ai_agent/clarification/`.
+Tidak memanggil LLM dan tidak menulis data bisnis.
+
+| Status | Kondisi | Response |
+|---|---|---|
+| `EXACT` | 1 kandidat skor ≥ 0.85 (atau semua `answer_hash` sama) | lanjut LLM normal |
+| `AMBIGUOUS` | 2..5 kandidat berbeda | pertanyaan pilihan (0 token) + pending state |
+| `WEAK` | 1 kandidat skor < 0.85 | konfirmasi ya/tidak (0 token) + pending state |
+| `EMPTY` | 0 kandidat | `"Tidak ada <entity> untuk '<query>' di data saat ini."` (0 token) |
+| `OUT_OF_SCOPE` | query < 2 karakter | `"Pertanyaan terlalu singkat. Mohon perjelas."` (0 token) |
+
+**Pending state (Redis/cache):**
+
+- TTL `600` detik, maks `3` turn; key `clarification:<user_id>:<session_id>`.
+- Isi: `{candidates, original_query, question, turn_count, entity, updated_at}`.
+- Kandidat: `{id, label, attrs, score, entity}`.
+
+**Resolver balasan user (`clarification/resolver.py`, PURE):**
+
+| Tipe | Contoh | Aksi |
+|---|---|---|
+| `RANK` | "yg kedua", "2", "nomor 2" | pilih `candidates[n-1]` |
+| `FUZZY` | "kaos sate" | `rapidfuzz.partial_ratio ≥ 70` (fallback substring) |
+| `CANCEL` | "bukan itu", "lupakan" | clear state → "Baik, saya lupakan…" |
+| `ALL` | "semua", "semuanya" | ringkasan agregat deterministik |
+| `ESCALATE` | turn ≥ 3 | tampilkan daftar lengkap + minta kriteria |
+| `UNRESOLVED` | balasan tak dikenali | ulang pertanyaan + `turn_count += 1` |
+
+Aturan tambahan:
+
+1. Pesan yang tampak pertanyaan baru saat state aktif → state dibersihkan (ganti topik).
+2. Respons klarifikasi `cacheable=false` → **tidak** masuk semantic cache.
+3. `RANK`/`FUZZY` → `_resolved_candidate` diteruskan ke context builder (query by id),
+   lalu lanjut LLM.
+4. Angka murni di luar rentang ordinal **tidak** dianggap fuzzy (cegah "2" cocok
+   ke kode `SO-042`).
+5. Semua balasan klarifikasi tetap memakai shape §3
+   (`decision_gate_result=RULE_HIT`, `tokens` = 0).
+
+---
+
 ## 10. Privasi & batas
 
 | Aturan | Detail |

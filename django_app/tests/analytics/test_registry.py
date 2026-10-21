@@ -71,11 +71,11 @@ def test_get_metric_not_found():
 
 
 def test_discover_metrics_idempotent():
-    # Plugin garment berisi 3 metrik (B.6) — discover harus idempoten.
+    # Plugin garment berisi 5 metrik (B.6 + R.4) — discover harus idempoten.
     n1 = registry.discover_metrics()
     n2 = registry.discover_metrics()
 
-    assert n1 == n2 == 3
+    assert n1 == n2 == 5
 
 
 def test_list_metrics_filter_domain():

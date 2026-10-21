@@ -54,3 +54,9 @@ reportlab>=4.0,<5.0
 # juga WAJIB Pillow. Persisten: `docker compose build django`; sesi berjalan:
 # `docker compose exec django pip install 'Pillow>=10.0,<11.0'`.
 Pillow>=10.0,<11.0
+
+# R.2 — fuzzy match disambiguasi klarifikasi (`clarification/resolver.py`).
+# Opsional saat runtime (fallback substring bila tidak ada), tetapi dipasang agar
+# skor kemiripan stabil. Persisten: `docker compose build django`; sesi berjalan:
+# `docker compose exec django pip install 'rapidfuzz>=3.0,<4.0'`.
+rapidfuzz>=3.0,<4.0

@@ -15,6 +15,8 @@ from rest_framework.views import APIView
 
 from integrations.analytics.services import analytics_config_services
 
+from ..clarification import pending_state, resolver, templates
+from ..clarification.pending_state import MAX_TURNS
 from ..decision_gate import rule_evaluator
 from ..memory import semantic_cache
 from ..observability import cost_tracker
@@ -32,6 +34,20 @@ logger = logging.getLogger(__name__)
 _ANALYTICS_HINTS = ("scrap", "rework", "lead time", "analitik", "analytics")
 _FORBIDDEN_CONTEXT_ROLES = {"OPERATOR", "QC"}
 _MASTER_RESOURCES = {"product", "partner"}
+#: Kata tanya → pesan baru dianggap ganti topik (bukan jawaban klarifikasi).
+_NEW_QUESTION_HINTS = (
+    "apa",
+    "berapa",
+    "kenapa",
+    "mengapa",
+    "bagaimana",
+    "gimana",
+    "kapan",
+    "siapa",
+    "tampilkan",
+    "sebutkan",
+    "jelaskan",
+)
 RATE_LIMIT_PER_MINUTE = 60
 _RATE_LIMIT_TTL_SECONDS = 120
 
@@ -183,6 +199,39 @@ def _tool_calls(tools: list[str], context_data: dict[str, Any]) -> list[dict[str
     return calls
 
 
+def _session_id(request) -> str:
+    """ID sesi untuk pending clarification (fallback stabil per user)."""
+    key = getattr(getattr(request, "session", None), "session_key", None)
+    return str(key or f"user-{getattr(request.user, 'pk', 'anon')}")
+
+
+def _looks_like_new_question(message: str) -> bool:
+    """True bila pesan tampak pertanyaan baru (ganti topik), bukan jawaban."""
+    tokens = {token.strip("?.,!") for token in str(message or "").lower().split()}
+    return any(hint in tokens for hint in _NEW_QUESTION_HINTS)
+
+
+def _clarification_response(request, body, answer: str, latency: int) -> Response:
+    """Balasan klarifikasi deterministik (RULE_HIT, 0 token) + audit log."""
+    result = _response(
+        ok=True,
+        answer=answer,
+        decision_gate_result="RULE_HIT",
+        latency_ms=latency,
+    )
+    log_decision(
+        user=request.user,
+        channel=body.channel,
+        query_text=body.message,
+        decision_gate_result="RULE_HIT",
+        intent="CLARIFICATION",
+        impact_score="LOW",
+        response_text=answer,
+        latency_ms=result["latency_ms"],
+    )
+    return Response(result)
+
+
 class AiChatView(APIView):
     """`POST /api/v1/ai/chat` — RULE_HIT tanpa LLM, LLM_NEEDED ditunda Sprint E."""
 
@@ -238,6 +287,63 @@ class AiChatView(APIView):
                 {"ok": False, "error": "rate_limited", "retry_after_s": 60},
                 status=429,
             )
+
+        # R.2 — lanjutkan klarifikasi yang masih pending (deterministik, 0 token).
+        session_id = _session_id(request)
+        pending = pending_state.load(request.user.pk, session_id)
+        if pending:
+            candidates = list(pending.get("candidates") or [])
+            resolution = resolver.resolve(
+                body.message,
+                candidates,
+                turn_count=int(pending.get("turn_count", 0) or 0),
+            )
+            resolved_types = {
+                resolver.ResolutionType.RANK,
+                resolver.ResolutionType.FUZZY,
+            }
+
+            if resolution.type in resolved_types and resolution.candidate:
+                context["_resolved_candidate"] = resolution.candidate
+                pending_state.clear(request.user.pk, session_id)
+            elif resolution.type is resolver.ResolutionType.CANCEL:
+                pending_state.clear(request.user.pk, session_id)
+                return _clarification_response(
+                    request, body, "Baik, saya lupakan. Ada yang lain?", latency()
+                )
+            elif resolution.type is resolver.ResolutionType.ESCALATE:
+                pending_state.clear(request.user.pk, session_id)
+                return _clarification_response(
+                    request,
+                    body,
+                    templates.escalation_response(candidates),
+                    latency(),
+                )
+            elif resolution.type is resolver.ResolutionType.ALL:
+                pending_state.clear(request.user.pk, session_id)
+                return _clarification_response(
+                    request, body, templates.all_response(candidates), latency()
+                )
+            else:
+                if _looks_like_new_question(body.message):
+                    # Ganti topik: buang state, lanjut alur normal.
+                    pending_state.clear(request.user.pk, session_id)
+                else:
+                    turn = pending_state.increment_turn(request.user.pk, session_id)
+                    if turn >= MAX_TURNS:
+                        pending_state.clear(request.user.pk, session_id)
+                        return _clarification_response(
+                            request,
+                            body,
+                            templates.escalation_response(candidates),
+                            latency(),
+                        )
+                    return _clarification_response(
+                        request,
+                        body,
+                        templates.ambiguous_question(candidates),
+                        latency(),
+                    )
 
         # §5 #6 — role tidak berhak melihat resource master (status 200).
         if (
@@ -349,14 +455,21 @@ class AiChatView(APIView):
                     user=request.user,
                     history=history,
                 )
-                synth = response_synthesizer.synthesize(body.message, context_data)
+                synth = response_synthesizer.synthesize(
+                    body.message,
+                    context_data,
+                    user=request.user,
+                    session_id=session_id,
+                )
                 tool_calls = _tool_calls(tools, context_data)
 
                 if synth.get("ok") and str(synth.get("answer") or "").strip():
                     result = _response(
                         ok=True,
                         answer=str(synth["answer"]),
-                        decision_gate_result="LLM_NEEDED",
+                        decision_gate_result=str(
+                            synth.get("decision_gate_result") or "LLM_NEEDED"
+                        ),
                         latency_ms=latency(),
                         confidence=confidence,
                         impact_score="LOW",
@@ -365,11 +478,12 @@ class AiChatView(APIView):
                     )
                     model_used = str(synth.get("model") or "")
                     audit_text = result["answer"]
-                    semantic_cache.set(
-                        cache_scope,
-                        result,
-                        tool_calls_signature=",".join(tools),
-                    )
+                    if synth.get("cacheable", True):
+                        semantic_cache.set(
+                            cache_scope,
+                            result,
+                            tool_calls_signature=",".join(tools),
+                        )
                 else:
                     detail = str(synth.get("detail") or "Jawaban LLM kosong.")
                     result = _response(

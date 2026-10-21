@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 
+from ..clarification import epistemic_classifier, pending_state, templates
 from ..llm_wrapper.factory import get_llm_provider
 
 SYSTEM_PROMPT = """Kamu adalah asisten Garmen. Jawab pertanyaan
@@ -43,7 +44,7 @@ MAX_ANSWER_CHARS = 5000
 WRITE_REJECT_ANSWER = "Maaf, saya tidak bisa menyarankan perubahan data."
 EMPTY_ANSWER_FALLBACK = "Maaf, saya tidak bisa menjawab pertanyaan itu."
 _WRITE_PATTERN = re.compile(r"\b(UPDATE|DELETE|INSERT|DROP)\s", re.IGNORECASE)
-_CONTROL_KEYS = {"message", "context", "intent", "tools"}
+_CONTROL_KEYS = {"message", "context", "intent", "tools", "_candidates", "_entity_label"}
 
 
 def validate_answer(text: str) -> str:
@@ -70,8 +71,30 @@ def _error(error: str, detail: str = "", code: str = "") -> dict:
     return payload
 
 
-def synthesize(message: str, context_data: dict) -> dict:
-    """Panggil LLM dengan data konteks → jawaban natural (tidak pernah raise)."""
+def _deterministic(answer: str, model: str) -> dict:
+    """Jawaban RULE (0 token) — tidak di-cache agar pending state tidak hilang."""
+    return {
+        "ok": True,
+        "answer": answer,
+        "decision_gate_result": "RULE_HIT",
+        "tokens": {"prompt": 0, "completion": 0, "total_cost_usd": 0},
+        "model": model,
+        "latency_ms": 0,
+        "cacheable": False,
+    }
+
+
+def synthesize(
+    message: str,
+    context_data: dict,
+    user=None,
+    session_id: str | None = None,
+) -> dict:
+    """Panggil LLM dengan data konteks → jawaban natural (tidak pernah raise).
+
+    `user`/`session_id` hanya dipakai untuk menyimpan pending clarification (R.3);
+    bila tidak diberikan, jalur klarifikasi tetap deterministik tanpa state.
+    """
     question = (message or "").strip()
     if not question:
         return _error("empty_message", "Pertanyaan user kosong.")
@@ -80,6 +103,47 @@ def synthesize(message: str, context_data: dict) -> dict:
             "empty_context",
             "Konteks wajib diisi sebelum memanggil LLM.",
         )
+
+    # R.2/R.3 — klarifikasi deterministik (0 token). Hanya berlaku bila
+    # context_builder menandai `_candidates` dan user BELUM memilih kandidat.
+    candidates = context_data.get("_candidates")
+    if candidates is not None and not context_data.get("_resolved_candidate"):
+        epistemic = epistemic_classifier.classify(list(candidates), question)
+        entity_label = str(context_data.get("_entity_label") or "data")
+
+        if epistemic.status is epistemic_classifier.EpistemicStatus.EMPTY:
+            return _deterministic(
+                templates.empty_response(entity_label, question), "rule:empty"
+            )
+
+        if epistemic.status in {
+            epistemic_classifier.EpistemicStatus.AMBIGUOUS,
+            epistemic_classifier.EpistemicStatus.WEAK,
+        }:
+            chosen = list(epistemic.candidates)
+            if (
+                epistemic.status
+                is epistemic_classifier.EpistemicStatus.AMBIGUOUS
+            ):
+                answer = templates.ambiguous_question(chosen)
+                model = "rule:ambiguous"
+            else:
+                answer = templates.weak_question(chosen[0])
+                model = "rule:weak"
+
+            if user is not None and chosen:
+                pending_state.save(
+                    user.pk,
+                    session_id or f"user-{user.pk}",
+                    {
+                        "candidates": chosen,
+                        "original_query": question,
+                        "question": answer,
+                        "turn_count": 0,
+                        "entity": chosen[0].get("entity"),
+                    },
+                )
+            return _deterministic(answer, model)
 
     data_block = {
         key: value for key, value in context_data.items() if key not in _CONTROL_KEYS

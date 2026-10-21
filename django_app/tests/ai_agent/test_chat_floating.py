@@ -35,7 +35,7 @@ def _handler(payload):
     return {"ok": True, "rows": list(rows), "count": len(rows)}
 
 
-def _fake_synthesize(message, context_data):
+def _fake_synthesize(message, context_data, **_kwargs):
     """Simulasi synthesizer: jawab dari data yang benar-benar diterima."""
     if context_data.get("bundles"):
         answer = f"Daftar bundle: {context_data['bundles'][0]['code']}."

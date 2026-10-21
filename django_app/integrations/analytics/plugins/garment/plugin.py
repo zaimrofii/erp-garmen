@@ -11,9 +11,21 @@ from __future__ import annotations
 
 from ...core.registry import is_registered, register_metric
 
-from .metrics import lead_time, rework_rate, scrap_rate
+from .metrics import (
+    bottleneck,
+    lead_time,
+    line_balance,
+    rework_rate,
+    scrap_rate,
+)
 
-METRICS = (scrap_rate.METRIC, rework_rate.METRIC, lead_time.METRIC)
+METRICS = (
+    scrap_rate.METRIC,
+    rework_rate.METRIC,
+    lead_time.METRIC,
+    line_balance.METRIC,
+    bottleneck.METRIC,
+)
 
 
 def register() -> None:

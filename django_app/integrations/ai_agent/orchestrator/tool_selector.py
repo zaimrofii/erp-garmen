@@ -23,6 +23,8 @@ _SERIES_KEYWORDS = ("tren", "historis", "per jam", "30 hari")
 _COMPARE_KEYWORDS = ("kenapa", "banding", "vs", "dibanding")
 _COMPARE_WORD = re.compile(r"lebih\s+(lambat|cepat|baik|buruk)", re.IGNORECASE)
 _FORECAST_KEYWORDS = ("prediksi", "forecast", "kapan selesai", "estimasi")
+_BALANCE_KEYWORDS = ("line balance", "line_balance", "seimbang", "balance")
+_BOTTLENECK_KEYWORDS = ("bottleneck", "penyumbat", "hambatan", "menumpuk")
 _FORECAST_WORD = re.compile(r"kapan\s+.*selesai", re.IGNORECASE)
 _ENTITY_POSTGRES = re.compile(
     r"\border\b|\bwork order\b|\bbundle\b|\bcustomer\b|\bproduk\b|"
@@ -72,6 +74,12 @@ def select_tools(
         tools.append("mcp-postgres-query")
     if (
         canonicals & _ANALYTICS_CANONICALS or _DIMENSION_ANALYTICS.search(text)
+    ) and "mcp-analytics" not in tools:
+        tools.append("mcp-analytics")
+
+    # R.4 — metrik line_balance / bottleneck selalu butuh mcp-analytics.
+    if any(
+        keyword in text for keyword in _BALANCE_KEYWORDS + _BOTTLENECK_KEYWORDS
     ) and "mcp-analytics" not in tools:
         tools.append("mcp-analytics")
 

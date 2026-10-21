@@ -148,6 +148,15 @@ AI = Industrial Copilot (baca & usul, tidak eksekusi) — fase J, dokumen terpis
 
 ---
 
+### 2.4 Fase Ringan (2026-10)
+
+Epistemic clarification (**AI tegas ala Claude**) + 2 metrik analytics
+(`garment.line_balance`, `garment.bottleneck`) + alert `rework_spike`.
+AI sekarang **tegas saat ambigu, kosong, atau butuh konfirmasi** — bertanya
+hanya bila jawabannya berubah, bukan pasif menunggu LLM.
+
+---
+
 ## 3. Stack Teknologi
 
 | Komponen | Teknologi | Versi |

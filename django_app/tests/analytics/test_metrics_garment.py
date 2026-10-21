@@ -68,16 +68,22 @@ class GarmentMetricsTestBase(TestCase):
 
 
 class RegistryAutodiscoverTests(GarmentMetricsTestBase):
-    def test_autodiscover_menemukan_tiga_metrik(self):
+    def test_autodiscover_menemukan_lima_metrik(self):
         self.addCleanup(registry.discover_metrics)
         registry._reset_for_tests()
 
         count = registry.discover_metrics()
 
-        self.assertEqual(count, 3)
+        self.assertEqual(count, 5)
         self.assertEqual(
             {metric.metric_id for metric in registry.list_metrics("garment")},
-            {"garment.scrap_rate", "garment.rework_rate", "garment.lead_time"},
+            {
+                "garment.scrap_rate",
+                "garment.rework_rate",
+                "garment.lead_time",
+                "garment.line_balance",
+                "garment.bottleneck",
+            },
         )
 
 
@@ -272,11 +278,23 @@ class MetricMetadataTests(TestCase):
         )
 
     def test_null_policy_denominator_zero(self):
-        self.assertTrue(
-            all(
-                metric.null_policy == "denominator_zero_returns_null"
-                for metric in METRICS
+        by_id = {metric.metric_id: metric for metric in METRICS}
+
+        for metric_id in (
+            "garment.scrap_rate",
+            "garment.rework_rate",
+            "garment.lead_time",
+        ):
+            self.assertEqual(
+                by_id[metric_id].null_policy, "denominator_zero_returns_null"
             )
+
+        # R.4 — metrik snapshot memakai null policy sendiri.
+        self.assertEqual(
+            by_id["garment.line_balance"].null_policy, "no_line_returns_empty"
+        )
+        self.assertEqual(
+            by_id["garment.bottleneck"].null_policy, "no_active_returns_empty"
         )
 
     def test_granularities(self):

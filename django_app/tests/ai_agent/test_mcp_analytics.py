@@ -37,7 +37,7 @@ class McpAnalyticsTests(TestCase):
             )
 
         self.assertTrue(result["ok"])
-        self.assertEqual(len(result["metrics"]), 3)
+        self.assertEqual(len(result["metrics"]), 5)
 
     def test_on_operator_forbidden(self):
         with patch(GET_CONFIG, return_value=SimpleNamespace(enabled=True)):
@@ -48,7 +48,7 @@ class McpAnalyticsTests(TestCase):
         self.assertFalse(result["ok"])
         self.assertEqual(result["error"], "forbidden")
 
-    def test_list_metrics_domain_garment_tiga(self):
+    def test_list_metrics_domain_garment_lima(self):
         with patch(GET_CONFIG, return_value=SimpleNamespace(enabled=True)):
             result = mcp_analytics.handle_request(
                 "list_metrics", {"domain": "garment"}, _user("OWNER")
@@ -57,7 +57,13 @@ class McpAnalyticsTests(TestCase):
         ids = {item["metric_id"] for item in result["metrics"]}
         self.assertEqual(
             ids,
-            {"garment.scrap_rate", "garment.rework_rate", "garment.lead_time"},
+            {
+                "garment.scrap_rate",
+                "garment.rework_rate",
+                "garment.lead_time",
+                "garment.line_balance",
+                "garment.bottleneck",
+            },
         )
 
     def test_get_metric_scrap_rate_rows(self):

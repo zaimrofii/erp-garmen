@@ -6,8 +6,8 @@
       "concept": "MES = ERP Produksi (single point of input). Odoo = back-office pasif. Sync: master dua arah, transaksi satu arah (MES → Odoo).",
       "frontend_repo": "frontend_app_v2/ (hand-coded React); arsip: frontend_app/ (v1 metadata-driven)",
       "last_updated": "2026-10-21",
-      "current_phase": "Fase A DONE (Quick Fix #10+#11+#12); siap demo",
-      "test_count_total": 2915,
+      "current_phase": "Fase Ringan DONE (R.1-R.5); siap Fase Sedang",
+      "test_count_total": 2999,
       "test_pre_existing_failures": 0
     },
     "test_status": {
@@ -41,6 +41,56 @@
       "verifikasi": "Targeted 7 passed (CostTrackerTests + AggregateRealTests); full suite 2915 passed / 0 failed / 1 skipped.",
       "test_count": 2915,
       "commit": "201e306"
+    },
+    "fase_ringan_r1_clarification": {
+      "status": "done",
+      "modul": "integrations/ai_agent/clarification/ — epistemic_classifier.py, pending_state.py, templates.py (3 tanggung jawab terpisah)",
+      "perilaku": "Label EXACT/AMBIGUOUS/EMPTY/WEAK/OUT_OF_SCOPE deterministik tanpa LLM; state klarifikasi di cache (TTL 600 dtk, maks 3 turn); template pertanyaan/jawaban Bahasa Indonesia tegas.",
+      "keputusan": "Semua kandidat punya answer_hash sama => EXACT (tidak bertanya); > max_ambig kandidat dipotong 5; query < 2 karakter => OUT_OF_SCOPE; state disimpan sebagai JSON di cache (bukan history chat).",
+      "test": "tests/ai_agent/test_clarification_r1.py — 28 test + 3 subtest hijau; full suite 2943 passed / 0 failed / 1 skipped.",
+      "test_count": 2943,
+      "next": "R.2 — disambiguation_resolver + integrasi ke orchestrator chat"
+    },
+    "fase_ringan_r2_resolver": {
+      "status": "done",
+      "modul": "clarification/resolver.py (pure) + templates.all_response + integrasi api/views.py (pending state) + response_synthesizer (EMPTY)",
+      "perilaku": "RANK (ordinal word-boundary), FUZZY (rapidfuzz partial_ratio >= 70, fallback substring), CANCEL, ALL, ESCALATE (>= 3 turn), UNRESOLVED. Angka murni di luar rentang ordinal tidak dianggap fuzzy.",
+      "integrasi": "AiChatView membaca pending state sebelum decision gate: RANK/FUZZY clear state lalu lanjut retrieval; CANCEL/ALL/ESCALATE/UNRESOLVED dibalas deterministik (RULE_HIT, 0 token) + AuditLog intent CLARIFICATION.",
+      "dependency": "rapidfuzz>=3.0,<4.0 (requirements.txt); container uji memakai rapidfuzz 3.14.6.",
+      "test": "tests/ai_agent/test_resolver_r2.py — 25 test hijau; full suite 2968 passed / 0 failed / 1 skipped.",
+      "test_count": 2968,
+      "next": "R.3 — AMBIGUOUS penuh (context_builder mengirim _candidates) + analitik line"
+    },
+    "fase_ringan_r3_ambiguous_e2e": {
+      "status": "done",
+      "modul": "context_builder (_collect_candidates + _resolved_candidate) · response_synthesizer (EMPTY/AMBIGUOUS/WEAK + cacheable) · api/views (user/session, RULE_HIT, ganti topik)",
+      "perilaku": "Kandidat hanya dibuat untuk lookup spesifik (bukan 'apa saja/berapa/total'); skor token memilih baris paling cocok; token berangka tanpa hasil → EMPTY tegas. AMBIGUOUS/WEAK menyimpan pending state (TTL 600 dtk) dan menjawab 0 token.",
+      "alur": "Pesan ambigu → pertanyaan pilihan + state; balasan RANK/FUZZY → _resolved_candidate dikirim ke context_builder (query by id) → lanjut LLM; CANCEL/ALL/ESCALATE/UNRESOLVED deterministik; pesan pertanyaan baru saat state ada → state dibersihkan.",
+      "catatan": "Respons klarifikasi tidak di-cache (cacheable=False) agar pending state tidak hilang; fake synthesize di tests/ai_agent/test_chat_floating.py diperbarui menerima kwargs baru.",
+      "test": "tests/ai_agent/test_clarification_e2e.py — 15 test hijau (10 e2e + 5 heuristic); full suite 2983 passed / 0 failed / 1 skipped.",
+      "test_count": 2983,
+      "next": "R.4 — analitik line (line_balance, bottleneck, alert rework spike)"
+    },
+    "fase_ringan_r4_analytics_line": {
+      "status": "done",
+      "metrik": ["garment.line_balance", "garment.bottleneck"],
+      "formula": "line_balance = 1 - (max_wc - avg_wc)/avg_wc dari qty_done per WC per line; bottleneck = buffer_length x avg_wait_hours (state non-terminal; 1 query COUNT + AVG(EXTRACT(EPOCH))).",
+      "alert": "garment.rework_rate spike: value > max(baseline 7 hari + 3σ, 3%), σ minimal 0.5; listener SCRAP_RECORDED → WA best-effort (ANALYTICS_ALERT_WA_TO → RECONCILIATION_ALERT_WA_TO).",
+      "integrasi": "tool_selector keyword seimbang/balance/bottleneck/penyumbat/menumpuk/hambatan → mcp-analytics; context_builder menambah data line_balance/bottleneck.",
+      "test": "16 test baru (line_balance 5, bottleneck 5, rework_spike 3, chat_analytics 3); registry & MCP analytics kini 5 metrik; full suite 2999 passed / 0 failed / 1 skipped.",
+      "catatan": "Postgres tidak punya AVG(timestamptz) → bottleneck memakai EXTRACT(EPOCH) sebagai AVG; respons snapshot tetap deterministik.",
+      "test_count": 2999,
+      "next": "R.5 — test + docs + commit"
+    },
+    "fase_ringan": {
+      "status": "done",
+      "r1_epistemic": "epistemic_classifier + templates + pending_state",
+      "r2_resolver": "ordinal + fuzzy + cancel/all/escalate",
+      "r3_integrasi": "end-to-end AMBIGUOUS/EMPTY/WEAK",
+      "r4_analytics": "line_balance + bottleneck + rework_spike",
+      "r5_polish": "docs + test manual",
+      "test_count": 2999,
+      "completed_at": "2026-10-21"
     },
     "pra_0a_cleanup": {
       "status": "done (2026-10-18) — backend 0 failed, frontend 0 failed",

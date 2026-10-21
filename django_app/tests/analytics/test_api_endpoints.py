@@ -159,7 +159,7 @@ class AnalyticsToggleOnTests(AnalyticsApiBase):
         body = self.api.get(HEALTH_URL).json()
 
         self.assertTrue(body["ok"])
-        self.assertEqual(body["registry"]["metrics_registered"], 3)
+        self.assertEqual(body["registry"]["metrics_registered"], 5)
 
     def test_health_historical(self):
         now = timezone.now()
