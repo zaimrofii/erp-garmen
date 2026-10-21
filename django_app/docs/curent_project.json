@@ -28,7 +28,19 @@
       "completed_at": "2026-10-21",
       "verifikasi": "Full suite 2915 passed / 0 failed / 1 skipped (158.90s). Targeted 3 file fix: 16 passed (test_seed_event_wc, test_extract_code, test_order_late); 22 passed bila + test_prompt_bundle_wc.",
       "artifact": "Order.completed_at + is_late (migrasi 0025_order_completed_at) + backfill_order_completed_at; context_builder._extract_specific_code (RICH-BND-02/SO/INV/PO/WO); seed_demo_llm & seed_uat_dataset mengisi payload.work_center_code.",
-      "catatan_flake": "Run pada 23:5x UTC (jendela 00:00-07:00 WIB) gagal 3 test time-boundary: aggregate_daily memakai tengah malam UTC vs timezone.localdate() WIB; cost_tracker date.today() vs tanggal UTC. Re-run 00:0x UTC = 0 failed. Bukan regresi Fase A; perlu perbaikan terpisah."
+      "catatan_flake": "Run pada 23:5x UTC (jendela 00:00-07:00 WIB) gagal 3 test time-boundary: aggregate_daily memakai tengah malam UTC vs timezone.localdate() WIB; cost_tracker date.today() vs tanggal UTC. Re-run 00:0x UTC = 0 failed. Diperbaiki di fase_A_timezone_fix."
+    },
+    "fase_A_timezone_fix": {
+      "status": "done",
+      "files": [
+        "integrations/analytics/plugins/garment/tasks.py",
+        "integrations/ai_agent/observability/cost_tracker.py",
+        "tests/ai_agent/test_observability_extras.py"
+      ],
+      "note": "Flake timezone 00:00-07:00 WIB diperbaiki: bucket harian analytics memakai timezone.localtime (tengah malam WIB) dan cost tracker memakai timezone.localdate()/_day_of() (hari WIB); assertion test disamakan ke timezone.localdate().",
+      "verifikasi": "Targeted 7 passed (CostTrackerTests + AggregateRealTests); full suite 2915 passed / 0 failed / 1 skipped.",
+      "test_count": 2915,
+      "commit": "201e306"
     },
     "pra_0a_cleanup": {
       "status": "done (2026-10-18) — backend 0 failed, frontend 0 failed",
