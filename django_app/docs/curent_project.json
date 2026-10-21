@@ -6,7 +6,7 @@
       "concept": "MES = ERP Produksi (single point of input). Odoo = back-office pasif. Sync: master dua arah, transaksi satu arah (MES → Odoo).",
       "frontend_repo": "frontend_app_v2/ (hand-coded React); arsip: frontend_app/ (v1 metadata-driven)",
       "last_updated": "2026-10-21",
-      "current_phase": "Fix #17 DONE (state lifecycle + top N + count query); siap design contract refactor",
+      "current_phase": "R-1 DONE (extract views handlers); R-2 context_builder menunggu sesi",
       "test_count_total": 3052,
       "test_pre_existing_failures": 0
     },
@@ -142,6 +142,20 @@
       "test": "tests/ai_agent/test_fix17_state_top_count.py — 10 test hijau; full suite 3052 passed / 0 failed / 1 skipped.",
       "test_count": 3052,
       "next": "Design contract refactor (docs/ai/REFACTOR-CONTRACT.md) → refactor views.py"
+    },
+    "refactor_r1_views": {
+      "status": "done",
+      "commit": "ab020c5",
+      "views": "api/views.py 535 → 160 baris (orkestrator tipis)",
+      "handlers": [
+        "api/handlers/common.py",
+        "api/handlers/clarification.py",
+        "api/handlers/llm_pipeline.py",
+        "api/handlers/logging.py"
+      ],
+      "invarian": "Kontrak response sama; patch path test lama tetap valid (import modul dipertahankan); semantik klarifikasi tidak berubah.",
+      "test": "Full suite 3052 passed / 0 failed / 1 skipped setelah refactor.",
+      "next": "R-2 — pecah context_builder.py (1515 baris) menjadi paket; butuh sesi terpisah (5–6 jam)"
     },
     "pra_0a_cleanup": {
       "status": "done (2026-10-18) — backend 0 failed, frontend 0 failed",
