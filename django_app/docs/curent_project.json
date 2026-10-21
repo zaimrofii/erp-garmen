@@ -6,7 +6,7 @@
       "concept": "MES = ERP Produksi (single point of input). Odoo = back-office pasif. Sync: master dua arah, transaksi satu arah (MES → Odoo).",
       "frontend_repo": "frontend_app_v2/ (hand-coded React); arsip: frontend_app/ (v1 metadata-driven)",
       "last_updated": "2026-10-21",
-      "current_phase": "R-1 DONE (extract views handlers); R-2 context_builder menunggu sesi",
+      "current_phase": "Refactor R-1+R-2 DONE; siap Fase Sedang",
       "test_count_total": 3052,
       "test_pre_existing_failures": 0
     },
@@ -156,6 +156,16 @@
       "invarian": "Kontrak response sama; patch path test lama tetap valid (import modul dipertahankan); semantik klarifikasi tidak berubah.",
       "test": "Full suite 3052 passed / 0 failed / 1 skipped setelah refactor.",
       "next": "R-2 — pecah context_builder.py (1515 baris) menjadi paket; butuh sesi terpisah (5–6 jam)"
+    },
+    "refactor_r2_context_builder": {
+      "status": "done",
+      "commit": "43e252f",
+      "struktur": "context_builder/{constants 219, aggregate 97, candidates 284, builder 1143, __init__ 131} baris",
+      "builder_before_after": "context_builder.py 1515 → builder.py 1143 + 3 modul terpisah",
+      "patch_migration": "3 patch-path test dipindah (get_repo, _collect_stock ×2); __getattr__ fallback dipertahankan agar patch modul MCP lama tetap valid.",
+      "r3": "skip — re-export/fallback dipertahankan (aman, tanpa perubahan perilaku)",
+      "test": "Full suite 3052 passed / 0 failed / 1 skipped setelah refactor.",
+      "next": "Fase Sedang — HITL saran aksi + OEE/WIP + Data Sanity v1"
     },
     "pra_0a_cleanup": {
       "status": "done (2026-10-18) — backend 0 failed, frontend 0 failed",
