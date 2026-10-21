@@ -180,7 +180,7 @@ class ContextBuilderExtendedTests(TestCase):
 
     def test_inventory_value(self):
         stock = [{"quantity": 5, "cost_price": 1000}]
-        with patch(f"{MODULE}._collect_stock", return_value=(stock, [])):
+        with patch(f"{MODULE}.builder._collect_stock", return_value=(stock, [])):
             data = context_builder.build_context(
                 "DATA_LOOKUP", [], "nilai gudang?", {}, user=_user("ADMIN")
             )

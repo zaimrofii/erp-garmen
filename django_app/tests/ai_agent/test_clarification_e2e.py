@@ -319,7 +319,9 @@ class CandidateHeuristicTests(SimpleTestCase):
             ]
         )
 
-        with patch.object(context_builder, "get_repo", return_value=fake_repo):
+        with patch.object(
+            context_builder.builder, "get_repo", return_value=fake_repo
+        ):
             data = context_builder.build_context(
                 "DATA_LOOKUP",
                 [],

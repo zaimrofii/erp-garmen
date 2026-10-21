@@ -111,7 +111,7 @@ class UnifiedContextBuilderTests(TestCase):
     def test_page_detail_product_stock_dan_resource(self):
         stock = [{"product_id": 1, "code": "PRD-1", "quantity": 7}]
         with patch(
-            f"{MODULE}._collect_stock", return_value=(stock, [])
+            f"{MODULE}.builder._collect_stock", return_value=(stock, [])
         ):
             data, _ = self._build(
                 "stok produk ini?",
