@@ -1,0 +1,453 @@
+"""Spike-3 runner — aturan skor dibaca dari `spike_scoring_rules.md`.
+
+Semua logika parsing/skor mengikuti blok YAML di file aturan (anti-koreksi
+post-hoc). Jalankan: docker exec -i garmen_django python tests/golden/spike_runner_v3.py
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import statistics
+import sys
+import time
+from datetime import datetime, timezone as dt_tz
+from pathlib import Path
+
+BASE = Path(__file__).resolve().parent
+for parent in (BASE.parent.parent, BASE.parent):
+    if str(parent) not in sys.path:
+        sys.path.insert(0, str(parent))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+
+import django  # noqa: E402
+
+django.setup()
+
+import httpx  # noqa: E402
+import yaml  # noqa: E402
+from django.conf import settings  # noqa: E402
+
+from integrations.ai_agent.config import AI_CONFIG  # noqa: E402
+from tests.golden import spike_tools_v3 as tools  # noqa: E402
+
+BUDGET_USD = 0.0097  # sisa kumulatif: 0.05 - 0.0370657 ≈ 0.0129; sisakan margin
+TOTAL_SPENT = 0.0
+MAX_TOKENS = 200
+TOOL_CONTENT_CAP = 4000
+MAX_ROUNDS_B = 2  # spesifikasi: ≤3; dipakai 2 demi budget $0.010
+
+RULES_PATH = BASE / "spike_scoring_rules.md"
+
+SYSTEM_PROMPT = """Kamu asisten MES garmen. Jawab Bahasa Indonesia dengan angka konkret.
+ATURAN:
+- Panggil tool untuk pertanyaan data; jangan mengarang angka.
+- Jika pertanyaan punya lebih dari satu klausa (dipisah "dan", "lalu", koma), jawab SEMUA klausa.
+- Jika diminta "rata-rata", hitung aggregate avg (bukan menampilkan daftar per hari).
+- Read-only: jangan menyarankan/melakukan perubahan data.
+- Sebut angka persis dari tool, dengan satuan."""
+
+EXPECTED = {
+    "G001": {"tool": "count_records", "must": ["bundle", "sewing-2"]},
+    "G002": {"tool": "aggregate", "must": ["scrap", "work_center"]},
+    "G003": {"tool": "list_records", "must": ["order"]},
+    "G004": {"tool": "get_metric", "must": ["operator"]},
+    "G005": {"tool": "list_records", "must": ["product", "sale_price"]},
+    "G006": {"tool": "get_stock", "must": ["kaos"]},
+    "G007": {"tool": "aggregate", "must": ["order", "customer"]},
+    "G008": {"tool": "get_metric", "must": ["scrap", "work_center"]},
+    "G009": {"tool": "get_metric", "must": ["lead_time"]},
+    "G010": {"tool": "list_records", "must": ["product", "sale_price"]},
+    "G011": {"tool": "count_records", "must": ["product"]},
+    "G012": {"tool": None},
+    "G013": {"tool": "get_metric", "must": ["scrap"]},
+    "G014": {"tool": None},
+    "G015": {"tool": "count_records", "must": ["order"]},
+}
+
+
+def load_rules() -> dict:
+    """Ambil blok ```yaml dari spike_scoring_rules.md."""
+    text = RULES_PATH.read_text(encoding="utf-8")
+    match = re.search(r"```yaml\s*(.*?)```", text, re.S)
+    if not match:
+        raise SystemExit("Blok yaml aturan skor tidak ditemukan")
+    rules = yaml.safe_load(match.group(1))
+    if not isinstance(rules, dict):
+        raise SystemExit("Aturan skor bukan mapping")
+    return rules
+
+
+def parse_numbers(text: str, rules: dict) -> list[float]:
+    """Parser angka sesuai aturan (Indonesia, persen, ribu/juta, kode bukan angka)."""
+    cfg = rules.get("parsing", {})
+    year_bounds = cfg.get("ignore_years") or [2000, 2100]
+    year_low, year_high = int(year_bounds[0]), int(year_bounds[-1])
+    scales = cfg.get("scale_words") or {}
+    thousand = cfg.get("thousand_separator", ".")
+    decimal = cfg.get("decimal_separator", ",")
+    text = re.sub(r"(?i)\brp\.?\s*", "Rp ", text or "")
+
+    out: list[float] = []
+    pattern = r"(?<![\w-])(\d[\d.,]*)\s*(ribu|rb|juta)?"
+    for match in re.finditer(pattern, text):
+        token = match.group(1).rstrip(".,")
+        scale_word = (match.group(2) or "").lower()
+        if re.fullmatch(rf"\d{{1,3}}({re.escape(thousand)}\d{{3}})+({re.escape(decimal)}\d+)?", token):
+            whole, _, frac = token.replace(thousand, "").partition(decimal)
+            value = float(f"{whole}.{frac}" if frac else whole)
+        elif re.fullmatch(rf"\d+{re.escape(decimal)}\d+", token):
+            value = float(token.replace(decimal, "."))
+        elif re.fullmatch(r"\d+(\.\d+)?", token):
+            value = float(token)
+        else:
+            value = float(re.sub(r"[.,]", "", token) or 0)
+        if scale_word:
+            value *= float(scales.get(scale_word, 1))
+        if float(value) == int(value) and year_low <= int(value) <= year_high:
+            continue
+        out.append(value)
+    return out
+
+
+def check_ground_truth(question: dict, answer: str, rules: dict) -> tuple[bool, str]:
+    """Cocokkan jawaban dengan `check` di YAML (numeric/entity/refuse/no_data)."""
+    check = question.get("check") or {}
+    kind = check.get("type")
+    low = (answer or "").lower()
+    numbers = parse_numbers(answer, rules)
+
+    if kind in {"refuse", "no_data"}:
+        hit = any(word.lower() in low for word in check.get("words", []))
+        return hit, "penanda penolakan/data kosong" if hit else "tidak menolak"
+
+    reasons: list[str] = []
+    entities = check.get("entities") or []
+    if entities and not any(entity.lower() in low for entity in entities):
+        reasons.append("entity tidak muncul")
+    for expected in check.get("numbers") or []:
+        if not any(abs(value - expected) <= 0.5 for value in numbers):
+            reasons.append(f"angka {expected} tidak ada")
+    if "approx" in check:
+        tolerance = float(check.get("tol", 0.5))
+        if not any(abs(value - check["approx"]) <= tolerance for value in numbers):
+            reasons.append(f"~{check['approx']} tidak ada")
+    return (not reasons), (", ".join(reasons) or "cocok")
+
+
+def wrong_numbers(answer: str, results: list[dict], rules: dict) -> list[float]:
+    """Angka jawaban yang tidak sah menurut aturan."""
+    cfg = rules.get("scoring", {})
+    tolerance = float(cfg.get("angka_salah_tolerance_pct", 2.0)) / 100
+    answered = parse_numbers(answer, rules)
+    pool = parse_numbers(json.dumps(results, default=str), rules)
+    if not answered:
+        return []
+    if not pool:
+        return answered
+
+    def near(value: float, reference: float) -> bool:
+        return abs(value - reference) <= max(abs(reference) * tolerance, 0.01)
+
+    mean = statistics.mean(pool)
+    total = sum(pool)
+    low, high = min(pool), max(pool)
+    bad: list[float] = []
+    for value in answered:
+        if any(near(value, ref) for ref in pool):
+            continue
+        if cfg.get("angka_salah_allow_mean_sum") and (near(value, mean) or near(value, total)):
+            continue
+        if cfg.get("angka_salah_allow_range") and low * (1 - tolerance) <= value <= high * (1 + tolerance):
+            continue
+        bad.append(value)
+    return bad
+
+
+def _price() -> tuple[float, float]:
+    llm = AI_CONFIG["llm"]
+    return float(llm["cost_per_1k_prompt_usd"]), float(llm["cost_per_1k_completion_usd"])
+
+
+def usage_cost(data: dict) -> float:
+    usage = data.get("usage") or {}
+    prompt, completion = _price()
+    return (
+        int(usage.get("prompt_tokens") or 0) / 1000 * prompt
+        + int(usage.get("completion_tokens") or 0) / 1000 * completion
+    )
+
+
+def call_llm(messages: list[dict], with_tools: bool = True) -> dict:
+    api_key = str(getattr(settings, "AI_LLM_API_KEY", "") or "").strip()
+    if not api_key:
+        raise SystemExit("AI_LLM_API_KEY tidak di-set; spike dibatalkan.")
+    base = str(getattr(settings, "AI_LLM_BASE_URL", "") or "https://api.deepseek.com/v1").rstrip("/")
+    model = str(getattr(settings, "AI_LLM_MODEL", "") or "deepseek-chat")
+    payload = {"model": model, "messages": messages, "temperature": 0, "max_tokens": MAX_TOKENS}
+    if with_tools:
+        payload["tools"] = tools.TOOLS_SCHEMA
+        payload["tool_choice"] = "auto"
+
+    last_error = None
+    for attempt in range(2):
+        try:
+            with httpx.Client(timeout=90) as client:
+                resp = client.post(
+                    f"{base}/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    json=payload,
+                )
+                resp.raise_for_status()
+                return resp.json()
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            time.sleep(2 + attempt * 3)
+    raise RuntimeError(f"LLM gagal: {last_error}")
+
+
+def params_match(arguments: dict, must: list[str]) -> bool:
+    blob = json.dumps(arguments, ensure_ascii=False).lower()
+    return all(token.lower() in blob for token in must)
+
+
+def run_question(question: dict, scenario: str, rules: dict) -> tuple[dict, float]:
+    """Satu pertanyaan; definisi sistem (P1) dikirim ke prompt."""
+    scoring = rules.get("scoring", {})
+    expected = EXPECTED.get(question["id"], {"tool": None})
+    max_rounds = 1 if scenario == "A" else MAX_ROUNDS_B
+
+    system = SYSTEM_PROMPT
+    definition = question.get("definition_system")
+    if definition:
+        system = f"{system}\n\nDEFINISI SISTEM: {definition}"
+
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": question["q"]},
+    ]
+    started = time.perf_counter()
+    cost = 0.0
+    prompt_tokens = 0
+    completion_tokens = 0
+    tool_names: list[str] = []
+    arguments_list: list[dict] = []
+    results: list[dict] = []
+    answer = ""
+
+    for _ in range(max_rounds):
+        data = call_llm(messages, with_tools=True)
+        cost += usage_cost(data)
+        usage = data.get("usage") or {}
+        prompt_tokens += int(usage.get("prompt_tokens") or 0)
+        completion_tokens += int(usage.get("completion_tokens") or 0)
+        message = (data.get("choices") or [{}])[0].get("message") or {}
+        calls = message.get("tool_calls") or []
+        if not calls:
+            answer = message.get("content") or ""
+            break
+        messages.append(message)
+        for index, call in enumerate(calls):
+            function = call.get("function") or {}
+            name = function.get("name")
+            raw = function.get("arguments") or "{}"
+            try:
+                args = json.loads(raw) if isinstance(raw, str) else dict(raw)
+            except ValueError:
+                args = {"_raw": raw}
+            result = tools.execute(name, args)
+            tool_names.append(name)
+            arguments_list.append(args)
+            results.append(result)
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": call.get("id") or f"call_{index}",
+                    "content": json.dumps(result, default=str)[:TOOL_CONTENT_CAP],
+                }
+            )
+    else:
+        data = call_llm(messages, with_tools=False)
+        cost += usage_cost(data)
+        usage = data.get("usage") or {}
+        prompt_tokens += int(usage.get("prompt_tokens") or 0)
+        completion_tokens += int(usage.get("completion_tokens") or 0)
+        answer = ((data.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+
+    refusal_ids = set(scoring.get("refusal_ids") or [])
+    excluded = set(scoring.get("excluded_from_e2e") or [])
+    alternatives = scoring.get("tool_alternatives", {}) or {}
+    first_args = arguments_list[0] if arguments_list else {}
+    expected_tool = expected.get("tool")
+
+    if question["id"] in refusal_ids:
+        tool_ok, params_ok = True, True
+    else:
+        allowed = set(
+            alternatives.get(question["id"], [expected_tool] if expected_tool else [])
+        )
+        if allowed:
+            if scenario == "A":
+                tool_ok = bool(tool_names) and tool_names[0] in allowed
+            else:
+                tool_ok = any(name in allowed for name in tool_names)
+            params_ok = params_match(first_args, expected.get("must", []))
+        else:
+            tool_ok, params_ok = (not tool_names), (not tool_names)
+
+    gt_ok, gt_reason = check_ground_truth(question, answer, rules)
+    bad = wrong_numbers(answer, results, rules)
+
+    row = {
+        "id": question["id"],
+        "q": question["q"],
+        "category": question["category"],
+        "scenario": scenario,
+        "expected_tool": expected_tool,
+        "tools_dipilih": tool_names,
+        "parameter": first_args,
+        "tool_errors": [r.get("error") for r in results if r.get("error")],
+        "answer": answer[:600],
+        "ground_truth": question["ground_truth"],
+        "cocok_ground_truth": gt_ok,
+        "gt_reason": gt_reason,
+        "tool_selection_benar": bool(tool_ok),
+        "parameter_benar": bool(params_ok),
+        "e2e_benar": bool(tool_ok and params_ok and gt_ok),
+        "excluded_from_e2e": question["id"] in excluded,
+        "angka_salah": bad,
+        "angka_salah_count": len(bad),
+        "latency_ms": round((time.perf_counter() - started) * 1000, 1),
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "tool_calls": len(tool_names),
+        "cost_usd": round(cost, 8),
+    }
+    return row, cost
+
+
+def summarize(rows: list[dict], scenario: str, cost: float, rules: dict) -> dict:
+    scoring = rules.get("scoring", {})
+    excluded = set(scoring.get("excluded_from_e2e") or [])
+    scored_rows = [r for r in rows if r["id"] not in excluded]
+    total = len(rows)
+    tool_ok = sum(1 for r in rows if r["tool_selection_benar"])
+    param_ok = sum(1 for r in rows if r["parameter_benar"])
+    e2e_scored = sum(1 for r in scored_rows if r["e2e_benar"])
+    e2e_all = sum(1 for r in rows if r["e2e_benar"])
+    wrong = sum(1 for r in rows if r["angka_salah_count"] > 0)
+
+    per_category: dict[str, dict] = {}
+    for row in rows:
+        bucket = per_category.setdefault(
+            row["category"], {"total": 0, "tool": 0, "param": 0, "e2e": 0, "wrong": 0}
+        )
+        bucket["total"] += 1
+        bucket["tool"] += int(row["tool_selection_benar"])
+        bucket["param"] += int(row["parameter_benar"])
+        bucket["e2e"] += int(row["e2e_benar"])
+        bucket["wrong"] += int(row["angka_salah_count"] > 0)
+
+    return {
+        "scenario": scenario,
+        "total": total,
+        "tool_pct": round(tool_ok / total * 100, 1) if total else 0.0,
+        "param_pct": round(param_ok / total * 100, 1) if total else 0.0,
+        "e2e_dari_13_pct": round(e2e_scored / len(scored_rows) * 100, 1) if scored_rows else 0.0,
+        "e2e_dari_15_pct": round(e2e_all / total * 100, 1) if total else 0.0,
+        "angka_salah_pct": round(wrong / total * 100, 1) if total else 0.0,
+        "benar_e2e_13": e2e_scored,
+        "benar_e2e_15": e2e_all,
+        "denominator_13": len(scored_rows),
+        "biaya_usd": round(cost, 8),
+        "per_kategori": per_category,
+        "detail": rows,
+    }
+
+
+def smoke_test(rules: dict, questions: list[dict]) -> float:
+    """Verifikasi parser + skor pada G005 sebelum run penuh."""
+    assert parse_numbers("Rp250.000,00", rules) == [250000.0], "parser ribuan gagal"
+    assert parse_numbers("SEWING-2 dan 12,5%", rules) == [12.5], "parser kode/persen gagal"
+    assert parse_numbers("250 ribu", rules) == [250000.0], "parser ribu gagal"
+
+    question = next(q for q in questions if q["id"] == "G005")
+    row, cost = run_question(question, "A", rules)
+    print(
+        f"SMOKE G005 e2e={row['e2e_benar']} gt={row['cocok_ground_truth']} "
+        f"reason={row['gt_reason']} cost=${cost:.6f}"
+    )
+    print(f"SMOKE answer: {row['answer'][:120]}")
+    return cost
+
+
+def run_scenario(scenario: str, questions: list[dict], rules: dict) -> tuple[dict, float]:
+    global TOTAL_SPENT
+    rows: list[dict] = []
+    cost_total = 0.0
+    aborted = False
+    for question in questions:
+        if TOTAL_SPENT > BUDGET_USD:
+            aborted = True
+            print(f"ABORT skenario {scenario}: kumulatif ${TOTAL_SPENT:.6f} > ${BUDGET_USD}")
+            break
+        try:
+            row, cost = run_question(question, scenario, rules)
+        except Exception as exc:  # noqa: BLE001
+            print(f"{scenario} {question['id']} ERROR {type(exc).__name__}: {exc}")
+            continue
+        TOTAL_SPENT += cost
+        cost_total += cost
+        rows.append(row)
+        print(
+            f"{scenario} {row['id']} tools={','.join(row['tools_dipilih'][:2]) or '-':34s} "
+            f"tool={int(row['tool_selection_benar'])} par={int(row['parameter_benar'])} "
+            f"gt={int(row['cocok_ground_truth'])} e2e={int(row['e2e_benar'])} "
+            f"salah={row['angka_salah_count']} ${row['cost_usd']:.6f}"
+        )
+    summary = summarize(rows, scenario, cost_total, rules)
+    summary["aborted_budget"] = aborted
+    return summary, cost_total
+
+
+def main() -> int:
+    rules = load_rules()
+    questions = yaml.safe_load((BASE / "questions.yaml").read_text(encoding="utf-8"))
+    model_label = str(getattr(settings, "AI_LLM_MODEL", "") or "deepseek-chat")
+
+    global TOTAL_SPENT
+    TOTAL_SPENT = smoke_test(rules, questions)
+    summary_a, cost_a = run_scenario("A", questions, rules)
+    summary_b, cost_b = run_scenario("B", questions, rules)
+
+    payload = {
+        "generated_at": datetime.now(dt_tz.utc).isoformat(),
+        "model": model_label,
+        "rules_file": "tests/golden/spike_scoring_rules.md",
+        "runs_used": 1,
+        "budget_usd": BUDGET_USD,
+        "total_cost_usd": round(cost_a + cost_b, 8),
+        "kumulatif_proyek_usd": round(0.0370657 + cost_a + cost_b, 8),
+        "tools": [t["function"]["name"] for t in tools.TOOLS_SCHEMA],
+        "skenario_A": summary_a,
+        "skenario_B": summary_b,
+    }
+    out = BASE / "spike_results_v3.json"
+    out.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    for name, summary in (("A", summary_a), ("B", summary_b)):
+        print(
+            f"SKENARIO {name}: tool={summary['tool_pct']}% param={summary['param_pct']}% "
+            f"e2e13={summary['e2e_dari_13_pct']}% e2e15={summary['e2e_dari_15_pct']}% "
+            f"salah={summary['angka_salah_pct']}% biaya=${summary['biaya_usd']:.6f}"
+        )
+    print(
+        f"TOTAL run ${cost_a + cost_b:.8f} kumulatif ${0.0370657 + cost_a + cost_b:.8f} -> {out}"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+

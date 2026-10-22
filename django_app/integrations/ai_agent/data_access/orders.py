@@ -11,7 +11,7 @@ class OrderRepository(BaseRepository):
     model = Order
     join_spec = ["customer"]
     order_by = ["-created_at", "-id"]
-    serialize_fields = ["id", "code", "customer_id", "state", "created_at", "deadline"]
+    serialize_fields = ["id", "code", "customer_id", "state", "created_at", "deadline", "completed_at"]
     serialize_joins = {
         "customer_name": "customer.name",
         "customer_code": "customer.code",

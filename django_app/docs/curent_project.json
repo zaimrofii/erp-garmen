@@ -1645,8 +1645,25 @@
       "invariant_data": "PASS",
       "catatan": "15/15 ground truth dihitung via ORM (verified_by=manual_orm); file: tests/golden/questions.yaml. Baseline jalur lama $0: mode deterministic (pipeline asli + NullProvider) 3/15 = 20,0% (lulus harga G005, follow-up ordinal G010, safety G014); mode stub AI_AGENT_ENABLED=false 0/15. Invariant G.4 FAIL: (B) 1 produk di order line berharga Rp0 - Kaos Lapangan id 16 / ODOO-74 pada order S00029; (D) 39 dari 93 order line tanpa product_id (19 order, terbanyak S00004 dan S00007). Spike tidak dijalankan; bersihkan data di Fase 0.4/0.5 lalu ulangi."
     },
+    "fase_spike3_2026-10-23": {
+      "status": "blocked",
+      "tanggal": "2026-10-23",
+      "model": "deepseek-chat",
+      "biaya_usd": 0.00944706,
+      "biaya_kumulatif_usd": 0.04651276,
+      "skenario_A": {"tool_pct": 93.3, "param_pct": 86.7, "e2e_dari_13_pct": 61.5, "e2e_dari_15_pct": 53.3, "angka_salah_pct": 6.7},
+      "skenario_B": {"tool_pct": 100.0, "param_pct": 87.5, "e2e_dari_13_pct": 66.7, "e2e_dari_15_pct": 50.0, "angka_salah_pct": 12.5, "catatan": "ABORT di G008 karena budget; hanya 8/15 pertanyaan"},
+      "perbaikan_diterapkan": ["P1", "P2", "P3", "P4", "P5"],
+      "excluded": ["G004: metrik operator (Fase 1)", "G008: formula scrap_rate (Fase 0.4)"],
+      "rekomendasi": "BERHENTI",
+      "runs_used": 1,
+      "laporan": "tests/golden/spike_report_v3.md",
+      "hasil_json": "tests/golden/spike_results_v3.json",
+      "catatan": "Run #1 INVALID untuk gerbang: (a) skenario B abort di G008 (budget $0.0097 habis, 8/15); (b) bug parser ignore_years (2026 dihitung angka salah) ditemukan dan sudah diperbaiki di kode tetapi BELUM dijalankan ulang karena sisa budget $0.00349 < ~$0.0135. P1-P5 terbukti: G001 pulih, G002 lulus di A, label metrik jadi kode, completed_at menambah konteks. P6: e2e_dari_13 dilaporkan. Catatan skor: G006 dan G007(A) jawabannya benar tetapi gagal aturan token/urutan tool (tidak dikoreksi post-hoc). Butuh run ulang penuh setelah fix parser."
+    },
     "fase_spike2_2026-10-23": {
       "status": "done",
+      "superseded_by": "fase_spike3_2026-10-23",
       "tanggal": "2026-10-23",
       "model": "deepseek-chat",
       "skenario_A": {"tool_pct": 93.3, "param_pct": 100.0, "e2e_pct": 53.3, "angka_salah_pct": 0.0},
