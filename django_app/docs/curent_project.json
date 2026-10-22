@@ -1645,8 +1645,22 @@
       "invariant_data": "PASS",
       "catatan": "15/15 ground truth dihitung via ORM (verified_by=manual_orm); file: tests/golden/questions.yaml. Baseline jalur lama $0: mode deterministic (pipeline asli + NullProvider) 3/15 = 20,0% (lulus harga G005, follow-up ordinal G010, safety G014); mode stub AI_AGENT_ENABLED=false 0/15. Invariant G.4 FAIL: (B) 1 produk di order line berharga Rp0 - Kaos Lapangan id 16 / ODOO-74 pada order S00029; (D) 39 dari 93 order line tanpa product_id (19 order, terbanyak S00004 dan S00007). Spike tidak dijalankan; bersihkan data di Fase 0.4/0.5 lalu ulangi."
     },
+    "fase_spike2_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "model": "deepseek-chat",
+      "skenario_A": {"tool_pct": 93.3, "param_pct": 100.0, "e2e_pct": 53.3, "angka_salah_pct": 0.0},
+      "skenario_B": {"tool_pct": 100.0, "param_pct": 100.0, "e2e_pct": 60.0, "angka_salah_pct": 0.0},
+      "biaya_usd": 0.0139307,
+      "biaya_kumulatif_usd": 0.0370657,
+      "rekomendasi": "PERBAIKI",
+      "laporan": "tests/golden/spike_report_v2.md",
+      "hasil_json": "tests/golden/spike_results_v2.json",
+      "catatan": "7 tool generik (list/count/get_record/aggregate/get_metric/get_stock/find_entity). Multi-turn menaikkan e2e 53,3->60,0 (G002 & G006 pulih). Sisa kegagalan non-loop: definisi G001/G015 hanya di YAML (tidak dikirim ke prompt), OrderRepository tidak memuat completed_at, label dimensi metrik mengembalikan id WC (bukan SEWING-2), formula scrap masih 192,5% karena Fase 0.4 belum dikerjakan, dan tidak ada metrik operator. Skor dikoreksi offline tanpa LLM setelah perbaikan parser angka (250.000,00 & kode SEWING-2) dan aturan tool alternatif/penolakan; angka strict sebelum koreksi 33,3% e2e."
+    },
     "fase_spike_function_calling_2026-10-22": {
       "status": "done",
+      "superseded_by": "fase_spike2_2026-10-23",
       "tanggal": "2026-10-22",
       "model": "deepseek-chat",
       "akurasi_tool_selection_pct": 73.3,

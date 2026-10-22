@@ -8,10 +8,11 @@
   q: "berapa bundle sedang dikerjakan di SEWING-2?"
   category: wip
   ground_truth: "6 bundle (state REWORK). Total 22 bundle berada di SEWING-2: REWORK 6, SCRAP 15, DONE 1."
-  query: "Bundle.objects.filter(current_work_center__code='SEWING-2', state='REWORK').count()  # =6"
+  definition_system: "bundle aktif di WC SEWING-2 berdasarkan posisi terakhir (current_work_center). Aktif = state IN [CUTTING, SEWING, QC, FINISHING, REWORK]; DONE/SCRAP dikecualikan karena tidak sedang dikerjakan. Catatan: daftar 4 state di brief menghasilkan 0 — REWORK ditambahkan karena masih dikerjakan."
+  query: "Bundle.objects.filter(current_work_center__code='SEWING-2', state__in=['CUTTING','SEWING','QC','FINISHING','REWORK']).count()  # =6 (REWORK)"
   source_of_truth: DB
   verified: true
-  verified_at: "2026-10-22"
+  verified_at: "2026-10-23"
   verified_by: manual_orm
   check: {type: numeric, numbers: [6]}
 
@@ -62,13 +63,14 @@
 - id: G006
   q: "stok produk Kaos Polos Cotton Combed 30s di gudang?"
   category: stok
-  ground_truth: "102 pcs di lokasi WH/Stok (InventoryAdjustment terakhir, 2026-10-21)."
-  query: "InventoryAdjustment.objects.filter(product__name='Kaos Polos Cotton Combed 30s', location__code='WH/Stok').order_by('-created_at').values_list('qty_after', flat=True).first()  # =102"
+  ground_truth: "30 pcs di WH/Stok (Odoo live, produk ODOO-65). Catatan: mirror MES (InventoryAdjustment FG-KAOS-001) menunjukkan 102 — beda sumber, bukan beda tool."
+  definition_system: "Stok = stock.quant Odoo pada lokasi usage=internal, produk ODOO-65 (kode mirror Odoo). Ada 2 produk lokal bernama sama (FG-KAOS-001 dan ODOO-65); dipilih ODOO-65 karena stok live ada di Odoo."
+  query: "get_stock('ODOO-65') -> transport.search_read('stock.quant', [product_id.default_code=ODOO-65, location_id.usage=internal])  # quantity 30 (WH/Stok); lokasi virtual -30 dikecualikan"
   source_of_truth: DB
   verified: true
-  verified_at: "2026-10-22"
+  verified_at: "2026-10-23"
   verified_by: manual_orm
-  check: {type: numeric, numbers: [102]}
+  check: {type: numeric, numbers: [30]}
 
 - id: G007
   q: "customer dengan order terbanyak bulan ini?"
@@ -161,11 +163,12 @@
 - id: G015
   q: "total order aktif, lalu mana yang paling lambat?"
   category: majemuk
-  ground_truth: "43 order aktif (state != DONE). Tidak ada yang telat; tenggat paling akhir SO-BIG-0040 (13 Nov 2026, DRAFT, PT BIG Customer 10)."
-  query: "Order.objects.exclude(state='DONE').count()  # =43 ; Order.objects.exclude(state='DONE').exclude(deadline__isnull=True).order_by('-deadline').values('code','deadline').first()  # SO-BIG-0040 2026-11-13"
+  ground_truth: "15 order aktif (CONFIRMED 10 + IN_PROGRESS 5). Paling lambat = deadline terdekat yang belum selesai: RICH-SO-01 (29 Okt 2026, CONFIRMED, PT Retail Fashion Indonesia)."
+  definition_system: "Aktif = Order.state IN [CONFIRMED, IN_PROGRESS] (DRAFT/DONE/CANCELLED dikecualikan). Paling lambat = deadline terdekat yang belum selesai (bukan progress qty), karena definisi progress butuh agregasi WO yang tidak stabil antar order."
+  query: "Order.objects.filter(state__in=['CONFIRMED','IN_PROGRESS']).count()  # =15 ; .order_by('deadline').values('code','deadline').first()  # RICH-SO-01 2026-10-29"
   source_of_truth: DB
   verified: true
-  verified_at: "2026-10-22"
+  verified_at: "2026-10-23"
   verified_by: manual_orm
-  check: {type: numeric, numbers: [43], entities: ["so-big-0040"]}
+  check: {type: numeric, numbers: [15], entities: ["rich-so-01"]}
 

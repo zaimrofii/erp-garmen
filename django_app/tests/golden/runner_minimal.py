@@ -66,12 +66,20 @@ class NullProvider:
 
 
 def numbers_in(text: str) -> list[float]:
-    """Ambil angka dari jawaban; tangani 250.000 dan 77,64."""
+    """Ambil angka dari jawaban; tangani 250.000 / 250.000,00 / 77,64.
+
+    Kode seperti ``SEWING-2`` atau ``QC-1`` TIDAK dianggap angka (didahului
+    huruf/tanda hubung), supaya tidak muncul angka salah palsu.
+    """
     out: list[float] = []
-    for token in _NUM.findall(text or ""):
-        token = token.rstrip(".,")
-        if re.fullmatch(r"\d{1,3}(\.\d{3})+", token):
-            value = float(token.replace(".", ""))
+    # "Rp250.000" → "Rp 250.000" agar angka tidak dianggap bagian kata.
+    text = re.sub(r"(?i)\brp\.?\s*", "Rp ", text or "")
+    for match in re.finditer(r"(?<![\w-])(\d[\d.,]*)", text):
+        token = match.group(1).rstrip(".,")
+        if re.fullmatch(r"\d{1,3}(\.\d{3})+(,\d+)?", token):
+            # 250.000 atau 250.000,00 → 250000 / 250000.0
+            whole, _, decimal = token.replace(".", "").partition(",")
+            value = float(f"{whole}.{decimal}" if decimal else whole)
         elif re.fullmatch(r"\d+,\d+", token):
             value = float(token.replace(",", "."))
         elif re.fullmatch(r"\d+(\.\d+)?", token):
