@@ -136,33 +136,129 @@ def check_ground_truth(question: dict, answer: str, rules: dict) -> tuple[bool, 
     return (not reasons), (", ".join(reasons) or "cocok")
 
 
+def _close(value: float, reference: float, tolerance: float) -> bool:
+    return abs(value - reference) <= max(abs(reference) * tolerance, 0.01)
+
+
+def _subset_stats(pool: list[float]) -> tuple[set[float], set[float]]:
+    """Semua SUM & AVG subset (maks 10 angka) + total/pairwise untuk pool besar."""
+    from itertools import combinations
+
+    sums: set[float] = set()
+    avgs: set[float] = set()
+    if len(pool) <= 10:
+        indices = range(len(pool))
+        for size in range(1, len(pool) + 1):
+            for combo in combinations(indices, size):
+                values = [pool[i] for i in combo]
+                sums.add(round(sum(values), 6))
+                avgs.add(round(sum(values) / len(values), 6))
+    else:
+        sums.add(round(sum(pool), 6))
+        for left, right in combinations(pool, 2):
+            sums.add(round(left + right, 6))
+            avgs.add(round((left + right) / 2, 6))
+    return sums, avgs
+
+
+def _derived_percentages(pool: list[float]) -> set[float]:
+    """Persen turunan: rasio a/b*100 dan perubahan (a-b)/b*100."""
+    values: set[float] = set()
+    for left in pool:
+        for right in pool:
+            if right == 0:
+                continue
+            values.add(round(left / right * 100, 6))
+            values.add(round((left - right) / right * 100, 6))
+    return values
+
+
 def wrong_numbers(answer: str, results: list[dict], rules: dict) -> list[float]:
-    """Angka jawaban yang tidak sah menurut aturan."""
-    cfg = rules.get("scoring", {})
-    tolerance = float(cfg.get("angka_salah_tolerance_pct", 2.0)) / 100
+    """Angka jawaban yang tidak sah menurut blok `angka_salah` di aturan."""
+    cfg = (rules.get("scoring") or {}).get("angka_salah") or {}
+    tolerance = float(cfg.get("tolerance_pct", 2.0)) / 100
+    derived_tolerance = float(cfg.get("derived_tolerance_pct", 5.0)) / 100
+
     answered = parse_numbers(answer, rules)
-    pool = parse_numbers(json.dumps(results, default=str), rules)
     if not answered:
         return []
+    pool = parse_numbers(json.dumps(results, default=str), rules)
+
     if not pool:
-        return answered
+        # (iii) hanya NOL yang sah bila tool tidak mengembalikan angka.
+        return [value for value in answered if value != 0]
 
-    def near(value: float, reference: float) -> bool:
-        return abs(value - reference) <= max(abs(reference) * tolerance, 0.01)
+    sums, avgs = _subset_stats(pool)
+    percentages = _derived_percentages(pool)
+    must_match = bool(cfg.get("must_match_tool_output", True))
 
-    mean = statistics.mean(pool)
-    total = sum(pool)
-    low, high = min(pool), max(pool)
     bad: list[float] = []
     for value in answered:
-        if any(near(value, ref) for ref in pool):
+        if value == 0:
             continue
-        if cfg.get("angka_salah_allow_mean_sum") and (near(value, mean) or near(value, total)):
+        if any(_close(value, reference, tolerance) for reference in pool):
             continue
-        if cfg.get("angka_salah_allow_range") and low * (1 - tolerance) <= value <= high * (1 + tolerance):
+        if cfg.get("allow_derived_sum") and any(
+            _close(value, reference, derived_tolerance) for reference in sums
+        ):
+            continue
+        if cfg.get("allow_derived_avg") and any(
+            _close(value, reference, derived_tolerance) for reference in avgs
+        ):
+            continue
+        if cfg.get("allow_derived_pct") and any(
+            _close(value, reference, derived_tolerance) for reference in percentages
+        ):
+            continue
+        if not must_match:
             continue
         bad.append(value)
     return bad
+
+
+DSML_TAG = re.compile(r"<｜｜[^｜]*｜｜>")
+DSML_INVOKE = re.compile(r'invoke\s+name="([^"]+)"')
+DSML_PARAM = re.compile(r'parameter\s+name="([^"]+)"[^>]*>([^<]*)</')
+
+
+def strip_dsml(text: str) -> str:
+    """Buang markup khusus DeepSeek agar jawaban bisa dinilai."""
+    return DSML_TAG.sub("", text or "").strip()
+
+
+def parse_dsml_calls(text: str) -> list[dict]:
+    """Ekstrak tool-call dari markup `<｜｜DSML｜｜>` (JSON atau atribut invoke)."""
+    body = strip_dsml(text)
+    calls: list[dict] = []
+
+    decoder = json.JSONDecoder()
+    index = 0
+    while True:
+        start = body.find("{", index)
+        if start < 0:
+            break
+        try:
+            obj, end = decoder.raw_decode(body[start:])
+        except ValueError:
+            index = start + 1
+            continue
+        if isinstance(obj, dict) and obj.get("name"):
+            arguments = obj.get("arguments") or obj.get("parameters") or {}
+            calls.append(
+                {
+                    "name": str(obj["name"]),
+                    "arguments": arguments if isinstance(arguments, dict) else {},
+                }
+            )
+        index = start + end
+    if calls:
+        return calls
+
+    for match in DSML_INVOKE.finditer(body):
+        tail = body[match.end():]
+        arguments = {pm.group(1): pm.group(2).strip() for pm in DSML_PARAM.finditer(tail)}
+        calls.append({"name": match.group(1), "arguments": arguments})
+    return calls
 
 
 def _price() -> tuple[float, float]:
@@ -235,6 +331,7 @@ def run_question(question: dict, scenario: str, rules: dict) -> tuple[dict, floa
     arguments_list: list[dict] = []
     results: list[dict] = []
     answer = ""
+    dsml_unparseable = 0
 
     for _ in range(max_rounds):
         data = call_llm(messages, with_tools=True)
@@ -244,8 +341,28 @@ def run_question(question: dict, scenario: str, rules: dict) -> tuple[dict, floa
         completion_tokens += int(usage.get("completion_tokens") or 0)
         message = (data.get("choices") or [{}])[0].get("message") or {}
         calls = message.get("tool_calls") or []
+        content = message.get("content") or ""
+        if not calls and "｜｜" in content:
+            parsed_calls = parse_dsml_calls(content)
+            if parsed_calls:
+                calls = [
+                    {
+                        "id": f"dsml_{index}",
+                        "type": "function",
+                        "function": {
+                            "name": call["name"],
+                            "arguments": json.dumps(call["arguments"], ensure_ascii=False),
+                        },
+                    }
+                    for index, call in enumerate(parsed_calls)
+                ]
+                message = {"role": "assistant", "content": "", "tool_calls": calls}
+                print(f"{question['id']} DSML_RECOVERED {[c['name'] for c in parsed_calls]}")
+            else:
+                dsml_unparseable += 1
+                print(f"{question['id']} dsml_unparseable")
         if not calls:
-            answer = message.get("content") or ""
+            answer = strip_dsml(content)
             break
         messages.append(message)
         for index, call in enumerate(calls):
@@ -273,7 +390,9 @@ def run_question(question: dict, scenario: str, rules: dict) -> tuple[dict, floa
         usage = data.get("usage") or {}
         prompt_tokens += int(usage.get("prompt_tokens") or 0)
         completion_tokens += int(usage.get("completion_tokens") or 0)
-        answer = ((data.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+        answer = strip_dsml(
+            ((data.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+        )
 
     refusal_ids = set(scoring.get("refusal_ids") or [])
     excluded = set(scoring.get("excluded_from_e2e") or [])
@@ -322,6 +441,7 @@ def run_question(question: dict, scenario: str, rules: dict) -> tuple[dict, floa
         "prompt_tokens": prompt_tokens,
         "completion_tokens": completion_tokens,
         "tool_calls": len(tool_names),
+        "dsml_unparseable": dsml_unparseable,
         "cost_usd": round(cost, 8),
     }
     return row, cost

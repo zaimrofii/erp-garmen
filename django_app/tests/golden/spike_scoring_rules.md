@@ -32,13 +32,27 @@ scoring:
   # Multi-turn: tool dianggap benar bila tool yang diharapkan ada di rantai.
   multi_turn_tool_match: "any"
   single_turn_tool_match: "first"
-  # Angka jawaban dianggap sah bila:
-  #  (i) cocok angka hasil tool (toleransi 2%), atau
-  #  (ii) sama dengan rata-rata / jumlah angka hasil tool (toleransi 2%), atau
-  #  (iii) berada dalam rentang [min,max] angka hasil tool.
-  angka_salah_tolerance_pct: 2.0
-  angka_salah_allow_range: true
-  angka_salah_allow_mean_sum: true
+  # Angka di jawaban final WAJIB berasal dari:
+  #   (i) angka di hasil tool apa adanya, atau
+  #   (ii) SUM/AVG/persen dari angka hasil tool (derived, toleransi 5%), atau
+  #   (iii) NOL atau "tidak ada data" bila hasil tool kosong.
+  # Selain itu = angka salah (fail keras).
+  #
+  # Kenapa allow_range dimatikan:
+  #   range:true membuat jawaban "sekitar 40" dianggap sah kalau tool
+  #   mengembalikan [10,50,90]. Itu false positive dan merusak target 0 angka salah.
+  # Kenapa allow_mean_sum dimatikan sebagai jalan pintas:
+  #   tanpa must_match_tool_output, LLM bisa mengarang angka yang kebetulan sama
+  #   dengan rata-rata himpunan hasil tool.
+  angka_salah:
+    tolerance_pct: 2.0
+    must_match_tool_output: true   # harus cocok salah satu angka di hasil tool
+    allow_derived_sum: true        # boleh = SUM beberapa angka tool
+    allow_derived_avg: true        # boleh = AVG beberapa angka tool
+    allow_derived_pct: true        # boleh = persen turunan (rasio/selisih)
+    derived_tolerance_pct: 5.0
+    allow_range: false             # TIDAK boleh "kebetulan di antara min-max"
+    allow_mean_sum: false          # TIDAK boleh hanya cocok rata-rata tanpa dasar
   # Denominator: tool/param dari 15 pertanyaan; e2e dari 13 (15 - excluded).
   tool_denominator: 15
   e2e_denominator: 13
