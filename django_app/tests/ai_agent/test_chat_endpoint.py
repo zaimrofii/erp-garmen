@@ -8,6 +8,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from core.auth.models import Role, User
+from integrations.ai_agent.api.handlers.llm_pipeline import build_cache_scope
 from integrations.ai_agent.memory import semantic_cache
 from integrations.ai_agent.models import AIDecisionLog
 
@@ -462,7 +463,9 @@ class ChatEndpointTests(TestCase):
             "cache_hit": False,
             "latency_ms": 10,
         }
-        semantic_cache.set(f"SUPERVISOR|DESKTOP|{message}", cached)
+        semantic_cache.set(
+            build_cache_scope("SUPERVISOR", "DESKTOP", message, {}), cached
+        )
 
         with override_settings(AI_AGENT_ENABLED=True), patch(
             ANALYTICS_ENABLED, return_value=True

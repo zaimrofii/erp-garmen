@@ -103,6 +103,14 @@ def aggregate_daily() -> dict[str, int]:
     return _aggregate("day")
 
 
+@shared_task(name="analytics.aggregate_daily_summary")
+def aggregate_daily_summary(day=None) -> dict:
+    """S.5 Berat-Lite — hitung DailySummary (idempoten)."""
+    from ...summary import aggregate_daily_summary as _aggregate_summary
+
+    return _aggregate_summary(day)
+
+
 @shared_task(name="analytics.cleanup_cache")
 def cleanup_cache() -> bool:
     """Buang cache analytics (prefix/versi) — murah dan idempoten."""
@@ -110,5 +118,10 @@ def cleanup_cache() -> bool:
     return True
 
 
-__all__ = ("aggregate_daily", "aggregate_hourly", "cleanup_cache")
+__all__ = (
+    "aggregate_daily",
+    "aggregate_daily_summary",
+    "aggregate_hourly",
+    "cleanup_cache",
+)
 

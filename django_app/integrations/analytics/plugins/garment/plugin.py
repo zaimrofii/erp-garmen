@@ -13,10 +13,14 @@ from ...core.registry import is_registered, register_metric
 
 from .metrics import (
     bottleneck,
+    buffer_status,
     lead_time,
     line_balance,
+    oee,
     rework_rate,
     scrap_rate,
+    wc_idle_status,
+    wip_flow,
 )
 
 METRICS = (
@@ -25,6 +29,10 @@ METRICS = (
     lead_time.METRIC,
     line_balance.METRIC,
     bottleneck.METRIC,
+    oee.METRIC,
+    wip_flow.METRIC,
+    wc_idle_status.METRIC,
+    buffer_status.METRIC,
 )
 
 

@@ -72,11 +72,23 @@ def serialize(row: AIHitlQueue) -> dict[str, Any]:
     }
 
 
-def get_pending(role: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
-    """Daftar PENDING; role supervisor hanya melihat antrean SUPERVISOR."""
-    queryset = AIHitlQueue.objects.filter(status="PENDING").select_related(
-        "decision_log", "decided_by"
-    )
+def get_queue(
+    role: str | None = None,
+    status: str = "PENDING",
+    risk: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> tuple[list[dict[str, Any]], int]:
+    """Daftar antrean HITL (filter status/risk + offset) untuk UI S.3."""
+    queryset = AIHitlQueue.objects.select_related("decision_log", "decided_by")
+
+    status_norm = str(status or "PENDING").strip().upper()
+    if status_norm != "ALL":
+        queryset = queryset.filter(status=status_norm)
+
+    risk_norm = str(risk or "").strip().upper()
+    if risk_norm and risk_norm != "ALL":
+        queryset = queryset.filter(risk_level=risk_norm)
 
     normalized = str(role or "").strip().upper()
     if normalized == "SUPERVISOR":
@@ -84,7 +96,18 @@ def get_pending(role: str | None = None, limit: int = 50) -> list[dict[str, Any]
     elif normalized not in ("ADMIN", "OWNER", ""):
         queryset = queryset.none()
 
-    return [serialize(row) for row in queryset.order_by("-created_at")[: max(1, limit)]]
+    total = queryset.count()
+    rows = [
+        serialize(row)
+        for row in queryset.order_by("-created_at")[offset : offset + max(1, limit)]
+    ]
+    return rows, total
+
+
+def get_pending(role: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+    """Daftar PENDING; role supervisor hanya melihat antrean SUPERVISOR."""
+    rows, _total = get_queue(role, "PENDING", None, limit, 0)
+    return rows
 
 
 def default_channel(required_role: str | None) -> str:
@@ -145,7 +168,13 @@ def approve(hitl_id: int, user, note: str | None = None) -> dict[str, Any]:
         resource_id=row.pk,
         payload={"note": note or "", "required_role": row.required_approver_role},
     )
-    return serialize(row)
+
+    # S.5 — setelah disetujui manusia, executor LOG-ONLY dijalankan.
+    from . import action_executor
+
+    execution = action_executor.execute(row.pk)
+
+    return {**serialize(row), "hitl_id": row.pk, "execution": execution}
 
 
 def reject(hitl_id: int, user, reason: str) -> dict[str, Any]:
@@ -213,6 +242,7 @@ __all__ = (
     "default_channel",
     "expire_pending",
     "get_pending",
+    "get_queue",
     "make_decision_log",
     "reject",
     "serialize",

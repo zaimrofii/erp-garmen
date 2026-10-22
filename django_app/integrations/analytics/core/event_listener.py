@@ -10,7 +10,11 @@ from __future__ import annotations
 import logging
 
 from core.event_bus.registry import register_listener
-from core.event_bus.signals import BUNDLE_STATE_CHANGED, SCRAP_RECORDED
+from core.event_bus.signals import (
+    BUNDLE_STATE_CHANGED,
+    ORDER_STATE_CHANGED,
+    SCRAP_RECORDED,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +27,7 @@ ANALYTICS_CONFIG_CHANGED = "analytics.config_changed"
 _EVENTS = (
     BUNDLE_STATE_CHANGED,
     SCRAP_RECORDED,
+    ORDER_STATE_CHANGED,
     SYNC_RECORD_CHANGED,
     ANALYTICS_CONFIG_CHANGED,
 )
@@ -82,6 +87,46 @@ def _check_rework_spike(payload=None) -> None:
         logger.exception("analytics: gagal memeriksa rework spike.")
 
 
+def _check_wc_idle(payload=None) -> None:
+    """S.6 — WC idle > 2 jam kerja; kirim WA best-effort."""
+    try:
+        from ..services.analytics_config_services import get_config
+
+        if not get_config().enabled:
+            return
+
+        from ..plugins.garment.streams import wc_idle
+
+        alert = wc_idle.check_wc_idle(payload or {})
+        if not alert:
+            return
+
+        logger.warning("analytics: %s", alert.get("message"))
+        _notify_wa(str(alert.get("message") or "Work center idle."))
+    except Exception:  # noqa: BLE001 - alert tidak boleh menggagalkan operator
+        logger.exception("analytics: gagal memeriksa WC idle.")
+
+
+def _check_buffer_overflow(payload=None) -> None:
+    """S.6 — buffer WC > threshold (default 20); kirim WA best-effort."""
+    try:
+        from ..services.analytics_config_services import get_config
+
+        if not get_config().enabled:
+            return
+
+        from ..plugins.garment.streams import buffer_overflow
+
+        alert = buffer_overflow.check_buffer_overflow(payload or {})
+        if not alert:
+            return
+
+        logger.warning("analytics: %s", alert.get("message"))
+        _notify_wa(str(alert.get("message") or "Buffer overflow."))
+    except Exception:  # noqa: BLE001
+        logger.exception("analytics: gagal memeriksa buffer overflow.")
+
+
 def handle_bundle_state_changed(*, event_name=None, payload=None) -> None:
     """Bundle berubah → cache metrik bundle tidak valid lagi."""
     del event_name  # kontrak dispatcher; tidak dipakai
@@ -96,6 +141,8 @@ def handle_bundle_state_changed(*, event_name=None, payload=None) -> None:
         except Exception:  # noqa: BLE001 - cache AI opsional, jangan ganggu operator
             logger.exception("analytics: gagal invalidasi semantic cache bundle.")
         logger.debug("analytics: cache diinvalidasi (BUNDLE_STATE_CHANGED %s).", payload)
+        _check_wc_idle(payload)
+        _check_buffer_overflow(payload)
     except Exception:  # noqa: BLE001 - listener tidak boleh menggagalkan operator
         logger.exception("analytics: gagal menangani BUNDLE_STATE_CHANGED.")
 
@@ -117,6 +164,24 @@ def handle_scrap_recorded(*, event_name=None, payload=None) -> None:
         _check_rework_spike(payload)
     except Exception:  # noqa: BLE001
         logger.exception("analytics: gagal menangani SCRAP_RECORDED.")
+
+
+def handle_order_state_changed(*, event_name=None, payload=None) -> None:
+    """Order berubah → total/breakdown order di cache AI tidak valid lagi."""
+    del event_name
+    try:
+        from ..services.analytics_config_services import invalidate_cache
+
+        invalidate_cache()
+        try:
+            from integrations.ai_agent.memory import semantic_cache
+
+            semantic_cache.invalidate(trigger="order_state")
+        except Exception:  # noqa: BLE001 - cache AI opsional, jangan ganggu operator
+            logger.exception("analytics: gagal invalidasi semantic cache order.")
+        logger.debug("analytics: cache diinvalidasi (ORDER_STATE_CHANGED %s).", payload)
+    except Exception:  # noqa: BLE001
+        logger.exception("analytics: gagal menangani ORDER_STATE_CHANGED.")
 
 
 def handle_sync_record_changed(*, event_name=None, payload=None) -> None:
@@ -146,6 +211,7 @@ def handle_config_changed(*, event_name=None, payload=None) -> None:
 _LISTENERS = (
     (BUNDLE_STATE_CHANGED, handle_bundle_state_changed),
     (SCRAP_RECORDED, handle_scrap_recorded),
+    (ORDER_STATE_CHANGED, handle_order_state_changed),
     (SYNC_RECORD_CHANGED, handle_sync_record_changed),
     (ANALYTICS_CONFIG_CHANGED, handle_config_changed),
 )

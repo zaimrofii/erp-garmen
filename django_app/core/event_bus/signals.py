@@ -19,12 +19,14 @@ from django.dispatch import Signal
 #: Nama event (string) — dipakai publisher, registry, dan Celery task.
 BUNDLE_STATE_CHANGED = "BUNDLE_STATE_CHANGED"
 WORK_ORDER_STATE_CHANGED = "WORK_ORDER_STATE_CHANGED"
+ORDER_STATE_CHANGED = "ORDER_STATE_CHANGED"
 SCRAP_RECORDED = "SCRAP_RECORDED"
 ERP_SYNC_COMPLETED = "ERP_SYNC_COMPLETED"
 
 # Signal sinkron: dipakai `core.event_bus.publisher.publish()`.
 bundle_state_changed = Signal()
 work_order_state_changed = Signal()
+order_state_changed = Signal()
 scrap_recorded = Signal()
 erp_sync_completed = Signal()
 
@@ -32,6 +34,7 @@ erp_sync_completed = Signal()
 SIGNALS: dict[str, Signal] = {
     BUNDLE_STATE_CHANGED: bundle_state_changed,
     WORK_ORDER_STATE_CHANGED: work_order_state_changed,
+    ORDER_STATE_CHANGED: order_state_changed,
     SCRAP_RECORDED: scrap_recorded,
     ERP_SYNC_COMPLETED: erp_sync_completed,
 }

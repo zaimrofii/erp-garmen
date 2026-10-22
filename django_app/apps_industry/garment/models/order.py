@@ -75,6 +75,7 @@ class Order(models.Model):
         db_index=True,
         help_text="Waktu order masuk DONE; null = belum selesai.",
     )
+    notes = models.TextField("catatan", blank=True, default="")
     created_at = models.DateTimeField("dibuat pada", auto_now_add=True)
     updated_at = models.DateTimeField("diubah pada", auto_now=True)
 

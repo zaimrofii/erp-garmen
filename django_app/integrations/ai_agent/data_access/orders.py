@@ -10,7 +10,7 @@ from .base import BaseRepository
 class OrderRepository(BaseRepository):
     model = Order
     join_spec = ["customer"]
-    order_by = ["-created_at"]
+    order_by = ["-created_at", "-id"]
     serialize_fields = ["id", "code", "customer_id", "state", "created_at", "deadline"]
     serialize_joins = {
         "customer_name": "customer.name",

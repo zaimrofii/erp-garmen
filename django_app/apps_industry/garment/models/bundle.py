@@ -65,6 +65,7 @@ class Bundle(models.Model):
         editable=False,
         help_text="SHA-256 state kritis; dihitung otomatis di save().",
     )
+    notes = models.TextField("catatan", blank=True, default="")
     created_at = models.DateTimeField("dibuat pada", auto_now_add=True)
     updated_at = models.DateTimeField("diubah pada", auto_now=True)
 

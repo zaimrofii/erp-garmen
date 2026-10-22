@@ -403,9 +403,11 @@ Aturan:
     (lihat `../ai/MCP-REGISTRY.md`).
 11. Tiga metrik pertama & formulanya terkunci di §8; ubah formula = naikkan
     `formula_version`.
-12. **5 metrik aktif** (2026-10-21, Fase Ringan): `scrap_rate`, `rework_rate`,
-    `lead_time`, `line_balance`, `bottleneck`. `cost_variance` dideferred ke
-    Fase Berat.
+12. **9 metrik aktif** (2026-10-21, Fase Sedang + Fix #20): `scrap_rate`,
+    `rework_rate`, `lead_time`, `line_balance`, `bottleneck`, `oee`, `wip_flow`,
+    `wc_idle_status`, `buffer_status`. `cost_variance` dideferred ke Fase Berat.
+    **3 alert aktif**: `rework_spike`, `wc_idle`, `buffer_overflow`.
+    **Data sanity v1**: `operator_anomaly` (4 fungsi) + seed 6 operator demo.
 
 ---
 
@@ -420,6 +422,23 @@ Aturan:
 | Export Excel analytics | C | pola `integrations/erp_sync/export.py` |
 | Cache berbasis `MetricSnapshot` (bukan query ulang) | B.6 | optimasi; kontrak response tidak berubah |
 | Rate limit per-klien metrik berat | F | terkait observability |
+
+---
+
+## 12. S.6/S.7 — OEE, WIP flow, alert, data sanity (2026-10-21)
+
+| Item | Definisi |
+|---|---|
+| `garment.oee` | A × P × Q × 100. Availability = jam aktif / (8 × hari data); Performance = output / (capacity_per_hour × jam aktif), cap 1.0; Quality = 1 − scrap/(output+scrap). Granularity day/week, dimensi period/work_center, `no_active_returns_empty`. |
+| `garment.wip_flow` | (in − out) per WC per jam dari `BundleEvent`; arah `payload.direction` atau tipe event (START/RECEIVE/MOVE_IN vs FINISH/SEND/MOVE_OUT). Positif = menumpuk. Granularity hour, dimensi period/work_center. |
+| `garment.wc_idle` | MEDIUM; WC terakhir menerima event ≥ 2 jam lalu pada jam kerja (Sen–Jum 08–17). WA best-effort via listener. |
+| `garment.buffer_overflow` | HIGH; `WCQueue.count(wc) > threshold` (default 20). WA best-effort via listener. |
+| `operator_anomaly` | `detect_phantom_productivity`, `detect_impossible_cycle_time`, `detect_scrap_discrepancy`, `compute_reliability_index` (0–100; penalty phantom 30/hari max 40, siklus mustahil 10 max 30, scrap discrepancy 5 max 20). |
+| Integrasi AI | Keyword OEE/WIP/idle/buffer/anomali memaksa `mcp-analytics`; context builder menambah `wc_status`, `buffer_status`, dan `operator_anomalies` saat keyword terdeteksi. |
+| `garment.wc_idle_status` (Fix #20) | Baris per WC aktif: `status` ACTIVE/IDLE/NO_EVENT, `last_event_at`, `idle_hours` (IDLE ≥ 2 jam). |
+| `garment.buffer_status` (Fix #20) | Baris per WC aktif: `buffer_length`, `threshold` (20), `overflow`, `status` OVERFLOW/OK. |
+| Seed operator (Fix #20) | 6 operator (`op-andi`…`op-fajar`); 2 sengaja anomali (phantom + siklus 20 dtk + scrap 30%) → reliability 55; marker event `UAT ANOMALY`. |
+
 
 
 

@@ -64,35 +64,45 @@ class WaWebhookView(APIView):
             message = get_wa_gateway().parse_incoming(payload)
         except Exception:  # noqa: BLE001 - payload vendor berbeda-beda
             logger.exception("wa_webhook: payload tidak bisa diparse.")
-            return Response({"ok": True, "ignored": True, "reason": "invalid_payload"})
+            return Response(
+                {"ok": False, "error": "invalid_payload"}, status=400
+            )
 
         sender = str(message.sender or "").strip()
         text = str(message.body or "").strip()
 
         user = _approver_for(sender)
         if user is None:
-            logger.info("wa_webhook: nomor %r tidak terdaftar → diabaikan.", sender)
-            return Response({"ok": True, "ignored": True, "reason": "unregistered_sender"})
+            logger.info("wa_webhook: nomor %r tidak terdaftar → ditolak.", sender)
+            return Response({"ok": False, "error": "forbidden"}, status=403)
 
         approve_match = _APPROVE_RE.match(text)
         if approve_match:
             hitl_id = int(approve_match.group(1))
             try:
-                hitl_services.approve(hitl_id, user, note="WA")
+                result = hitl_services.approve(hitl_id, user, note="WA")
             except hitl_services.HitlNotFound:
                 return Response({"ok": False, "error": "not_found", "id": hitl_id}, status=404)
             except (PermissionDenied, hitl_services.HitlConflict) as exc:
                 return Response({"ok": False, "error": str(exc)}, status=409)
 
             _reply(sender, f"HITL #{hitl_id} disetujui.")
-            return Response({"ok": True, "action": "approve", "id": hitl_id})
+            return Response(
+                {
+                    "ok": True,
+                    "action": "approve",
+                    "id": hitl_id,
+                    "status": (result or {}).get("status", "APPROVED"),
+                    "execution": (result or {}).get("execution"),
+                }
+            )
 
         reject_match = _REJECT_RE.match(text)
         if reject_match:
             hitl_id = int(reject_match.group(1))
             reason = reject_match.group(2).strip()
             try:
-                hitl_services.reject(hitl_id, user, reason=reason)
+                result = hitl_services.reject(hitl_id, user, reason=reason)
             except ValidationError as exc:
                 return Response({"ok": False, "error": exc.messages[0]}, status=400)
             except hitl_services.HitlNotFound:
@@ -101,10 +111,17 @@ class WaWebhookView(APIView):
                 return Response({"ok": False, "error": str(exc)}, status=409)
 
             _reply(sender, f"HITL #{hitl_id} ditolak.")
-            return Response({"ok": True, "action": "reject", "id": hitl_id})
+            return Response(
+                {
+                    "ok": True,
+                    "action": "reject",
+                    "id": hitl_id,
+                    "status": (result or {}).get("status", "REJECTED"),
+                }
+            )
 
-        logger.info("wa_webhook: format tidak dikenal dari %r → diabaikan.", sender)
-        return Response({"ok": True, "ignored": True, "reason": "unknown_format"})
+        logger.info("wa_webhook: format tidak dikenal dari %r → ditolak.", sender)
+        return Response({"ok": False, "error": "invalid_format"}, status=400)
 
 
 __all__ = ("WaWebhookView",)

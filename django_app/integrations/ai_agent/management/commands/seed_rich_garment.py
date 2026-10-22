@@ -28,13 +28,14 @@ from apps_industry.garment.models import (
     WorkCenter,
     WorkOrder,
 )
-from core.auth.models import User
+from core.auth.models import Role, User
 from integrations.ai_agent.demo_products import ensure_demo_polos_products
 from integrations.ai_agent.models import AIDecisionLog, AIHitlQueue
 from integrations.erp_sync.models import SyncRecord
 from master.models import BOM, BOMLine, Account, Journal, Partner, Product, UoM
 
 MARK = "UAT DEMO 2026-10"
+ANOMARK = "UAT ANOMALY 2026-10"
 
 
 class Command(BaseCommand):
@@ -45,6 +46,7 @@ class Command(BaseCommand):
             self._master()
             self._orders()
             self._work_orders_and_bundles()
+            self._operators()
             self._finance()
             self._ai_seed()
             self._sync_records()
@@ -197,6 +199,8 @@ class Command(BaseCommand):
 
     def _orders(self):
         now = timezone.now()
+        today = timezone.localdate()
+        month_days = max(1, today.day)
         types = (
             ["EXPORT"] * 5 + ["CUSTOM"] * 3 + ["BRAND"] * 2
         )
@@ -215,7 +219,7 @@ class Command(BaseCommand):
                 },
             )
             Order.objects.filter(pk=order.pk).update(
-                created_at=now - timedelta(days=30 - index * 2)
+                created_at=now - timedelta(days=(index * 3) % month_days)
             )
             product = self.products[
                 (
@@ -423,19 +427,20 @@ class Command(BaseCommand):
                 )
 
     def _scrap(self, now):
-        sewing = [b for b in self.bundles if b.current_work_center_id == self.wcs["SEWING-2"].pk]
-        qc = [
-            b
-            for b in self.bundles
-            if b.state == "REWORK" and b.current_work_center_id == self.wcs["QC-1"].pk
-        ]
-        selected = sewing[:6] + qc[:3]
-        remaining = [bundle for bundle in self.bundles if bundle.pk not in {b.pk for b in selected}]
+        # Hanya bundle yang sudah punya output; qty scrap tidak boleh melebihi
+        # qty_done (validasi Fase 1).
+        valid = [b for b in self.bundles if b.qty_done > 0]
+        if not valid:
+            return
+        sewing = valid[:6]
+        qc = valid[6:9]
+        selected_ids = {b.pk for b in sewing + qc}
+        remaining = [b for b in valid if b.pk not in selected_ids]
         extra_codes = ["CUTTING", "SEWING-1", "SEWING-3", "QC-2", "FINISHING"]
         specs = []
-        for item in sewing[:6]:
+        for item in sewing:
             specs.append((self.wcs["SEWING-2"], item, 4, 0))
-        for item in qc[:3]:
+        for item in qc:
             specs.append((self.wcs["QC-1"], item, 2, 2))
         for index in range(11):
             if not remaining:
@@ -443,12 +448,15 @@ class Command(BaseCommand):
             bundle = remaining[index % len(remaining)]
             specs.append((self.wcs[extra_codes[index % len(extra_codes)]], bundle, 1, 0))
         for index, (wc, bundle, qty, rework) in enumerate(specs[:20]):
-            row, _ = ScrapAccumulator.objects.get_or_create(
+            qty = min(qty, bundle.qty_done)
+            if qty <= 0:
+                continue
+            row, _ = ScrapAccumulator.objects.update_or_create(
                 work_center=wc,
                 bundle=bundle,
                 defaults={
                     "qty": qty,
-                    "rework_qty": rework,
+                    "rework_qty": min(rework, bundle.qty_done),
                     "end_loss_qty": 1 if index % 3 == 0 else 0,
                     "reason": "UAT DEMO",
                     "notes": MARK,
@@ -586,6 +594,108 @@ class Command(BaseCommand):
             )
             self.journal_entries.append(entry)
         self.accounts = (account_debit, account_credit)
+
+    def _seed_anomaly_event(self, bundle, event_type, when, actor, text):
+        event, _ = BundleEvent.objects.get_or_create(
+            bundle=bundle,
+            event_type=event_type,
+            text=text,
+            defaults={"actor": actor, "payload": {"notes": ANOMARK}},
+        )
+        BundleEvent.objects.filter(pk=event.pk).update(ts=when, actor=actor)
+
+    def _operators(self):
+        """S.7/Fix #20 — 6 operator demo; 2 sengaja anomali (reliability < 60)."""
+        role = Role.objects.filter(code="OPERATOR").first()
+        if role is None or not self.bundles:
+            return
+
+        now = timezone.now()
+        specs = (
+            ("op-andi", True),
+            ("op-budi", True),
+            ("op-citra", False),
+            ("op-dewi", False),
+            ("op-eka", False),
+            ("op-fajar", False),
+        )
+        users: dict[str, User] = {}
+        for username, _suspect in specs:
+            user, created = User.objects.get_or_create(
+                username=username,
+                defaults={"role": role, "is_active": True},
+            )
+            if user.role_id is None:
+                user.role = role
+                user.save(update_fields=["role"])
+            if created:
+                user.set_password("demo12345")
+                user.save(update_fields=["password"])
+            users[username] = user
+
+        # Dua bundle khusus anomali (hindari bentrok unique scrap per WC+bundle).
+        suspect_one = self.bundles[0]
+        suspect_two = self.bundles[1]
+
+        for index in range(35):
+            self._seed_anomaly_event(
+                suspect_one,
+                "BUNDLE_START",
+                now - timedelta(minutes=30) + timedelta(seconds=index * 20),
+                users["op-andi"],
+                f"{ANOMARK} phantom andi {index}",
+            )
+        for index in range(32):
+            self._seed_anomaly_event(
+                suspect_two,
+                "BUNDLE_START",
+                now - timedelta(minutes=25) + timedelta(seconds=index * 20),
+                users["op-budi"],
+                f"{ANOMARK} phantom budi {index}",
+            )
+
+        for username, bundle in (("op-andi", suspect_one), ("op-budi", suspect_two)):
+            self._seed_anomaly_event(
+                bundle,
+                "BUNDLE_START",
+                now - timedelta(minutes=9),
+                users[username],
+                f"{ANOMARK} cycle start {username}",
+            )
+            self._seed_anomaly_event(
+                bundle,
+                "BUNDLE_FINISH",
+                now - timedelta(minutes=9) + timedelta(seconds=20),
+                users[username],
+                f"{ANOMARK} cycle finish {username}",
+            )
+
+        for username, bundle in (("op-andi", suspect_one), ("op-budi", suspect_two)):
+            ScrapAccumulator.objects.update_or_create(
+                work_center=self.wcs["PACKING"],
+                bundle=bundle,
+                defaults={"qty": 3, "notes": ANOMARK},
+            )
+
+        clean_bundle = next(
+            (
+                bundle
+                for bundle in self.bundles
+                if not ScrapAccumulator.objects.filter(
+                    bundle__work_order=bundle.work_order
+                ).exists()
+            ),
+            self.bundles[-1],
+        )
+        for offset, username in enumerate(("op-citra", "op-dewi", "op-eka", "op-fajar")):
+            for idx in range(3):
+                self._seed_anomaly_event(
+                    clean_bundle,
+                    "BUNDLE_START",
+                    now - timedelta(days=offset + 1, hours=idx),
+                    users[username],
+                    f"{ANOMARK} clean {username} {idx}",
+                )
 
     def _ai_seed(self):
         admin = (

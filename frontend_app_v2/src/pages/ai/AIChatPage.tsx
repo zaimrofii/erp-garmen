@@ -41,9 +41,13 @@ export function AIChatPage({
     el.scrollTop = el.scrollHeight;
   }, [chat.messages, chat.loading]);
 
-  // 🔽 Auto-focus setelah loading selesai (input tidak disabled, jadi aman)
+  // 🔽 Auto-focus setelah loading selesai (input tidak disabled, jadi aman).
+  // Jangan rebut fokus kalau user sedang mengetik di input mana pun.
   useEffect(() => {
     if (chat.loading) return;
+    if (typeof document !== "undefined" && document.activeElement?.tagName === "INPUT") {
+      return;
+    }
     inputRef.current?.focus();
   }, [chat.loading]);
 

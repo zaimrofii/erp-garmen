@@ -25,6 +25,7 @@ class Resolution:
     type: ResolutionType
     candidate: dict[str, Any] | None = None
     reason: str | None = None
+    remainder: str | None = None
 
 
 #: Peta ordinal → kandidat ke-N (1-based).
@@ -110,6 +111,12 @@ CANCEL_WORDS = (
 )
 ALL_WORDS = ("semua", "semuanya", "all", "both", "keduanya")
 
+#: Hanya kata perintah cancel yang boleh membawa pertanyaan lanjutan.
+_CANCEL_REMAINDER_RE = re.compile(
+    r"^\s*(?:lupakan|batal|ganti|reset|cancel)\b[\s,;:\-]*(.*)$",
+    re.IGNORECASE,
+)
+
 #: Ambang skor fuzzy (0–100).
 FUZZY_MIN_SCORE = 70
 
@@ -117,6 +124,15 @@ FUZZY_MIN_SCORE = 70
 def _has_word(text: str, word: str) -> bool:
     """Cocokkan kata/frasa dengan batas kata (`no` tidak match `nomor`)."""
     return re.search(rf"(?<!\w){re.escape(word)}(?!\w)", text) is not None
+
+
+def _cancel_remainder(message: str) -> str | None:
+    """Ambil pertanyaan setelah perintah cancel, mis. 'lupakan, total order?'."""
+    match = _CANCEL_REMAINDER_RE.match(message or "")
+    if match is None:
+        return None
+    remainder = match.group(1).strip(" .,!")
+    return remainder or None
 
 
 def _match_score(text: str, target: str, fuzz_module) -> float:
@@ -179,7 +195,11 @@ def resolve(
         return Resolution(type=ResolutionType.UNRESOLVED, reason="Balasan kosong")
 
     if any(_has_word(text, word) for word in CANCEL_WORDS):
-        return Resolution(type=ResolutionType.CANCEL, reason="User batalkan")
+        return Resolution(
+            type=ResolutionType.CANCEL,
+            reason="User batalkan",
+            remainder=_cancel_remainder(text),
+        )
 
     if any(_has_word(text, word) for word in ALL_WORDS):
         return Resolution(type=ResolutionType.ALL, reason="User pilih semua")

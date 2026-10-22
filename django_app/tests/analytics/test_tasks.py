@@ -127,7 +127,7 @@ class CleanupAndScheduleTests(TestCase):
 
     def test_beat_schedule_19_entry(self):
         # Sprint F menambah ai-hitl-expire + ai-detect-drift (17 → 19).
-        self.assertEqual(len(settings.CELERY_BEAT_SCHEDULE), 19)
+        self.assertEqual(len(settings.CELERY_BEAT_SCHEDULE), 20)
         self.assertIn("analytics-aggregate-hourly", settings.CELERY_BEAT_SCHEDULE)
 
     def test_task_name_eksplisit(self):

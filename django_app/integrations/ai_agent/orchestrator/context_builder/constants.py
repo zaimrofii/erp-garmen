@@ -11,7 +11,28 @@ METRIC_IDS = (
     "garment.scrap_rate",
     "garment.rework_rate",
     "garment.lead_time",
+    "garment.oee",
+    "garment.wip_flow",
 )
+
+ANOMALY_KEYWORDS = (
+    "manipulasi",
+    "anomali operator",
+    "input tidak wajar",
+    "tidak wajar",
+    "mencurigakan",
+    "reliability",
+    "reliabilitas",
+    "operator tidak wajar",
+)
+
+STATUS_KEYWORDS = ("idle", "menganggur", "buffer", "overflow", "antrean")
+
+GRAPH_KEYWORDS = ("relasi", "graph", "terkait", "terhubung")
+DOCUMENT_KEYWORDS = ("sop", "prosedur", "dokumen")
+CORRELATION_KEYWORDS = ("korelasi", "cacat per", "shift")
+EXPLAIN_KEYWORDS = ("kenapa", "penyebab", "anomali")
+SUMMARY_KEYWORDS = ("ringkasan", "summary", "hari ini")
 
 METRIC_ROWS = 5
 

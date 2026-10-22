@@ -10,6 +10,7 @@ TOOL_MAP: dict[str, list[str]] = {
     "ANALYTICS_QUERY": ["mcp-analytics"],
     "DATA_LOOKUP": ["mcp-postgres-query"],
     "DIAGNOSTIC": ["mcp-analytics", "mcp-event-log"],
+    "SUGGEST_ACTION": ["mcp-analytics", "mcp-rule-engine", "mcp-aggregator"],
     "GENERAL_CHAT": [],
     "UNKNOWN": [],
 }
@@ -25,6 +26,22 @@ _COMPARE_WORD = re.compile(r"lebih\s+(lambat|cepat|baik|buruk)", re.IGNORECASE)
 _FORECAST_KEYWORDS = ("prediksi", "forecast", "kapan selesai", "estimasi")
 _BALANCE_KEYWORDS = ("line balance", "line_balance", "seimbang", "balance")
 _BOTTLENECK_KEYWORDS = ("bottleneck", "penyumbat", "hambatan", "menumpuk")
+_OEE_KEYWORDS = ("oee", "efisiensi", "availability", "performance")
+_WIP_KEYWORDS = ("wip", "menumpuk", "mengalir")
+_IDLE_KEYWORDS = ("idle", "menganggur")
+_BUFFER_KEYWORDS = ("buffer", "overflow", "antrean")
+_CORRELATION_KEYWORDS = ("korelasi", "cacat per", "shift")
+_SUMMARY_KEYWORDS = ("ringkasan", "summary", "hari ini")
+_ANOMALY_KEYWORDS = (
+    "manipulasi",
+    "anomali operator",
+    "input tidak wajar",
+    "tidak wajar",
+    "mencurigakan",
+    "reliability",
+    "reliabilitas",
+    "operator tidak wajar",
+)
 _FORECAST_WORD = re.compile(r"kapan\s+.*selesai", re.IGNORECASE)
 _ENTITY_POSTGRES = re.compile(
     r"\border\b|\bwork order\b|\bbundle\b|\bcustomer\b|\bproduk\b|"
@@ -80,6 +97,19 @@ def select_tools(
     # R.4 — metrik line_balance / bottleneck selalu butuh mcp-analytics.
     if any(
         keyword in text for keyword in _BALANCE_KEYWORDS + _BOTTLENECK_KEYWORDS
+    ) and "mcp-analytics" not in tools:
+        tools.append("mcp-analytics")
+
+    # S.6/S.7 — OEE, WIP flow, WC idle, dan data sanity operator.
+    if any(
+        keyword in text
+        for keyword in _OEE_KEYWORDS
+        + _WIP_KEYWORDS
+        + _IDLE_KEYWORDS
+        + _BUFFER_KEYWORDS
+        + _CORRELATION_KEYWORDS
+        + _SUMMARY_KEYWORDS
+        + _ANOMALY_KEYWORDS
     ) and "mcp-analytics" not in tools:
         tools.append("mcp-analytics")
 

@@ -204,7 +204,8 @@ export function FloatingAIAssistant({
                 placeholder="Tanya tentang halaman ini..."
                 autoComplete="off"
                 maxLength={2000}
-                disabled={chat.loading}
+                readOnly={chat.loading}
+                aria-busy={chat.loading}
               />
               <Button
                 type="submit"

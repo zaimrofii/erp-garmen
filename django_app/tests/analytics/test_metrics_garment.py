@@ -68,13 +68,13 @@ class GarmentMetricsTestBase(TestCase):
 
 
 class RegistryAutodiscoverTests(GarmentMetricsTestBase):
-    def test_autodiscover_menemukan_lima_metrik(self):
+    def test_autodiscover_menemukan_tujuh_metrik(self):
         self.addCleanup(registry.discover_metrics)
         registry._reset_for_tests()
 
         count = registry.discover_metrics()
 
-        self.assertEqual(count, 5)
+        self.assertEqual(count, 9)
         self.assertEqual(
             {metric.metric_id for metric in registry.list_metrics("garment")},
             {
@@ -83,6 +83,10 @@ class RegistryAutodiscoverTests(GarmentMetricsTestBase):
                 "garment.lead_time",
                 "garment.line_balance",
                 "garment.bottleneck",
+                "garment.oee",
+                "garment.wip_flow",
+                "garment.wc_idle_status",
+                "garment.buffer_status",
             },
         )
 

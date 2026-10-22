@@ -9,6 +9,7 @@ VALID_INTENTS = {
     "ANALYTICS_QUERY",
     "DATA_LOOKUP",
     "DIAGNOSTIC",
+    "SUGGEST_ACTION",
     "GENERAL_CHAT",
     "UNKNOWN",
 }
@@ -21,6 +22,8 @@ INTENT_PROMPT = """Klasifikasikan pertanyaan user ke salah satu intent:
 - DATA_LOOKUP: pertanyaan tentang data spesifik (produk, order,
   bundle, invoice)
 - DIAGNOSTIC: pertanyaan "kenapa X terjadi?" (analisis penyebab)
+- SUGGEST_ACTION: pertanyaan "apa yang harus saya lakukan?",
+  "bagaimana cara memperbaiki?", "usulkan aksi", "rekomendasi"
 - GENERAL_CHAT: sapaan, pertanyaan umum
 - UNKNOWN: tidak bisa diklasifikasi
 
@@ -57,4 +60,9 @@ def classify(message: str) -> dict:
     }
 
 
-__all__ = ("VALID_INTENTS", "classify")
+def is_suggest_action(intent: str) -> bool:
+    """True bila intent meminta usulan aksi (HITL)."""
+    return str(intent or "").strip().upper() == "SUGGEST_ACTION"
+
+
+__all__ = ("VALID_INTENTS", "classify", "is_suggest_action")

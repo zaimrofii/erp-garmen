@@ -37,7 +37,7 @@ class McpAnalyticsTests(TestCase):
             )
 
         self.assertTrue(result["ok"])
-        self.assertEqual(len(result["metrics"]), 5)
+        self.assertEqual(len(result["metrics"]), 9)
 
     def test_on_operator_forbidden(self):
         with patch(GET_CONFIG, return_value=SimpleNamespace(enabled=True)):
@@ -63,6 +63,10 @@ class McpAnalyticsTests(TestCase):
                 "garment.lead_time",
                 "garment.line_balance",
                 "garment.bottleneck",
+                "garment.oee",
+                "garment.wip_flow",
+                "garment.wc_idle_status",
+                "garment.buffer_status",
             },
         )
 

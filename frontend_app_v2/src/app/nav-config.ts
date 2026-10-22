@@ -200,7 +200,16 @@ export const NAV_APPS: NavApp[] = [
       { label: "Product Audit", path: "/settings/audit" },
     ],
   },
-  { id: "ai", label: "Asisten AI", icon: Bot, path: "/ai/chat", topbar: [] },
+  {
+    id: "ai",
+    label: "Asisten AI",
+    icon: Bot,
+    path: "/ai/chat",
+    topbar: [
+      { label: "Chat", path: "/ai/chat" },
+      { label: "HITL", path: "/ai/hitl" },
+    ],
+  },
 ];
 
 /**
@@ -219,6 +228,8 @@ export const LEGACY_APP_PATHS: readonly { prefix: string; appId: string }[] = [
   { prefix: "/production", appId: "production" },
   // Sprint C.3 — app analytics (metrik read-only).
   { prefix: "/analytics", appId: "analytics" },
+  // S.3 — seluruh halaman AI (chat/HITL) disorot di app `ai`.
+  { prefix: "/ai", appId: "ai" },
   { prefix: "/bundles", appId: "production" },
   { prefix: "/workshop", appId: "production" },
   { prefix: "/work-orders", appId: "production" },

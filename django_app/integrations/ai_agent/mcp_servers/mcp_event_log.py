@@ -77,6 +77,13 @@ def handle(params: dict, user=None) -> dict[str, Any]:
         {
             "ts": event.ts.isoformat(),
             "event_type": event.event_type,
+            "actor_id": event.actor_id,
+            "actor_username": event.actor.username if event.actor_id else None,
+            "actor_name": (
+                f"{event.actor.first_name} {event.actor.last_name}".strip()
+                if event.actor_id
+                else None
+            ),
             "payload_summary": {
                 key: str(value)[:50] for key, value in list(event.payload.items())[:5]
             },

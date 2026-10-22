@@ -45,6 +45,19 @@ class BundleEvent(models.Model):
         db_index=True,
         help_text='Mis. "BUNDLE_START", "BUNDLE_FINISH", "SCRAP", "REWORK".',
     )
+    shift = models.CharField(
+        "shift",
+        max_length=8,
+        blank=True,
+        default="",
+        db_index=True,
+        choices=[
+            ("SHIFT_1", "Shift 1"),
+            ("SHIFT_2", "Shift 2"),
+            ("SHIFT_3", "Shift 3"),
+        ],
+        help_text="Shift terstruktur; kosong untuk data lama sebelum Fase 1.",
+    )
     text = models.TextField("keterangan", blank=True, default="")
     payload = models.JSONField(
         "payload",

@@ -35,6 +35,7 @@ export const MODE: Record<string, AdapterMode> = {
   devices: 'real',
   aiChat: 'real', // stub {ok:false} tapi endpoint ADA
   aiObservability: 'real', // Sprint F.3 — GET /ai/observability/ (ADMIN/OWNER)
+  hitlQueue: 'real', // S.3 — GET/POST /ai/hitl/ (SUPERVISOR/OWNER/ADMIN)
   print: 'real',
   wa: 'real',
 

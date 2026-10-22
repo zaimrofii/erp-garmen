@@ -30,10 +30,12 @@ def score(
     proposed_action: dict | None = None,
 ) -> str:
     """Klasifikasi dampak aksi: LOW (read-only) / MEDIUM / HIGH."""
-    del intent, tool_calls  # Sprint F: sinyal utama = proposed_action
+    del tool_calls  # Sprint F: sinyal utama = proposed_action
 
     if not proposed_action:
         return "LOW"
+
+    intent_code = str(intent or "").strip().upper()
 
     action = str(proposed_action.get("action") or proposed_action.get("type") or "").lower()
     is_mutating = action in _MUTATING_ACTIONS or bool(
@@ -45,6 +47,9 @@ def score(
 
     if touches_high_risk:
         level = "HIGH"
+    elif intent_code == "SUGGEST_ACTION":
+        # S.1 — usulan aksi selalu butuh persetujuan manusia (minimal MEDIUM).
+        level = "MEDIUM"
     elif is_mutating:
         level = "MEDIUM"
     else:

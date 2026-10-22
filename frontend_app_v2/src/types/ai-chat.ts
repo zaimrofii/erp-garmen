@@ -42,6 +42,18 @@ export interface AIChatTokens {
   total_cost_usd: number;
 }
 
+export interface AIChatChartPoint {
+  label: string;
+  value: number;
+}
+
+export interface AIChatChartData {
+  type: "line" | "bar";
+  title: string;
+  data: AIChatChartPoint[];
+  unit: string;
+}
+
 export interface AIChatResponse {
   ok: true;
   answer: string;
@@ -54,6 +66,7 @@ export interface AIChatResponse {
   tokens: AIChatTokens;
   cache_hit: boolean;
   latency_ms: number;
+  chart_data?: AIChatChartData | null;
 }
 
 export interface AIChatError {

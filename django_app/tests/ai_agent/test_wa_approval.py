@@ -124,17 +124,17 @@ class WebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
         reject.assert_called_once_with(5, self.approver, reason="stok tidak cukup")
 
-    def test_nomor_tidak_terdaftar_diabaikan(self):
+    def test_nomor_tidak_terdaftar_ditolak(self):
         response = self.post("APPROVE 5", sender="620000")
 
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.json()["ignored"])
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["error"], "forbidden")
 
-    def test_format_tidak_dikenal_diabaikan(self):
+    def test_format_tidak_dikenal_ditolak(self):
         response = self.post("halo apa kabar")
 
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.json()["ignored"])
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], "invalid_format")
 
     def test_id_tidak_ada_error(self):
         with patch(

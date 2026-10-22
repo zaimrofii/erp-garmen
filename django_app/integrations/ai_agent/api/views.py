@@ -26,7 +26,7 @@ from ..orchestrator import (  # noqa: F401
     response_synthesizer,
     tool_selector,
 )
-from .handlers import finalize, handle_pending_clarification, run_pipeline
+from .handlers import handle_pending_clarification, run_pipeline
 from .handlers.common import (
     RATE_LIMIT_PER_MINUTE,
     is_rate_limited,
@@ -118,6 +118,11 @@ class AiChatView(APIView):
         if clarification is not None:
             return clarification
 
+        # Fase 3B — CANCEL + remainder: lanjutkan pipeline dengan sisa teks.
+        remainder = getattr(request, "_ai_remainder", None)
+        if remainder:
+            body = body.model_copy(update={"message": remainder})
+
         # §5 #6 — role tidak berhak melihat resource master (status 200).
         if (
             body.context
@@ -146,17 +151,7 @@ class AiChatView(APIView):
         if "response" in outcome:
             return outcome["response"]
 
-        result = outcome["result"]
-        finalize(
-            request,
-            body,
-            result,
-            intent=outcome.get("intent", ""),
-            model_used=outcome.get("model_used", ""),
-            audit_text=outcome.get("audit_text", ""),
-            classifier_cost=outcome.get("classifier_cost", 0.0),
-        )
-        return Response(result)
+        return Response(outcome["result"])
 
 
 __all__ = ("AiChatView",)

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum
+from django.db.models.functions import ExtractHour
 
 from apps_industry.garment.models import (
     Bundle,
@@ -154,6 +155,32 @@ class MetricsRepository:
             .order_by("-total_spend")[:limit]
         )
 
+    def customer_total_spend_by_id(self, customer_id: int) -> float:
+        """Total belanja customer = sum(qty × price_unit) OrderLine."""
+        value = OrderLine.objects.filter(order__customer_id=customer_id).aggregate(
+            total=Sum(
+                F("qty") * F("price_unit"),
+                output_field=DecimalField(max_digits=18, decimal_places=2),
+            )
+        )["total"]
+        return float(value or 0)
+
+    def customer_detail(self, customer_id: int) -> dict | None:
+        """Detail customer + jumlah order untuk follow-up."""
+        from master.models import Partner
+
+        partner = Partner.objects.filter(pk=customer_id).first()
+        if partner is None:
+            return None
+        return {
+            "id": partner.pk,
+            "code": partner.code,
+            "name": partner.name,
+            "city": partner.city or "",
+            "order_count": Order.objects.filter(customer_id=customer_id).count(),
+            "total_spend": self.customer_total_spend_by_id(customer_id),
+        }
+
     def order_late_percentage(self) -> dict:
         total = Order.objects.filter(completed_at__isnull=False).count()
         late = Order.objects.filter(
@@ -168,12 +195,18 @@ class MetricsRepository:
         }
 
     def bundles_in_work_center(self, wc_code: str, limit: int = 20) -> list[dict]:
-        """Bundle yang pernah berada di WC tertentu, via BundleEvent.payload."""
-        bundle_ids = list(
+        """Bundle di WC tertentu via current_work_center + riwayat event."""
+        event_bundle_ids = list(
             BundleEvent.objects.filter(payload__work_center_code=wc_code)
             .values_list("bundle_id", flat=True)
-            .distinct()[:limit]
+            .distinct()
         )
+        current_bundle_ids = list(
+            Bundle.objects.filter(current_work_center__code=wc_code).values_list(
+                "id", flat=True
+            )
+        )
+        bundle_ids = list(dict.fromkeys(event_bundle_ids + current_bundle_ids))[:limit]
         if not bundle_ids:
             return []
 
@@ -188,11 +221,11 @@ class MetricsRepository:
                     bundle=bundle, payload__work_center_code=wc_code
                 ).order_by("ts")
             )
-            if len(events) < 2:
-                continue
-            duration_hours = (
-                events[-1].ts - events[0].ts
-            ).total_seconds() / 3600
+            duration_hours = 0.0
+            if len(events) >= 2:
+                duration_hours = (
+                    events[-1].ts - events[0].ts
+                ).total_seconds() / 3600
             order_line = bundle.work_order.order_line
             order = order_line.order
             result.append(
@@ -208,4 +241,108 @@ class MetricsRepository:
         return sorted(result, key=lambda row: -row["duration_hours"])[:limit]
 
 
+    def quality_by_operator(self) -> list[dict]:
+        """SCRAP/REWORK event per operator (SQL GROUP BY actor)."""
+        rows = (
+            BundleEvent.objects.filter(
+                event_type__in=["SCRAP", "REWORK"], actor__isnull=False
+            )
+            .values("actor_id", "actor__username")
+            .annotate(
+                scrap_events=Count("id", filter=Q(event_type="SCRAP")),
+                rework_events=Count("id", filter=Q(event_type="REWORK")),
+                total_events=Count("id"),
+            )
+            .order_by("-total_events")
+        )
+        return [
+            {
+                "operator_id": row["actor_id"],
+                "operator": row["actor__username"],
+                "scrap_events": int(row["scrap_events"] or 0),
+                "rework_events": int(row["rework_events"] or 0),
+                "total_events": int(row["total_events"] or 0),
+            }
+            for row in rows
+        ]
+
+    def quality_by_shift(self) -> list[dict]:
+        """Scrap/rework per shift (1: <14, 2: 14-22, 3: lainnya)."""
+        rows = (
+            ScrapAccumulator.objects.annotate(hour=ExtractHour("created_at"))
+            .values("hour")
+            .annotate(scrap=Sum("qty"), rework=Sum("rework_qty"))
+        )
+        buckets = {
+            1: {"shift": 1, "scrap_qty": 0.0, "rework_qty": 0.0},
+            2: {"shift": 2, "scrap_qty": 0.0, "rework_qty": 0.0},
+            3: {"shift": 3, "scrap_qty": 0.0, "rework_qty": 0.0},
+        }
+        for row in rows:
+            hour = int(row["hour"] or 0)
+            shift = 1 if hour < 14 else (2 if hour < 22 else 3)
+            buckets[shift]["scrap_qty"] += float(row["scrap"] or 0)
+            buckets[shift]["rework_qty"] += float(row["rework"] or 0)
+        return [buckets[key] for key in sorted(buckets)]
+
+    def quality_by_wc(self) -> list[dict]:
+        """Scrap/rework per work center (alias terstruktur)."""
+        return [
+            {
+                "work_center_id": row["work_center_id"],
+                "work_center": row["work_center_code"],
+                "scrap_qty": row["total_scrap"],
+                "rework_qty": row["total_rework"],
+            }
+            for row in self.metrics_by_wc()
+        ]
+
+    def quality_correlation(self) -> dict:
+        """Korelasi Pearson scrap vs rework event antar operator."""
+        rows = self.quality_by_operator()
+        xs = [float(row["scrap_events"]) for row in rows]
+        ys = [float(row["rework_events"]) for row in rows]
+        coefficient = _pearson(xs, ys)
+
+        if coefficient is None:
+            interpretation = "data belum cukup"
+        elif coefficient >= 0.5:
+            interpretation = "positif kuat: operator dengan scrap tinggi juga rework tinggi"
+        elif coefficient <= -0.5:
+            interpretation = "negatif kuat: scrap dan rework bergerak berlawanan"
+        else:
+            interpretation = "lemah/tidak signifikan"
+
+        return {
+            "r": coefficient,
+            "n": len(rows),
+            "interpretation": interpretation,
+            "method": "pearson",
+        }
+
+    def anomaly_snapshot(self) -> dict:
+        """Paket data untuk anomaly explainer (operator/shift/WC)."""
+        return {
+            "by_operator": self.quality_by_operator(),
+            "by_shift": self.quality_by_shift(),
+            "by_wc": self.quality_by_wc(),
+            "correlation": self.quality_correlation(),
+        }
+
+
+def _pearson(xs: list[float], ys: list[float]) -> float | None:
+    """Koefisien Pearson PURE; None bila data < 2 atau variansi nol."""
+    if len(xs) != len(ys) or len(xs) < 2:
+        return None
+    mean_x = sum(xs) / len(xs)
+    mean_y = sum(ys) / len(ys)
+    numerator = sum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys))
+    denom_x = sum((x - mean_x) ** 2 for x in xs) ** 0.5
+    denom_y = sum((y - mean_y) ** 2 for y in ys) ** 0.5
+    if denom_x == 0 or denom_y == 0:
+        return None
+    return round(numerator / (denom_x * denom_y), 4)
+
+
 __all__ = ("MetricsRepository",)
+

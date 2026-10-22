@@ -4,6 +4,7 @@ import { cn } from "@/lib/cn";
 import { confidenceClass } from "@/lib/ai-chat-display";
 import { BADGE, PILL } from "@/lib/tokens";
 import type { AIChatResponse, AIChatUiMessage } from "@/types/ai-chat";
+import { AIChart } from "./AIChart";
 import { MarkdownContent } from "./MarkdownContent";
 
 /**
@@ -128,7 +129,17 @@ export function ChatMessageList({
               {isUser ? (
                 message.content
               ) : (
-                <MarkdownContent content={message.content} />
+                <>
+                  <MarkdownContent content={message.content} />
+                  {message.response?.chart_data ? (
+                    <AIChart
+                      type={message.response.chart_data.type}
+                      data={message.response.chart_data.data}
+                      title={message.response.chart_data.title}
+                      unit={message.response.chart_data.unit}
+                    />
+                  ) : null}
+                </>
               )}
             </div>
             {message.response === undefined ? null : (

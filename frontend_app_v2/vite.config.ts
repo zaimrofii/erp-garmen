@@ -18,4 +18,21 @@ export default defineConfig({
     // Percobaan proxy Vite → Django `runserver` di lingkungan bun ini membalas 502
     // (body berkas ikut ter-stream tapi status salah), sedangkan `:8000` langsung 200.
   },
+  build: {
+    // Fix #18C — Recharts dipisah ke chunk vendor agar chunk chat < 500 kB.
+    rolldownOptions: {
+      output: {
+        manualChunks: (id: string) => {
+          if (
+            id.includes('node_modules/recharts') ||
+            id.includes('node_modules/victory-vendor') ||
+            id.includes('node_modules/d3-')
+          ) {
+            return 'recharts';
+          }
+          return undefined;
+        },
+      },
+    },
+  },
 });

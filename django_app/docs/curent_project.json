@@ -6,8 +6,8 @@
       "concept": "MES = ERP Produksi (single point of input). Odoo = back-office pasif. Sync: master dua arah, transaksi satu arah (MES → Odoo).",
       "frontend_repo": "frontend_app_v2/ (hand-coded React); arsip: frontend_app/ (v1 metadata-driven)",
       "last_updated": "2026-10-21",
-      "current_phase": "Refactor R-1+R-2 DONE; siap Fase Sedang",
-      "test_count_total": 3052,
+      "current_phase": "Seed BIG TEST DONE (50 order/200 bundle/30 hari); siap test besar",
+      "test_count_total": 3227,
       "test_pre_existing_failures": 0
     },
     "test_status": {
@@ -41,6 +41,89 @@
       "verifikasi": "Targeted 7 passed (CostTrackerTests + AggregateRealTests); full suite 2915 passed / 0 failed / 1 skipped.",
       "test_count": 2915,
       "commit": "201e306"
+    },
+    "seed_big_test": {
+      "status": "done",
+      "tanggal": "2026-10-21",
+      "command": "python manage.py seed_big_test (idempoten; memanggil seed_rich_garment + seed_documents).",
+      "marker": "BIG TEST 2026-10 (code SO-DEMO/WO-DEMO/BND-DEMO/INV-DEMO/PO-DEMO/PAY-DEMO; BundleEvent text & ScrapAccumulator.notes).",
+      "hasil_fresh_db": "50 order (20 EXPORT/20 CUSTOM/10 BRAND; 30 DONE/10 CONFIRMED/5 IN_PROGRESS/5 DRAFT), 100 WO, 200 bundle, 833 event, 52 scrap, 50 invoice, 20 PO, 20 vendor bill, 30 payment, 10 JE, 10 adjustment, 10 transfer, 50 AI log, 10 HITL (5/3/2), 20 cache, 30 DailySummary, 8 dokumen, 6 operator (2 mencurigakan), SyncRecord 50 order + 50 invoice SENT.",
+      "pola": "Scrap SEWING-2 naik 7 hari, rework QC-1 dominan, shift 2 ~30%, bundle SEWING-2 buffer tinggi, operator op-andi/op-budi phantom + impossible cycle.",
+      "test": "tests/ai_agent/test_seed_big.py 18 passed; full suite 3227 passed / 0 failed / 1 skipped (224.11s).",
+      "catatan": "Frontend tidak berubah (1811 passed, build/css baseline tetap)."
+    },
+    "fase_berat_lite": {
+      "status": "done",
+      "tanggal": "2026-10-21",
+      "sifat": "TEMPORARY — tanpa Neo4j/ChromaDB; upgrade setelah 2+ klien live (docs/ai/BACKLOG-MIGRATION.md).",
+      "graph": "data_access/graph_queries.py: get_order_graph (WITH RECURSIVE CTE), get_bundle_graph, get_wc_graph; keyword relasi/graph/terkait/terhubung di context builder.",
+      "documents": "models Document + migrasi 0002; document_search.py (SearchVector/SearchRank + fallback SequenceMatcher); seed_documents 8 SOP; keyword SOP/prosedur/dokumen.",
+      "correlation": "MetricsRepository.quality_by_operator/quality_by_shift/quality_by_wc/quality_correlation (Pearson) + anomaly_snapshot; keyword korelasi/cacat per/shift.",
+      "explainer": "anomaly/anomaly_explainer.py: explain_scrap_spike, explain_lead_time_spike, explain_oee_drop (narrative + evidence); keyword kenapa/penyebab/anomali.",
+      "summary": "models DailySummary + summary.py (aggregate/get) + Celery task analytics.aggregate_daily_summary + beat 00:15; keyword ringkasan/summary/hari ini.",
+      "test": "37 test baru (graph 9, dokumen 9, korelasi 7, explainer 6, summary 6); migrasi 0002; full suite 3209 passed / 0 failed / 1 skipped (183.72s).",
+      "docs": "docs/ai/BACKLOG-MIGRATION.md + docs/blueprint.md §13.5.",
+      "biaya": "$0."
+    },
+    "fix20_data_gap": {
+      "status": "done",
+      "tanggal": "2026-10-21",
+      "metrics": "garment.wc_idle_status (status ACTIVE/IDLE/NO_EVENT, last_event_at, idle_hours) + garment.buffer_status (buffer_length, threshold, overflow, status) → total 9 metrik.",
+      "context": "Keyword idle/menganggur/buffer/overflow/antrean → context builder mengambil kedua metrik status (wc_status/buffer_status) on-demand; tool_selector memaksa mcp-analytics.",
+      "seed": "seed_rich_garment: 6 operator demo (op-andi…op-fajar), password demo12345; op-andi & op-budi diberi phantom 32-35 event/30 menit + siklus 20 dtk + scrap 3/10 → reliability 55 (RENDAH); 4 operator bersih; marker UAT ANOMALY agar count seed lama tetap.",
+      "test": "tests/analytics/test_data_gap_fix20.py 13 passed; seed+gap 22 passed; tests/analytics+ai_agent 765 passed; full suite 3172 passed / 0 failed / 1 skipped (182.99s).",
+      "catatan": "Frontend tidak berubah (1811 passed, build/css baseline 712 tetap)."
+    },
+    "fase_sedang_paket3_s6_s7": {
+      "status": "done",
+      "tanggal": "2026-10-21",
+      "s6_metrik": "garment.oee (A×P×Q, day/week, period/work_center, no_active_returns_empty) + garment.wip_flow ((in−out)/jam/WC) di plugin garment → 7 metrik aktif; METRIC_IDS context builder 5.",
+      "s6_alert": "wc_idle (MEDIUM, >2 jam kerja, Sen–Jum 08–17) + buffer_overflow (HIGH, WCQueue > 20) di streams/; listener BUNDLE_STATE_CHANGED memanggil keduanya + WA best-effort → total 3 alert.",
+      "s6_ai": "tool_selector keyword oee/efisiensi/availability/performance, wip/menumpuk/mengalir, idle/menganggur → mcp-analytics.",
+      "s7_anomaly": "integrations/analytics/plugins/garment/anomaly/operator_anomaly.py: detect_phantom_productivity (≥30 event/30 menit), detect_impossible_cycle_time (<45 dtk), detect_scrap_discrepancy (>10%), compute_reliability_index (0–100) + scan/collect.",
+      "s7_ai": "keyword manipulasi/anomali operator/input tidak wajar/tidak wajar/reliability → mcp-analytics; context builder menambah operator_anomalies.",
+      "test": "tests/analytics/test_oee_wip_alerts_s6.py 19 passed; test_operator_anomaly_s7.py 18 passed; tests/analytics+ai_agent 754 passed; full suite 3159 passed / 0 failed / 1 skipped (170.07s).",
+      "docs": "docs/analytics/CONTRACT.md §12 + item 12 diperbarui; frontend tidak berubah.",
+      "biaya": "$0 (mock)."
+    },
+    "fix19_input_focus_frontend": {
+      "status": "done",
+      "tanggal": "2026-10-21",
+      "lingkup": "Frontend-only (tidak ada perubahan backend).",
+      "fix": "Modal focus effect hanya [open] + callback via ref; HitlQueuePage closeModal/handleOpenChange useCallback; chat auto-focus guard + Floating readOnly/aria-busy.",
+      "test": "Frontend 1811 passed / 0 failed / 74 skipped; backend tetap 3122 passed / 0 failed / 1 skipped (tidak dijalankan ulang)."
+    },
+    "fase_sedang_paket2_s4_s5": {
+      "status": "done",
+      "tanggal": "2026-10-21",
+      "s4_wa_notifikasi": "integrations/wa_bot/services.py: send_hitl_notification(hitl_id|obj, user_wa) + FonnteGateway (httpx) + fallback MockWAGateway bila WA_BACKEND=mock/kredensial kosong; hitl_messages mendukung payload actions[] (aksi pertama + '+N aksi lain') dan fallback recipient ke AI_HITL_WA_APPROVERS.",
+      "s4_webhook": "POST /api/v1/wa/webhook/: APPROVE <id> / REJECT <id> alasan; nomor tidak terdaftar 403 forbidden; format invalid 400; id tidak ada 404; approve mengembalikan status+execution. Menerima field text maupun message (mock/fonnte).",
+      "s4_settings": "config/settings.py: AI_HITL_WA_APPROVERS (env_list), AI_HITL_WA_TO; .env.example menambah WA_BACKEND/WA_API_KEY/WA_API_URL/AI_HITL_WA_APPROVERS/AI_HITL_WA_TO.",
+      "s5_executor": "integrations/ai_agent/hitl/action_executor.py (LOG-ONLY): rework/pindah/audit/hentikan + aksi tak dikenal dicatat; menolak status != APPROVED (not_approved) dan id tidak ada (not_found). Tidak menulis data produksi.",
+      "s5_integrasi": "hitl_services.approve menjalankan action_executor setelah audit dan mengembalikan execution/hitl_id; reject tidak mengeksekusi.",
+      "test": "tests/ai_agent/test_wa_hitl_s4.py 17 passed; tests/ai_agent/test_action_executor_s5.py 14 passed; tests/ai_agent + wa_bot 624 passed; full suite 3122 passed / 0 failed / 1 skipped (181.99s).",
+      "biaya": "$0 (LLM & gateway di-mock)."
+    },
+    "fix18_format_ramah_chart": {
+      "status": "done",
+      "tanggal": "2026-10-21",
+      "18a_render_natural": "response_synthesizer: parse toleran (fence/preamble/trailing comma), salvage JSON rusak via regex, render bullet natural (Masalah/Usulan aksi + emoji + keyakinan %). Tidak pernah mengirim JSON mentah; intent non-SUGGEST yang membalas JSON juga dirender natural. Guardrail S.2 tetap.",
+      "18b_prompt": "SYSTEM_PROMPT bahasa sederhana + pembulatan angka; guardrail lama (write/hallucination/harga/how-to) dipertahankan. SUGGEST_SYSTEM_PROMPT JSON-only.",
+      "18c_chart": "chart_builder.build_chart_data (metrics period >=2 titik → line/title/unit) + pipeline meneruskan chart_data ke response API.",
+      "18d_markdown": "Blockquote di MarkdownContent (frontend).",
+      "test": "tests/ai_agent/test_format_suggest.py 11 passed; full suite 3091 passed / 0 failed / 1 skipped (188.08s).",
+      "biaya": "$0 (LLM di-mock)."
+    },
+    "fase_sedang_paket1_s1_s3": {
+      "status": "done",
+      "tanggal": "2026-10-21",
+      "s1_intent": "intent_classifier: SUGGEST_ACTION + is_suggest_action; tool_selector: mcp-analytics + mcp-rule-engine + mcp-aggregator; response_synthesizer: SUGGEST_ACTION_PROMPT (JSON) + fallback teks; impact_scorer: SUGGEST_ACTION minimal MEDIUM.",
+      "s1_hitl": "llm_pipeline memanggil escalation_router.route setelah finalize (decision_log_id dipakai ulang) → AIHitlQueue PENDING, risk MEDIUM, response hitl_required/hitl_request_id/risk_level; SUGGEST_ACTION tidak di-cache. finalize dipindah dari views ke pipeline (hindari double log).",
+      "s2_guardrail": "_validate_proposed_actions: reject hapus/delete/drop/update semua/reset, wajib >=2 kata, default impact LOW/confidence 0.5, clamp 0..1, maks 3 sorted by confidence.",
+      "s3_api": "hitl_services.get_queue(status, risk, limit, offset) + GET /ai/hitl/queue/?status=&risk=&limit=&offset= (rows/total_count/has_more/next_cursor); approve/reject tetap existing.",
+      "test": "tests/ai_agent/test_suggest_action_s1.py 20 passed; tests/ai_agent/test_hitl_queue_s3.py 8 passed; tests/ai_agent 560 passed; full suite 3080 passed / 0 failed / 1 skipped (181.86s).",
+      "biaya": "$0 (semua LLM di-mock).",
+      "next": "Paket 2 — WA end-to-end + action executor (belum diimplementasi)."
     },
     "fase_ringan_r1_clarification": {
       "status": "done",

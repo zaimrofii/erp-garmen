@@ -234,7 +234,7 @@ class BeatScheduleTotalTests(SimpleTestCase):
 
     def test_jumlah_entry_total_sembilan_belas(self):
         # Sprint F: 17 entry Sprint B + ai-hitl-expire + ai-detect-drift.
-        self.assertEqual(len(BEAT), 19)
+        self.assertEqual(len(BEAT), 20)
 
     def test_tiga_entry_analytics_ada(self):
         for key in (

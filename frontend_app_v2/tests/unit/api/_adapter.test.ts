@@ -26,6 +26,7 @@ const REAL_KEYS = [
   'executiveDashboard',
   'export',
   'hitl',
+  'hitlQueue',
   'inventoryOperations',
   'inventoryProducts',
   'inventoryReporting',
@@ -148,7 +149,7 @@ describe('F2 — MODE map', () => {
       .sort();
 
     expect(real).toEqual(REAL_KEYS);
-    expect(real).toHaveLength(93);
+    expect(real).toHaveLength(94);
   });
 
   it('key dummy = 0 (F5.4.CLOSE — zero dummy, F6.2 tetap nol)', () => {
@@ -235,7 +236,7 @@ describe('F2 — MODE map', () => {
     // `printerConfig` (H5.7 — profil printer `/settings/printer/` + uji printer) +
     // `permissionMatrix` (H5.4 — matrix izin `/settings/permissions/` + PUT bulk per role).
     // `bundlesKanban`/`workOrdersKanban` (FASE K3 — papan kanban K2; dua key baru).
-    expect(Object.keys(MODE)).toHaveLength(93);
+    expect(Object.keys(MODE)).toHaveLength(94);
     expect([...new Set(Object.values(MODE))].sort()).toEqual(['real']);
   });
 });

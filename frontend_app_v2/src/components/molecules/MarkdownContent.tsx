@@ -76,6 +76,11 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
               {children}
             </ol>
           ),
+          blockquote: ({ children }) => (
+            <blockquote className="border-l-2 border-primary/40 pl-3 my-2 text-muted-foreground italic">
+              {children}
+            </blockquote>
+          ),
         }}
       >
         {content}

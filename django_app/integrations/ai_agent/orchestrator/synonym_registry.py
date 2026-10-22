@@ -133,6 +133,8 @@ SYNONYM_MAP: dict[str, list[str]] = {
     "pertama": ["1", "satu", "first", "nomor 1", "top"],
     "kedua": ["2", "dua", "second", "nomor 2"],
     "ketiga": ["3", "tiga", "third", "nomor 3"],
+    "keempat": ["4", "empat", "fourth", "nomor 4"],
+    "kelima": ["5", "lima", "fifth", "nomor 5"],
     "kemarin": ["yesterday", "hari lalu"],
     "tadi": ["barusan", "sebelumnya", "yang tadi"],
     "lagi": ["lain", "lainnya", "more"],
@@ -157,11 +159,27 @@ for canonical, synonyms in SYNONYM_MAP.items():
 
 #: Kata yang menandakan pesan adalah lanjutan percakapan.
 FOLLOWUP_CANONICALS = frozenset(
-    {"peringkat", "pertama", "kedua", "ketiga", "kemarin", "tadi", "lagi"}
+    {
+        "peringkat",
+        "pertama",
+        "kedua",
+        "ketiga",
+        "keempat",
+        "kelima",
+        "kemarin",
+        "tadi",
+        "lagi",
+    }
 )
 
 #: Peringkat eksplisit ("kedua" → 2).
-RANK_CANONICALS: dict[int, str] = {1: "pertama", 2: "kedua", 3: "ketiga"}
+RANK_CANONICALS: dict[int, str] = {
+    1: "pertama",
+    2: "kedua",
+    3: "ketiga",
+    4: "keempat",
+    5: "kelima",
+}
 
 #: Kata kanonik → entity yang dipakai conversation context.
 ENTITY_CANONICALS: dict[str, str] = {

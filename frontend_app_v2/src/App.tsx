@@ -743,6 +743,12 @@ const AIChatPage = lazy(() =>
   })),
 );
 
+const HitlQueuePage = lazy(() =>
+  import("@/pages/ai/HitlQueuePage").then((module) => ({
+    default: module.HitlQueuePage,
+  })),
+);
+
 // F6.2 — halaman login: PUBLIK, di luar App Shell (full-screen card), tetap lazy.
 const LoginPage = lazy(() =>
   import("@/pages/auth/LoginPage").then((module) => ({
@@ -2277,6 +2283,18 @@ export default function App() {
                         <RoleRoute roles={AI_ROLES}>
                           <RouteErrorBoundary>
                             <AIChatPage />
+                          </RouteErrorBoundary>
+                        </RoleRoute>
+                      }
+                    />
+
+                    {/* S.3 - HITL approval queue (/ai/hitl, supervisor/owner/admin) */}
+                    <Route
+                      path="/ai/hitl"
+                      element={
+                        <RoleRoute roles={AI_ROLES}>
+                          <RouteErrorBoundary>
+                            <HitlQueuePage />
                           </RouteErrorBoundary>
                         </RoleRoute>
                       }

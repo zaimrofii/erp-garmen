@@ -20,11 +20,13 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 __all__ = (
+    "FonnteGateway",
     "MockWAGateway",
     "WAGateway",
     "WAMessage",
     "WAResponse",
     "get_wa_gateway",
+    "send_hitl_notification",
 )
 
 
@@ -113,9 +115,12 @@ class MockWAGateway(WAGateway):
     def parse_incoming(self, payload: dict) -> WAMessage:
         """Baca payload ``{"from": ..., "text": ...}`` menjadi :class:`WAMessage`."""
         data = dict(payload or {})
+        body = data.get("text")
+        if body is None:
+            body = data.get("message")
         return WAMessage(
             sender=str(data.get("from") or ""),
-            body=str(data.get("text") or ""),
+            body=str(body or ""),
             timestamp=self._to_datetime(data.get("timestamp")),
             raw=data,
         )
@@ -138,18 +143,116 @@ class MockWAGateway(WAGateway):
         return None
 
 
+class FonnteGateway(WAGateway):
+    """Gateway Fonnte (https://fonnte.com) — kirim via HTTP API."""
+
+    name = "fonnte"
+
+    def __init__(self, api_key: str, api_url: str | None = None) -> None:
+        self.api_key = str(api_key or "").strip()
+        self.api_url = (api_url or "https://api.fonnte.com/send").strip()
+
+    def send_message(self, to: str, body: str) -> WAResponse:
+        recipient = str(to or "").strip()
+        text = str(body or "").strip()
+        if not recipient or not text:
+            return WAResponse(ok=False, error="Nomor tujuan dan isi pesan wajib diisi.")
+        if not self.api_key:
+            return WAResponse(ok=False, error="WA_API_KEY kosong.")
+
+        try:
+            import httpx
+
+            response = httpx.post(
+                self.api_url,
+                headers={"Authorization": self.api_key},
+                data={"target": recipient, "message": text},
+                timeout=10.0,
+            )
+            payload = response.json() if response.content else {}
+        except Exception as exc:  # noqa: BLE001 - jaringan tidak boleh crash
+            logger.warning("[FonnteGateway] kirim gagal: %s", exc)
+            return WAResponse(ok=False, error=str(exc))
+
+        ok = bool(payload.get("status")) if isinstance(payload, dict) else False
+        message_id = None
+        if isinstance(payload, dict):
+            ids = payload.get("id")
+            if isinstance(ids, list) and ids:
+                message_id = str(ids[0])
+            elif ids is not None:
+                message_id = str(ids)
+
+        error = None
+        if not ok:
+            error = (
+                str(payload.get("reason") or "fonnte_failed")
+                if isinstance(payload, dict)
+                else "fonnte_failed"
+            )
+
+        return WAResponse(
+            ok=ok,
+            message_id=message_id,
+            raw=payload if isinstance(payload, dict) else {"raw": str(payload)},
+            error=error,
+        )
+
+    def parse_incoming(self, payload: dict) -> WAMessage:
+        """Payload Fonnte: ``{sender, message, ...}``."""
+        data = dict(payload or {})
+        return WAMessage(
+            sender=str(data.get("sender") or data.get("from") or ""),
+            body=str(data.get("message") or data.get("text") or ""),
+            timestamp=MockWAGateway._to_datetime(data.get("timestamp")),
+            raw=data,
+        )
+
+    def health_check(self) -> bool:
+        return bool(self.api_key)
+
+
 def get_wa_gateway(name: str | None = None) -> WAGateway:
     """Gateway WA sesuai ``settings.WA_BACKEND`` (fallback: mock + log warning).
 
-    Selama belum ada implementasi penyedia sungguhan, semua nilai selain
-    ``"mock"`` tetap jatuh ke :class:`MockWAGateway` supaya alur produksi tidak
+    ``fonnte`` dipakai hanya bila ``WA_API_KEY`` terisi; konfigurasi tidak
+    lengkap selalu jatuh ke :class:`MockWAGateway` supaya alur produksi tidak
     mati hanya karena salah konfigurasi.
     """
     requested = (name or getattr(settings, "WA_BACKEND", "") or "").strip().lower()
+
+    if requested == "fonnte":
+        api_key = str(getattr(settings, "WA_API_KEY", "") or "").strip()
+        if api_key:
+            return FonnteGateway(api_key, getattr(settings, "WA_API_URL", None))
+        logger.warning("WA_BACKEND 'fonnte' tanpa WA_API_KEY -> fallback MockWAGateway.")
+        return MockWAGateway()
+
     if requested in ("", "mock"):
         logger.info("WA gateway aktif: mock.")
         return MockWAGateway()
+
     logger.warning(
         "WA_BACKEND %r belum diimplementasikan -> fallback MockWAGateway.", requested
     )
     return MockWAGateway()
+
+
+def send_hitl_notification(hitl_id, user_wa: str | None = None) -> dict[str, Any]:
+    """Kirim notifikasi approval HITL ke satu nomor WA.
+
+    ``hitl_id`` boleh id (int) atau objek ``AIHitlQueue``. Return selalu dict
+    (tidak pernah throw) agar pemanggil tidak gagal karena masalah WA.
+    """
+    if isinstance(hitl_id, int):
+        from integrations.ai_agent.models import AIHitlQueue
+
+        hitl = AIHitlQueue.objects.filter(pk=hitl_id).first()
+        if hitl is None:
+            return {"ok": False, "error": "not_found", "message_id": None}
+    else:
+        hitl = hitl_id
+
+    from integrations.wa_bot.hitl_messages import send_hitl_notification as _send
+
+    return _send(hitl, recipient=user_wa)

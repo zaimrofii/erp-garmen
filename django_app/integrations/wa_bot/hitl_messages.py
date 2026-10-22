@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
@@ -21,10 +20,23 @@ def _summary(action: dict[str, Any]) -> str:
     if isinstance(summary, str) and summary.strip():
         return summary.strip()
 
+    actions = action.get("actions")
+    if isinstance(actions, list) and actions:
+        first = actions[0]
+        if isinstance(first, dict):
+            label = first.get("action") or first.get("summary")
+            if isinstance(label, str) and label.strip():
+                extra = len(actions) - 1
+                suffix = f" (+{extra} aksi lain)" if extra > 0 else ""
+                return f"{label.strip()}{suffix}"
+
+    problem = action.get("problem")
+    if isinstance(problem, str) and problem.strip():
+        return problem.strip()
+
     kind = action.get("action") or action.get("type") or "aksi"
     resource = action.get("resource") or ""
-    label = f"{kind} {resource}".strip()
-    return label if label else json.dumps(action, default=str)[:200]
+    return f"{kind} {resource}".strip()
 
 
 def format_hitl_message(hitl) -> str:
@@ -38,20 +50,31 @@ def format_hitl_message(hitl) -> str:
     )
 
 
-def _recipient() -> str:
+def _recipient(fallback: str | None = None) -> str:
+    if isinstance(fallback, str) and fallback.strip():
+        return fallback.strip()
+
     raw = getattr(settings, "AI_HITL_WA_TO", None) or getattr(
         settings, "HITL_ALERT_WA_TO", None
     )
     if isinstance(raw, (list, tuple)):
         return str(raw[0]).strip() if raw else ""
-    return str(raw or "").strip()
+    if raw:
+        return str(raw).strip()
+
+    approvers = getattr(settings, "AI_HITL_WA_APPROVERS", None)
+    if isinstance(approvers, dict) and approvers:
+        return str(next(iter(approvers))).strip()
+    if isinstance(approvers, (list, tuple)) and approvers:
+        return str(approvers[0]).strip()
+    return ""
 
 
-def send_hitl_notification(hitl) -> dict[str, Any]:
+def send_hitl_notification(hitl, recipient: str | None = None) -> dict[str, Any]:
     """Kirim notifikasi WA (mock di dev). Tidak pernah throw."""
-    to = _recipient()
+    to = _recipient(recipient)
     if not to:
-        logger.info("hitl: AI_HITL_WA_TO kosong → notifikasi WA dilewati.")
+        logger.info("hitl: nomor approver kosong → notifikasi WA dilewati.")
         return {"ok": False, "error": "no_recipient", "message_id": None}
 
     try:

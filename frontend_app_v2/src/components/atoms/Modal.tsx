@@ -26,24 +26,45 @@ interface ModalProps {
 
 export function Modal({ open, onOpenChange, title, description, children, footer }: ModalProps) {
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const onOpenChangeRef = useRef(onOpenChange);
 
+  // Callback terbaru dipakai listener tanpa membuat effect fokus rerun.
+  useEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  }, [onOpenChange]);
+
+  // Effect 1 — fokus awal + restore. HANYA bergantung pada `open`, supaya
+  // parent re-render (mis. user mengetik) TIDAK memindahkan fokus.
   useEffect(() => {
     if (!open) return;
 
+    const previouslyFocused =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const panel = panelRef.current;
-    const previouslyFocused: Element | null = document.activeElement;
 
     if (panel !== null) {
       const focusables = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
       if (focusables.length > 0) focusables[0].focus();
     }
 
+    return () => {
+      previouslyFocused?.focus();
+    };
+  }, [open]);
+
+  // Effect 2 — ESC + focus trap (Tab). HANYA bergantung pada `open`.
+  useEffect(() => {
+    if (!open) return;
+
     function handleKeyDown(event: KeyboardEvent): void {
       if (event.key === 'Escape') {
-        onOpenChange(false);
+        onOpenChangeRef.current(false);
         return;
       }
-      if (event.key !== 'Tab' || panel === null) return;
+      if (event.key !== 'Tab') return;
+
+      const panel = panelRef.current;
+      if (panel === null) return;
 
       const nodes = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
       if (nodes.length === 0) return;
@@ -64,9 +85,8 @@ export function Modal({ open, onOpenChange, title, description, children, footer
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus();
     };
-  }, [open, onOpenChange]);
+  }, [open]);
 
   return (
     <AnimatePresence>

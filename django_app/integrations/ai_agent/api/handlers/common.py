@@ -80,6 +80,8 @@ def response(
     impact_score: str = "LOW",
     tool_calls: list[dict[str, Any]] | None = None,
     tokens: dict[str, Any] | None = None,
+    hitl_required: bool = False,
+    hitl_request_id: int | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "ok": ok,
@@ -87,8 +89,8 @@ def response(
         "tool_calls": list(tool_calls or []),
         "confidence_score": confidence,
         "impact_score": impact_score,
-        "hitl_required": False,
-        "hitl_request_id": None,
+        "hitl_required": hitl_required,
+        "hitl_request_id": hitl_request_id,
         "decision_gate_result": decision_gate_result,
         "tokens": response_tokens(tokens),
         "cache_hit": cache_hit,

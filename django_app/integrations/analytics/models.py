@@ -14,7 +14,7 @@ from django.db import models
 
 from .plugins.garment.models import MetricSnapshot  # noqa: F401  (registrasi model)
 
-__all__ = ("AnalyticsConfig", "MetricSnapshot")
+__all__ = ("AnalyticsConfig", "DailySummary", "Document", "MetricSnapshot")
 
 
 class AnalyticsConfig(models.Model):
@@ -52,3 +52,47 @@ class AnalyticsConfig(models.Model):
 
     def __str__(self) -> str:
         return f"AnalyticsConfig(enabled={self.enabled})"
+
+
+class Document(models.Model):
+    """Dokumen SOP/QC untuk pencarian (TEMPORARY — ganti ChromaDB)."""
+
+    title = models.CharField("judul", max_length=200)
+    content = models.TextField("isi")
+    category = models.CharField("kategori", max_length=80, blank=True, default="")
+    tags = models.JSONField("tag", default=list, blank=True)
+    uploaded_at = models.DateTimeField("diunggah", auto_now_add=True)
+
+    class Meta:
+        db_table = "analytics_document"
+        verbose_name = "Document"
+        verbose_name_plural = "Documents"
+        ordering = ("title",)
+
+    def __str__(self) -> str:
+        return f"{self.title} [{self.category}]"
+
+
+class DailySummary(models.Model):
+    """Ringkasan harian (L2/L3) — TEMPORARY sampai summary store penuh."""
+
+    date = models.DateField("tanggal", unique=True)
+    total_output = models.FloatField("total output", default=0)
+    total_scrap = models.FloatField("total scrap", default=0)
+    total_rework = models.FloatField("total rework", default=0)
+    avg_lead_time = models.FloatField("rata-rata lead time", default=0)
+    oee = models.FloatField("oee", default=0)
+    top_wc = models.CharField("WC teratas", max_length=120, blank=True, default="")
+    top_operator = models.CharField(
+        "operator teratas", max_length=120, blank=True, default=""
+    )
+    computed_at = models.DateTimeField("dihitung pada", auto_now=True)
+
+    class Meta:
+        db_table = "analytics_daily_summary"
+        verbose_name = "Daily Summary"
+        verbose_name_plural = "Daily Summaries"
+        ordering = ("-date",)
+
+    def __str__(self) -> str:
+        return f"Summary {self.date}: output={self.total_output}"

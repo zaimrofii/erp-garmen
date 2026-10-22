@@ -37,11 +37,11 @@ class ContextBuilderTests(TestCase):
                 user=user,
             )
 
-        self.assertEqual(len(data["metrics"]), 3)
+        self.assertEqual(len(data["metrics"]), 5)
         self.assertEqual(len(data["metrics"][0]["rows"]), 5)
         self.assertEqual(data["metrics"][0]["rows"][0]["period"], "2026-10-03")
         self.assertEqual(data["metrics"][0]["unit"], "%")
-        self.assertEqual(handler.call_count, 3)
+        self.assertEqual(handler.call_count, 5)
         self.assertIs(handler.call_args.kwargs["user"], user)
 
     def test_analytics_error_dicatat_tanpa_raise(self):

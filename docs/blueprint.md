@@ -713,6 +713,14 @@ Modul dianggap selesai jika:
 4. **Blocker → STOP**, tanya. Jangan asumsi.
 5. **Jangan lupa** `odoo_id`, `SyncRecord`, `AuditLog` di setiap CRUD.
 
+### 13.5 Fase Berat-Lite (SEMENTARA — 2026-10-21)
+
+Graph/relasi, pencarian dokumen SOP, korelasi kualitas, rule-based explainer,
+dan DailySummary saat ini memakai PostgreSQL yang sudah ada (**bukan** Neo4j/
+ChromaDB). Ini **solusi sementara**; detail alasan & rencana upgrade ada di
+[`docs/ai/BACKLOG-MIGRATION.md`](ai/BACKLOG-MIGRATION.md). Setiap modul
+sementara ditandai `TEMPORARY` di docstring.
+
 ---
 
 **Blueprint v5.0 — Portable, Configurable, Production-Ready, Multi-Device, Rework-Aware, Two-Stage Stock, ERP-Production Ready. AI Agent terdokumentasi terpisah.**

@@ -34,17 +34,38 @@ class AiHitlQueueView(APIView):
 
         try:
             limit = int(request.query_params.get("limit") or 50)
+            offset = int(request.query_params.get("offset") or 0)
         except (TypeError, ValueError):
-            return Response({"detail": "'limit' harus angka."}, status=400)
+            return Response({"detail": "'limit'/'offset' harus angka."}, status=400)
         limit = max(1, min(limit, 200))
+        offset = max(0, offset)
 
-        rows = hitl_services.get_pending(hitl_services.user_role(request.user), limit)
+        status_filter = str(request.query_params.get("status") or "PENDING").upper()
+        if status_filter not in {"PENDING", "APPROVED", "REJECTED", "EXPIRED", "ALL"}:
+            return Response({"detail": "'status' tidak dikenal."}, status=400)
+
+        risk_filter = str(
+            request.query_params.get("risk_level")
+            or request.query_params.get("risk")
+            or ""
+        ).upper()
+        if risk_filter and risk_filter not in {"LOW", "MEDIUM", "HIGH", "ALL"}:
+            return Response({"detail": "'risk' tidak dikenal."}, status=400)
+
+        rows, total = hitl_services.get_queue(
+            hitl_services.user_role(request.user),
+            status_filter,
+            risk_filter or None,
+            limit,
+            offset,
+        )
+        next_offset = offset + len(rows)
         return Response(
             {
                 "rows": rows,
-                "total_count": len(rows),
-                "has_more": False,
-                "next_cursor": None,
+                "total_count": total,
+                "has_more": next_offset < total,
+                "next_cursor": next_offset if next_offset < total else None,
             }
         )
 

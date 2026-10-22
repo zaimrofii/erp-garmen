@@ -16,7 +16,7 @@ def finalize(
     model_used: str = "",
     audit_text: str = "",
     classifier_cost: float = 0.0,
-) -> None:
+):
     """Catat satu keputusan AI + biaya (perilaku sama dengan versi lama)."""
     values = result.get("tokens") or tokens()
     log_row = log_decision(
@@ -38,6 +38,7 @@ def finalize(
         latency_ms=result["latency_ms"],
     )
     cost_tracker.record_cost(log_row)
+    return log_row
 
 
 __all__ = ("finalize",)

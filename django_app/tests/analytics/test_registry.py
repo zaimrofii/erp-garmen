@@ -75,7 +75,7 @@ def test_discover_metrics_idempotent():
     n1 = registry.discover_metrics()
     n2 = registry.discover_metrics()
 
-    assert n1 == n2 == 5
+    assert n1 == n2 == 9
 
 
 def test_list_metrics_filter_domain():

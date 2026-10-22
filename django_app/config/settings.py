@@ -500,6 +500,11 @@ CELERY_BEAT_SCHEDULE = {
         "task": "analytics.cleanup_cache",
         "schedule": crontab(minute=0),
     },
+    # Fase Berat-Lite — ringkasan harian L2/L3 (DailySummary).
+    "analytics-daily-summary": {
+        "task": "analytics.aggregate_daily_summary",
+        "schedule": crontab(minute=15, hour=0),
+    },
     # Sprint F.1.8 — HITL kedaluwarsa (PENDING > auto_expire_hours → EXPIRED).
     "ai-hitl-expire": {
         "task": "ai_agent.hitl_expire_pending",
@@ -645,6 +650,9 @@ PRINTER_MOCK_DIR = env("PRINTER_MOCK_DIR", "/tmp/print_mock")
 WA_BACKEND = env("WA_BACKEND", "mock")
 WA_API_URL = env("WA_API_URL", "") or None
 WA_API_KEY = env("WA_API_KEY", "") or None
+# S.4 — nomor WA yang boleh APPROVE/REJECT via webhook (dipisah koma).
+AI_HITL_WA_APPROVERS = env_list("AI_HITL_WA_APPROVERS")
+AI_HITL_WA_TO = env("AI_HITL_WA_TO", "") or None
 
 # ---------------------------------------------------------------------------
 # Cache (Fase 6) — dipakai rate limiter DRF (throttle)

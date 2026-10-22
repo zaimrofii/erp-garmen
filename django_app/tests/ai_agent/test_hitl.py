@@ -282,7 +282,7 @@ class HitlExpireTests(TestCase):
         self.assertEqual(AIHitlQueue.objects.filter(status="REJECTED").count(), 1)
 
     def test_beat_schedule_19_entry(self):
-        self.assertEqual(len(settings.CELERY_BEAT_SCHEDULE), 19)
+        self.assertEqual(len(settings.CELERY_BEAT_SCHEDULE), 20)
         self.assertEqual(
             settings.CELERY_BEAT_SCHEDULE["ai-hitl-expire"]["task"],
             "ai_agent.hitl_expire_pending",

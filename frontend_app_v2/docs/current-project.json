@@ -2,7 +2,7 @@
   "⚠️_concept_notice": "KONSEP LAMA DEPRECATED. MES = ERP produksi (input master & transaksi di MES). Lihat docs/REPLACE-NOTICE.md.",
   "$schema": "internal-status-v1",
   "generated_at": "2026-10-14",
-  "generated_by": "Cline + Senior Dev (F1–F16 + H1–H4.8 + Sprint C + H5.1–H5.8 + Sprint E/F)",
+  "generated_by": "Cline + Senior Dev (F1–F16 + H1–H4.8 + Sprint C + H5.1–H5.8 + Sprint E/F + Fase Sedang S.1–S.3)",
   "project": {
     "name": "MES Garmen — Frontend v3 + Backend v4.3",
     "stack": ["Vite", "React 18+", "TypeScript (strict)", "Tailwind v4"],
@@ -13,11 +13,11 @@
     "last_updated": "2026-10-21"
   },
   "test_count": {
-    "total": 1845,
-    "passed": 1771,
+    "total": 1885,
+    "passed": 1811,
     "failed": 0,
     "skipped": 74,
-    "files_passed": 169,
+    "files_passed": 175,
     "files_failed": 0,
     "files_skipped": 11
   },
@@ -32,9 +32,10 @@
     "catatan": "Sebelum fix: 1768 passed / 3 failed — total non-skipped tetap 1771, jadi tidak ada test baru/hilang."
   },
   "css_gate_baseline": {
-    "md5": "1e4ca3d99fc645cfc23810cd73a4b4b5",
-    "rules": 690,
-    "updated_at": "2026-10-20"
+    "md5": "0362944f662cd6ed8a121303d3f66407",
+    "rules": 712,
+    "updated_at": "2026-10-21T07:45:06Z",
+    "delta": "711 -> 712 (+1) rebuild Paket 3 (tidak ada perubahan src frontend; drift kelas existing)"
   },
   "sprint_H_fix6_data_access_welcome": {
     "status": "DONE (2026-10-20) — DAL + welcome chat",
@@ -51,6 +52,59 @@
     "focus_fix": "AIChatPage + FloatingAIAssistant: useRef input + fokus setelah loading selesai (effect) / finally; Enter/button mengembalikan fokus.",
     "test_delta": "+15 test (10 markdown + 3 chat-message-list + 2 focus wiring); 1751 → 1766 passed.",
     "catatan": "3 test page lama (header sudah di-comment + kutip source berubah) di-update assertion-only; tidak mengubah logika halaman."
+  },
+  "seed_big_test": {
+    "status": "DONE (2026-10-21) — backend-only seed masif",
+    "catatan": "Frontend tidak berubah; 1811 passed / 74 skipped, build 343.89 kB, css-gate PASS 712 rule.",
+    "backend": "3227 passed / 0 failed / 1 skipped."
+  },
+  "fase_berat_lite": {
+    "status": "DONE (2026-10-21) — backend-only, TEMPORARY (tanpa Neo4j/ChromaDB)",
+    "catatan": "Frontend tidak berubah: 1811 passed / 74 skipped; build index 343.89 kB, max chunk 384.97 kB; css-gate PASS 712 rule.",
+    "backend": "3209 passed / 0 failed / 1 skipped.",
+    "dokumen": "docs/ai/BACKLOG-MIGRATION.md + blueprint §13.5."
+  },
+  "fix20_data_gap": {
+    "status": "DONE (2026-10-21) — backend-only (WC idle/buffer status + seed operator)",
+    "catatan": "Tidak ada perubahan frontend; 1811 passed / 74 skipped, build index 343.89 kB, css-gate PASS 712 rule.",
+    "backend": "3172 passed / 0 failed / 1 skipped."
+  },
+  "fase_sedang_paket3_s6_s7": {
+    "status": "DONE (2026-10-21) — backend-only (OEE/WIP/alerts + operator anomaly)",
+    "catatan": "Frontend tidak berubah: 1811 passed / 74 skipped tetap. Build index 343.89 kB, max chunk recharts 384.97 kB; css-gate PASS 712 rule (baseline diperbarui, delta +1 drift rebuild).",
+    "backend": "3159 passed / 0 failed / 1 skipped; tests/analytics+ai_agent 754 passed."
+  },
+  "fix19_input_focus": {
+    "status": "DONE (2026-10-21) — HITL modal + chat input",
+    "19a_hitl": "Modal.tsx: effect fokus dipisah dan hanya bergantung pada [open] (callback listener via onOpenChangeRef); cleanup restore hanya saat modal ditutup. HitlQueuePage: closeModal + handleOpenChange dibungkus useCallback, Modal memakai handler stabil (bukan arrow inline). Focus trap/ESC tidak berubah.",
+    "19b_chat": "AIChatPage auto-focus tidak merebut fokus bila document.activeElement sudah INPUT; FloatingAIAssistant memakai readOnly + aria-busy (bukan disabled) agar input tidak blur saat loading.",
+    "runtime_verifikasi": "jsdom manual (temporer, tidak di-commit): 5/5 PASS — Modal ketik 1 huruf & 10 huruf tetap fokus, ESC memanggil callback, modal HITL (klik baris → ketik catatan) tetap fokus, chat /ai/chat 10 ketikan tetap fokus. Browser DevTools tidak tersedia di environment ini. Bundle dist dibangun ulang (hash index-2AgR2y9I.js, lama index-UiFurPY1.js hilang).",
+    "test": "16 test kontrak baru (modal 6 + hitl-modal 5 + ai-chat-focus 5); frontend 1811 passed / 0 failed / 74 skipped (175 file passed); css-gate PASS 711 rule; build max chunk 384.97 kB.",
+    "catatan": "jsdom dipasang npm --no-save hanya untuk verifikasi runtime; package.json/bun.lock tidak berubah."
+  },
+  "fase_sedang_paket2_wa_executor": {
+    "status": "DONE (2026-10-21) — backend-only (S.4 WA approval + S.5 action executor)",
+    "catatan": "Frontend tidak berubah pada Paket 2: HITL UI (/ai/hitl) sudah ada dari S.3. Respons approve kini membawa `execution` (diabaikan parser lama, additive).",
+    "test": "frontend 1795 passed / 0 failed / 74 skipped (tidak dijalankan ulang karena tidak ada perubahan src/tests); build max chunk 384.97 kB; css-gate PASS 711 rule.",
+    "backend": "3122 passed / 0 failed / 1 skipped."
+  },
+  "fix18_format_ramah_chart": {
+    "status": "DONE (2026-10-21) — JSON→natural, prompt sederhana, Recharts",
+    "18a": "response_synthesizer: _parse_suggest_payload toleran fence/preamble/trailing comma + _salvage_suggest_payload untuk JSON rusak; _render_suggest_action merender bullet natural (Masalah/Usulan aksi, emoji prioritas, keyakinan 82%). Tidak pernah mengirim JSON mentah (termasuk intent non-SUGGEST yang membalas JSON).",
+    "18b": "SYSTEM_PROMPT: aturan bahasa sederhana + angka dibulatkan (21%, bukan 21.0%) + guardrail lama dipertahankan; SUGGEST_SYSTEM_PROMPT khusus JSON-only.",
+    "18c": "Backend chart_builder.py (metrics period >=2 titik → {type,title,data,unit}), chart_data diteruskan pipeline+API. Frontend AIChart (Recharts 3.10.1), chart_data diparse di api/real/aiChat + dirender ChatMessageList. Recharts dipisah chunk vendor via vite rolldownOptions manualChunks (max chunk 384.97 kB).",
+    "18d": "MarkdownContent: blockquote highlight (border-l-2 border-primary/40 italic); tabel/GFM tetap aktif.",
+    "test": "backend 3091 passed / 0 failed / 1 skipped; frontend 1795 passed / 0 failed / 74 skipped; build max chunk 384.97 kB; css-gate PASS 711 rule (delta +6).",
+    "dependency": "recharts ^3.10.1 ditambahkan ke package.json + node_modules (npm --no-save; bun tidak tersedia di environment ini). bun.lock BELUM diperbarui — jalankan `bun install` saat bun tersedia.",
+    "biaya": "$0 (semua LLM di-mock)."
+  },
+  "fase_sedang_paket1_s1_s3_hitl_ui": {
+    "status": "DONE (2026-10-21) — S.1 intent SUGGEST_ACTION + S.2 guardrail + S.3 HITL UI",
+    "s1": "intent_classifier SUGGEST_ACTION (+is_suggest_action), tool_selector (analytics+rule-engine+aggregator), response_synthesizer prompt JSON usul aksi, pipeline membuat AIHitlQueue via escalation_router (risk MEDIUM, hitl_request_id di respons, tidak di-cache).",
+    "s2": "_validate_proposed_actions: tolak hapus/delete/drop/update semua/reset, wajib verb+object, default impact LOW/confidence 0.5, clamp 0..1, maks 3 sorted by confidence.",
+    "s3": "HitlQueuePage /ai/hitl (DenseTable + filter status/risk + modal JSON detail + Setujui/Tolak alasan wajib + PaginationBar), api/real/hitlQueue.ts + barrel + MODE hitlQueue, nav AI Chat/HITL, route guard AI_ROLES; backend GET /ai/hitl/queue/?status&risk&limit&offset (rows/total_count/has_more/next_cursor).",
+    "test": "frontend 1785 passed / 0 failed / 74 skipped; backend tests/ai_agent 560 passed; full backend 3080 passed / 1 skipped.",
+    "catatan_env": "Node 24 lokal tidak punya globalThis.addEventListener; full frontend dijalankan dengan shim NODE_OPTIONS=--require /tmp/dom-shim.cjs (bun runtime asli menyediakannya). Tidak ada perubahan source untuk itu."
   },
   "sprint_F_hitl_observability": {
     "status": "DONE (2026-10-18) — HITL + observability dashboard",

@@ -2,6 +2,7 @@
 // Kontrak: docs/ai/CHAT-CONTRACT.md §2–§3.
 import type { ApiClient } from '@/integrations/api-client';
 import type {
+  AIChatChartData,
   AIChatContext,
   AIChatError,
   AIChatHistoryItem,
@@ -47,6 +48,29 @@ function readToolCall(raw: unknown): AIChatToolCall | null {
   };
 }
 
+function readChartData(raw: unknown): AIChatChartData | null {
+  if (!isRecord(raw)) return null;
+
+  const points = Array.isArray(raw["data"])
+    ? raw["data"]
+        .filter(isRecord)
+        .map((row) => ({
+          label: readStr(row["label"]),
+          value: readNum(row["value"]),
+        }))
+        .filter((point) => point.label.length > 0)
+    : [];
+
+  if (points.length === 0) return null;
+
+  return {
+    type: raw["type"] === "bar" ? "bar" : "line",
+    title: readStr(raw["title"]),
+    data: points,
+    unit: readStr(raw["unit"]),
+  };
+}
+
 /** PURE — respons mentah `{ok:true,...}` → AIChatResponse (defensif). */
 export function parseChatResponse(raw: unknown): AIChatResponse | null {
   if (!isRecord(raw) || raw['ok'] !== true) return null;
@@ -78,6 +102,7 @@ export function parseChatResponse(raw: unknown): AIChatResponse | null {
     },
     cache_hit: raw['cache_hit'] === true,
     latency_ms: readNum(raw['latency_ms']),
+    chart_data: readChartData(raw['chart_data']),
   };
 }
 

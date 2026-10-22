@@ -9,6 +9,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.db.models import Avg, Max, Min, Q, Sum
 from ...config import AI_CONFIG
 from ...data_access.registry import (
     ENTITY_DATA_KEYS,
@@ -43,6 +44,13 @@ from .constants import (
     ENTITY_LABELS,
     LIST_QUERY_HINTS,
     AGGREGATE_KEYWORDS,
+    ANOMALY_KEYWORDS,
+    STATUS_KEYWORDS,
+    GRAPH_KEYWORDS,
+    DOCUMENT_KEYWORDS,
+    CORRELATION_KEYWORDS,
+    EXPLAIN_KEYWORDS,
+    SUMMARY_KEYWORDS,
     QUESTION_STOPWORDS,
     PRICE_HINTS,
     PRODUCT_NOUNS,
@@ -58,7 +66,9 @@ from .aggregate import (
     is_aggregate_query,
     _detect_top_query,
     _detect_count_query,
+    _collect_total_count,
     _count_query_rows,
+    _detect_total_query,
 )
 from .candidates import (
     _candidate_haystack,
@@ -137,17 +147,229 @@ def _filter_financial_rows(rows: list[dict], user) -> list[dict]:
     ]
 
 
+FG_CATEGORIES = frozenset({"kaos", "kemeja", "dress", "celana", "jaket"})
+
+
+def _filter_fg_products(rows: list[dict]) -> list[dict]:
+    """Ranking produk hanya FG; material/aksesoris tidak ikut."""
+    result = []
+    for row in rows or []:
+        category = str(row.get("category") or "").strip().lower()
+        code = str(row.get("code") or "").strip().upper()
+        if category in FG_CATEGORIES or code.startswith("FG-"):
+            result.append(row)
+    return result
+
+
 def _sort_products_by_price(
     rows: list[dict], descending: bool = True
 ) -> list[dict]:
     """Urutkan produk termahal/termurah bila kolom harga tersedia."""
     if not rows or any("sale_price" not in row for row in rows):
         return rows
+    if descending:
+        return sorted(
+            rows,
+            key=lambda row: (-float(row.get("sale_price") or 0), str(row.get("name") or "")),
+        )
     return sorted(
         rows,
-        key=lambda row: float(row.get("sale_price") or 0),
-        reverse=descending,
+        key=lambda row: (float(row.get("sale_price") or 0), str(row.get("name") or "")),
     )
+
+
+def _parse_amount(text: str) -> int | None:
+    """Parse nominal Indonesia: 100rb/50k/1jt/100.000."""
+    match = re.search(r"(\d+(?:[.,]\d+)?)\s*(rb|ribu|k|jt|juta)?", text)
+    if not match:
+        return None
+    raw = match.group(1).replace(".", "").replace(",", ".")
+    try:
+        value = float(raw)
+    except ValueError:
+        return None
+    unit = (match.group(2) or "").lower()
+    multiplier = 1
+    if unit in {"rb", "ribu", "k"}:
+        multiplier = 1000
+    elif unit in {"jt", "juta"}:
+        multiplier = 1_000_000
+    return int(value * multiplier)
+
+
+def _detect_product_filter(message: str) -> dict | None:
+    """Deteksi filter produk: harga 0, kategori kosong, >/< nominal."""
+    text = str(message or "").lower()
+    if not any(word in text for word in ("produk", "product", "harga")):
+        return None
+    if "harga 0" in text or "gratis" in text:
+        return {"filters": {"sale_price": 0}, "label": "harga 0"}
+    if "tanpa kategori" in text or "kategori kosong" in text:
+        return {"filters": {"category": ""}, "label": "tanpa kategori"}
+    between = re.search(
+        r"antara\s+(.+?)\s+dan\s+(.+?)(?:\?|$)", text
+    )
+    if between:
+        low = _parse_amount(between.group(1))
+        high = _parse_amount(between.group(2))
+        if low is not None and high is not None:
+            return {
+                "filters": {"sale_price__range": (low, high)},
+                "label": f"antara Rp{low:,} dan Rp{high:,}",
+            }
+    above = re.search(r"(?:di atas|lebih dari|>)\s*(.+?)(?:\?|$)", text)
+    if above:
+        value = _parse_amount(above.group(1))
+        if value is not None:
+            return {
+                "filters": {"sale_price__gt": value},
+                "label": f"di atas Rp{value:,}",
+            }
+    below = re.search(r"(?:di bawah|kurang dari|<)\s*(.+?)(?:\?|$)", text)
+    if below:
+        value = _parse_amount(below.group(1))
+        if value is not None:
+            return {
+                "filters": {"sale_price__lt": value},
+                "label": f"di bawah Rp{value:,}",
+            }
+    return None
+
+
+def _detect_price_aggregate(message: str) -> dict | None:
+    """Deteksi agregat harga produk."""
+    text = str(message or "").lower()
+    if not any(word in text for word in ("produk", "product", "harga", "nilai")):
+        return None
+    if any(word in text for word in ("rata-rata", "average", "avg")):
+        return {
+            "aggregate": "avg",
+            "label": "rata-rata harga",
+            "fg_only": not any(word in text for word in ("produk", "product")),
+        }
+    if any(word in text for word in ("tertinggi", "paling mahal", "max")):
+        return {"aggregate": "max", "label": "harga tertinggi"}
+    if any(word in text for word in ("terendah", "paling murah", "min")):
+        return {"aggregate": "min", "label": "harga terendah"}
+    if any(word in text for word in ("total nilai", "jumlah nilai", "sum")):
+        return {"aggregate": "sum", "label": "total nilai"}
+    return None
+
+
+def _detect_negative_query(message: str) -> dict | None:
+    """Deteksi query negasi entity."""
+    text = str(message or "").lower()
+    if "bundle" in text and (
+        "tanpa event" in text or "belum ada event" in text
+    ):
+        return {"entity": "bundle", "label": "bundle tanpa event"}
+    if "order" in text and (
+        "tanpa customer" in text or "customer kosong" in text
+    ):
+        return {"entity": "order", "label": "order tanpa customer"}
+    if "produk" in text and (
+        "tanpa kategori" in text or "kategori kosong" in text
+    ):
+        return {"entity": "product", "label": "produk tanpa kategori"}
+    return None
+
+
+def _collect_product_filter(filter_query: dict) -> list[dict]:
+    from master.models import Product
+
+    return list(
+        Product.objects.filter(**filter_query["filters"]).values(
+            "id", "code", "name", "category", "sale_price"
+        )
+    )
+
+
+def _collect_bundle_operators(bundle_id: int) -> list[dict]:
+    from apps_industry.garment.models import BundleEvent
+
+    return list(
+        BundleEvent.objects.filter(
+            bundle_id=bundle_id, actor__isnull=False
+        )
+        .values(
+            "actor_id",
+            "actor__username",
+            "actor__first_name",
+            "actor__last_name",
+        )
+        .order_by()
+        .distinct()
+    )
+
+
+def _collect_customer_detail(
+    customer_id: int | None = None, name: str | None = None
+) -> dict | None:
+    from master.models import Partner
+
+    partner = None
+    if customer_id is not None:
+        partner = Partner.objects.filter(pk=customer_id).first()
+    elif name:
+        partner = Partner.objects.filter(name__icontains=name).first()
+    if partner is None:
+        return None
+    detail = METRICS.customer_detail(partner.pk)
+    if detail is None:
+        return None
+    return {
+        "customer_detail": detail,
+        "customer_spend": detail.get("total_spend", 0),
+    }
+
+
+def _collect_order_bundles(order_id: int) -> list[dict]:
+    from apps_industry.garment.models import Bundle
+
+    rows = list(
+        Bundle.objects.filter(
+            work_order__order_line__order_id=order_id
+        ).values(
+            "id",
+            "code",
+            "state",
+            "qty",
+            "qty_done",
+            "work_order__order_line__product__name",
+        )
+    )
+    return [
+        {
+            "id": row["id"],
+            "code": row["code"],
+            "state": row["state"],
+            "qty": row["qty"],
+            "qty_done": row["qty_done"],
+            "product_name": row["work_order__order_line__product__name"],
+        }
+        for row in rows
+    ]
+
+
+def _collect_price_aggregate(aggregate_query: dict) -> dict:
+    from master.models import Product
+
+    queryset = Product.objects.all()
+    if aggregate_query.get("fg_only"):
+        queryset = queryset.filter(
+            Q(category__in=("Kaos", "Kemeja", "Dress", "Celana", "Jaket"))
+            | Q(code__istartswith="FG-")
+        )
+    funcs = {"avg": Avg, "max": Max, "min": Min, "sum": Sum}
+    value = queryset.aggregate(
+        value=funcs[aggregate_query["aggregate"]]("sale_price")
+    )["value"]
+    return {
+        "aggregate": aggregate_query["aggregate"],
+        "label": aggregate_query["label"],
+        "value": float(value or 0),
+        "count": queryset.count(),
+    }
 
 
 def _query_table(
@@ -602,6 +824,14 @@ def _extract_specific_code(normalized: dict, data: dict, errors: list[dict]) -> 
         return
     try:
         data[data_key] = repo.get_list(filters={"code": code}, limit=1)
+        if entity == "order" and data[data_key]:
+            data["order_bundles"] = _collect_order_bundles(
+                data[data_key][0]["id"]
+            )
+        if entity == "bundle" and data[data_key]:
+            data["bundle_operators"] = _collect_bundle_operators(
+                data[data_key][0]["id"]
+            )
     except Exception:
         errors.append(
             {"tool": "data-access", "entity": data_key, "error": "exception"}
@@ -622,6 +852,7 @@ def _auto_detect_keywords(
     canonicals = set(normalized["canonicals"])
     tokens = set(normalized["tokens"])
     text = normalized["normalized"]
+    explicit_product = bool(normalized.get("_explicit_product"))
     page_resource = str(page_context.get("resource_type") or "")
 
     data: dict[str, Any] = {}
@@ -659,9 +890,13 @@ def _auto_detect_keywords(
         data_key = ENTITY_DATA_KEYS.get(entity, f"{entity}s")
         if entity == "product":
             rows = _filter_financial_rows(rows, user)
+            if explicit_product and {"mahal", "murah"} & canonicals:
+                rows = _filter_fg_products(rows)
             rows = _sort_products_by_price(
                 rows, descending="murah" not in canonicals
             )
+            if explicit_product and {"mahal", "murah"} & canonicals:
+                rows = rows[:10]
         data[data_key] = rows
 
         if entity in {"product", "partner"}:
@@ -671,6 +906,35 @@ def _auto_detect_keywords(
                 "count": len(rows),
                 "source": "page" if page_rows is not None else "keyword",
             }
+
+    # Fase 3.6A — "termahal/termurah" tanpa kata "produk" tetap harus
+    # menghasilkan kandidat agar state klarifikasi bisa dibuat.
+    if {"mahal", "murah"} & canonicals:
+        price_rows = data.get("product_list") or []
+        if not price_rows:
+            repo = get_repo("product")
+            if repo is not None:
+                try:
+                    price_rows = repo.get_list(limit=20)
+                except Exception:
+                    errors.append(
+                        {"tool": "data-access", "entity": "product", "error": "exception"}
+                    )
+                    price_rows = []
+        if price_rows:
+            price_rows = _filter_financial_rows(price_rows, user)
+            if explicit_product:
+                price_rows = _filter_fg_products(price_rows)
+            price_rows = _sort_products_by_price(
+                price_rows, descending="murah" not in canonicals
+            )
+            if explicit_product:
+                price_rows = price_rows[:10]
+            data["product_list"] = price_rows
+            data["_ranking_candidates"] = [
+                _make_candidate("product", row, 0.7) for row in price_rows[:20]
+            ]
+            data["_entity_label"] = "produk"
 
     if "stok" in canonicals:
         stock, stock_errors = _collect_stock(user)
@@ -917,6 +1181,34 @@ def _expand_detail_context(page_context: dict) -> tuple[dict, list[dict]]:
     return data, errors
 
 
+def _collect_graph(page_context: dict | None) -> dict | None:
+    """Fase Berat-Lite — graph relasi resource halaman (TEMPORARY, CTE)."""
+    context = page_context or {}
+    resource_type = str(context.get("resource_type") or "").lower()
+    raw_id = context.get("resource_id")
+    try:
+        resource_id = int(raw_id)
+    except (TypeError, ValueError):
+        return None
+
+    try:
+        from ...data_access import graph_queries
+
+        if resource_type == "order":
+            graph = graph_queries.get_order_graph(resource_id)
+        elif resource_type == "bundle":
+            graph = graph_queries.get_bundle_graph(resource_id)
+        elif resource_type in {"work_center", "workcenter", "wc"}:
+            graph = graph_queries.get_wc_graph(resource_id)
+        else:
+            return None
+    except Exception:  # noqa: BLE001 - graph tidak boleh menggagalkan chat
+        logger.exception("context: gagal memuat graph resource.")
+        return None
+
+    return graph if graph.get("found") else None
+
+
 def build_context(
     intent: str,
     tools: list[str],
@@ -930,9 +1222,12 @@ def build_context(
     `history` dipakai hanya untuk me-resolve follow-up ("peringkat kedua?");
     seluruh retrieval tetap dilakukan terhadap effective message.
     """
-    followup = resolve_followup(message, history or [])
+    followup = resolve_followup(message, history or [], intent=intent)
     effective_message = followup["resolved_message"] or message
     effective_norm = normalize(effective_message)
+    effective_norm["_explicit_product"] = bool(
+        "produk" in str(message).lower() or "product" in str(message).lower()
+    )
     text = effective_norm["normalized"]
 
     page_context = dict(context or {})
@@ -955,6 +1250,19 @@ def build_context(
         data["_followup_rank"] = followup["target_rank"]
         data["_followup_entity"] = followup["target_entity"]
     errors: list[dict] = []
+
+    # Fase 2A/3.6B — total count memakai RAW message, bukan follow-up yang
+    # sudah ditempeli query lama ("produk termahal? ...").
+    total_query = _detect_total_query(message)
+    if total_query is not None:
+        try:
+            data["total_counts"] = _collect_total_count(total_query)
+            data["_entity_label"] = total_query["label"]
+            data["_aggregate_query"] = True
+            data["_total_query"] = total_query
+            return data
+        except Exception:
+            errors.append({"tool": "count", "entity": total_query["entity"], "error": "exception"})
 
     # Fix #17B/#17C — permintaan terstruktur dari RAW message.
     top_query = _detect_top_query(message)
@@ -1098,6 +1406,33 @@ def build_context(
         data["metrics"] = metrics
         errors.extend(metric_errors)
 
+        # Fix #20 — status WC idle/buffer hanya saat ditanya (hindari query tiap chat).
+        status_text = str(effective_message or message or "").lower()
+        if any(keyword in status_text for keyword in STATUS_KEYWORDS):
+            for metric_id, key in (
+                ("garment.wc_idle_status", "wc_status"),
+                ("garment.buffer_status", "buffer_status"),
+            ):
+                try:
+                    result = mcp_analytics.handle_request(
+                        "get_metric",
+                        {"metric_id": metric_id, "dimension": "work_center"},
+                        user=user,
+                    )
+                except Exception:  # noqa: BLE001
+                    errors.append({"tool": "mcp-analytics", "metric_id": metric_id})
+                    continue
+                if result.get("ok"):
+                    data[key] = list(result.get("rows") or [])
+                else:
+                    errors.append(
+                        {
+                            "tool": "mcp-analytics",
+                            "metric_id": metric_id,
+                            "error": str(result.get("error") or "unknown"),
+                        }
+                    )
+
     if "mcp-postgres-query" in data["tools"]:
         if (
             data["intent"] == "DATA_LOOKUP"
@@ -1136,6 +1471,220 @@ def build_context(
             data["forecast"] = forecast
         else:
             errors.append({"tool": "mcp-forecaster", "error": "insufficient_data"})
+
+    # S.7 — data sanity operator (hanya saat keyword anomali, read-only).
+    if any(keyword in text for keyword in ANOMALY_KEYWORDS):
+        try:
+            from integrations.analytics.plugins.garment.anomaly import (
+                operator_anomaly,
+            )
+
+            data["operator_anomalies"] = operator_anomaly.collect_operator_anomalies(
+                effective_message, user
+            )
+        except Exception:  # noqa: BLE001 - data sanity tidak boleh menggagalkan chat
+            logger.exception("context: gagal memuat anomali operator.")
+            errors.append({"tool": "operator-anomaly", "error": "exception"})
+
+    raw_text = str(effective_message or message or "").lower()
+
+    # Fase Berat-Lite — graph relasi via CTE (TEMPORARY).
+    if any(keyword in raw_text for keyword in GRAPH_KEYWORDS):
+        graph = _collect_graph(page_context)
+        if graph is not None:
+            data["graph"] = graph
+
+    # Fase Berat-Lite — pencarian dokumen SOP (TEMPORARY).
+    if any(keyword in raw_text for keyword in DOCUMENT_KEYWORDS):
+        try:
+            from integrations.analytics.document_search import search_documents
+
+            documents = search_documents(effective_message, limit=3)
+            data["documents"] = documents
+        except Exception:  # noqa: BLE001
+            logger.exception("context: gagal mencari dokumen.")
+            errors.append({"tool": "document-search", "error": "exception"})
+
+    # Fase Berat-Lite — korelasi kualitas via SQL.
+    if any(keyword in raw_text for keyword in CORRELATION_KEYWORDS):
+        try:
+            from ...data_access.metrics import MetricsRepository
+
+            data["quality_correlation"] = MetricsRepository().anomaly_snapshot()
+        except Exception:  # noqa: BLE001
+            logger.exception("context: gagal menghitung korelasi kualitas.")
+            errors.append({"tool": "quality-correlation", "error": "exception"})
+
+    # Fase Berat-Lite — penjelasan anomali rule-based.
+    if any(keyword in raw_text for keyword in EXPLAIN_KEYWORDS):
+        try:
+            from integrations.analytics.plugins.garment.anomaly import (
+                anomaly_explainer,
+            )
+
+            if "oee" in raw_text:
+                explanation = anomaly_explainer.explain_oee_drop()
+            elif "lead time" in raw_text or "lead_time" in raw_text:
+                explanation = anomaly_explainer.explain_lead_time_spike()
+            elif "scrap" in raw_text:
+                explanation = anomaly_explainer.explain_scrap_spike()
+            else:
+                explanation = None
+            if explanation is not None:
+                data["explanation"] = explanation
+        except Exception:  # noqa: BLE001
+            logger.exception("context: gagal menjelaskan anomali.")
+            errors.append({"tool": "anomaly-explainer", "error": "exception"})
+
+    # Fase Berat-Lite — ringkasan harian L2/L3.
+    if any(keyword in raw_text for keyword in SUMMARY_KEYWORDS):
+        try:
+            from integrations.analytics.summary import get_summary
+
+            data["daily_summary"] = get_summary() or {
+                "date": timezone.localdate().isoformat(),
+                "total_output": 0,
+                "total_scrap": 0,
+                "total_rework": 0,
+                "avg_lead_time": 0,
+                "oee": 0,
+                "top_wc": "",
+                "top_operator": "",
+                "note": "Belum ada ringkasan harian.",
+            }
+        except Exception:  # noqa: BLE001
+            logger.exception("context: gagal memuat ringkasan harian.")
+            errors.append({"tool": "daily-summary", "error": "exception"})
+
+    # Fase 4.1 — filter/agregat produk dan query negasi.
+    product_filter = _detect_product_filter(message)
+    if product_filter is not None:
+        rows = _collect_product_filter(product_filter)
+        data["products"] = rows
+        data["product_list"] = rows
+        data["product_filter_label"] = product_filter["label"]
+        data["product_count"] = len(rows)
+        data.pop("_candidates", None)
+
+    price_aggregate = _detect_price_aggregate(message)
+    if price_aggregate is not None:
+        from master.models import Product
+
+        data["price_aggregate"] = _collect_price_aggregate(price_aggregate)
+        product_rows = Product.objects.all()
+        if price_aggregate.get("fg_only"):
+            product_rows = product_rows.filter(
+                Q(category__in=("Kaos", "Kemeja", "Dress", "Celana", "Jaket"))
+                | Q(code__istartswith="FG-")
+            )
+        data["product_list"] = list(
+            product_rows.values("id", "code", "name", "category", "sale_price")
+        )
+        data.pop("_candidates", None)
+
+    negative_query = _detect_negative_query(message)
+    if negative_query is not None:
+        from apps_industry.garment.models import Bundle, Order
+
+        data.pop("_candidates", None)
+
+        entity = negative_query["entity"]
+        if entity == "bundle":
+            rows = list(
+                Bundle.objects.filter(events__isnull=True).values(
+                    "id", "code", "qty", "state"
+                )
+            )
+            data["bundles"] = rows
+            data["bundle_filter_label"] = negative_query["label"]
+            data["bundle_count"] = len(rows)
+        elif entity == "order":
+            rows = list(
+                Order.objects.filter(customer__isnull=True).values(
+                    "id", "code", "state"
+                )
+            )
+            data["orders"] = rows
+            data["order_filter_label"] = negative_query["label"]
+            data["order_count"] = len(rows)
+
+    # Fase 5.1C — detail customer + total belanja (spend by id).
+    customer_payload = None
+    if data.get("order_specific"):
+        row = data["order_specific"][0]
+        customer_payload = _collect_customer_detail(
+            customer_id=row.get("customer_id")
+        )
+    elif data.get("bundle_specific"):
+        row = data["bundle_specific"][0]
+        customer_payload = _collect_customer_detail(name=row.get("customer_name"))
+    else:
+        match = re.search(r"\bcustomer\s+(.+?)(?:\?|$)", str(message or ""), re.I)
+        if match:
+            phrase = match.group(1).strip(" ?.,!")
+            if phrase and phrase.lower() not in {"siapa", "itu", "tersebut"}:
+                customer_payload = _collect_customer_detail(name=phrase)
+    if customer_payload:
+        data.update(customer_payload)
+
+    # Fase 3C — bawa entity spesifik dari history (pronoun / pertanyaan pendek).
+    if followup.get("is_followup"):
+        entity = followup.get("entity_type")
+        code = followup.get("entity_code")
+        entity_name = followup.get("entity_name")
+        if entity and code:
+            repo = get_repo(entity)
+            if repo is not None:
+                try:
+                    rows = repo.get_list(filters={"code": code}, limit=1)
+                    data_key = ENTITY_DATA_KEYS.get(entity)
+                    if data_key and rows:
+                        data[data_key] = rows
+                    if entity == "product" and rows:
+                        data["product_list"] = rows
+                        data["_entity_label"] = "produk"
+                    if not rows:
+                        data["_followup_empty"] = {
+                            "entity": entity,
+                            "code": code,
+                        }
+                except Exception:  # noqa: BLE001
+                    errors.append(
+                        {"tool": "followup", "entity": entity, "error": "exception"}
+                    )
+        elif entity == "product" and entity_name:
+            repo = get_repo("product")
+            if repo is not None:
+                try:
+                    rows = repo.get_list(
+                        filters={"name__icontains": entity_name}, limit=10
+                    )
+                    if rows:
+                        data["product_list"] = rows
+                        data["_entity_label"] = "produk"
+                except Exception:  # noqa: BLE001
+                    errors.append(
+                        {"tool": "followup", "entity": "product", "error": "exception"}
+                    )
+
+    if "customer_detail" not in data:
+        if data.get("orders"):
+            row = data["orders"][0]
+            customer_payload = _collect_customer_detail(
+                customer_id=row.get("customer_id")
+            )
+        elif data.get("bundles"):
+            row = data["bundles"][0]
+            customer_payload = _collect_customer_detail(
+                name=row.get("customer_name")
+            )
+        elif data.get("partners"):
+            row = data["partners"][0]
+            customer_payload = _collect_customer_detail(
+                customer_id=row.get("id")
+            )
+        if customer_payload:
+            data.update(customer_payload)
 
     if errors:
         data["errors"] = errors
