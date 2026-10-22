@@ -51,6 +51,9 @@ class Command(BaseCommand):
             self._ai_seed()
             self._sync_records()
         self._aggregate()
+        from integrations.ai_agent.data_access import invariants
+
+        invariants.assert_clean("seed_rich_garment")
         self.stdout.write(self.style.SUCCESS("Seed rich garment selesai (idempoten)."))
 
     def _uom(self, names, fallback):

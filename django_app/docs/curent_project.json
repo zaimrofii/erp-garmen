@@ -1615,6 +1615,51 @@
       "tests": "test_seed_event_wc (4) + test_extract_code (5) + test_order_late (7) — 16 test baru.",
       "full_suite": "2915 passed / 0 failed / 1 skipped"
     },
+    "fase_data_cleanup_2026-10-22": {
+      "status": "done",
+      "tanggal": "2026-10-22",
+      "invariant_before": {"A": 0, "B": 1, "C": 0, "D": 39, "E": 0, "F": 4},
+      "invariant_after": {"A": 0, "B": 0, "C": 0, "D": 0, "E": 0, "F": 4},
+      "baseline_before_pct": 20.0,
+      "baseline_after_pct": 20.0,
+      "seed_diubah": [
+        "integrations/ai_agent/data_access/invariants.py",
+        "integrations/ai_agent/management/commands/seed_big_test.py",
+        "integrations/ai_agent/management/commands/seed_rich_garment.py",
+        "integrations/ai_agent/management/commands/seed_demo_llm.py"
+      ],
+      "pengecualian": [
+        "F=4 grup duplikat nama+harga: Kaos Lapangan x6 (ODOO-73/74/75/81/82/83) + Kaos Polos Premium / Kaos Polos Cotton Combed 30s / Kaos Polos Putih Dewasa V2 masing-masing x2. Duplikat berasal dari impor Odoo + seed; butuh keputusan bisnis (merge/hapus), tidak dihapus di fase ini.",
+        "12 produk Odoo demo diimpor (id 116-127: Office Chair, Office Lamp, Customizable Desk, dst) supaya 39 orderline order Odoo demo (S00004-S00024) punya product_id. Produk ini bukan produk garmen; kandidat dibersihkan bersama order demo-nya nanti."
+      ],
+      "catatan": "0B: 11 produk harga 0 diisi harga wajar (Kaos Lapangan 60.000; Benang Jahit 15.000; Benang Obras 12.000; Kaos Polos Putih Dewasa 55.000; Kaos Demo 50.000; Celana Jean China 180.000) karena list_price Odoo juga 0. 0D: 39 orderline ditautkan ke 12 produk Odoo (bukan dihapus; order pull Odoo tidak boleh dihapus). 0C: seed memanggil invariant guard keras (B/C/D/E) dan akan raise CommandError bila kotor. Baseline lama tidak berubah (20,0%) karena 15 pertanyaan tidak bergantung pada data yang dibersihkan; G010 tetap valid dengan peringkat FG."
+    },
+    "fase_golden_set_2026-10-22": {
+      "status": "done",
+      "tanggal": "2026-10-22",
+      "path": "tests/golden/questions.yaml",
+      "jumlah": 15,
+      "verified": 15,
+      "baseline_old_accuracy_pct": 20.0,
+      "baseline_after_cleanup_pct": 20.0,
+      "invariant_data": "PASS",
+      "catatan": "15/15 ground truth dihitung via ORM (verified_by=manual_orm); file: tests/golden/questions.yaml. Baseline jalur lama $0: mode deterministic (pipeline asli + NullProvider) 3/15 = 20,0% (lulus harga G005, follow-up ordinal G010, safety G014); mode stub AI_AGENT_ENABLED=false 0/15. Invariant G.4 FAIL: (B) 1 produk di order line berharga Rp0 - Kaos Lapangan id 16 / ODOO-74 pada order S00029; (D) 39 dari 93 order line tanpa product_id (19 order, terbanyak S00004 dan S00007). Spike tidak dijalankan; bersihkan data di Fase 0.4/0.5 lalu ulangi."
+    },
+    "fase_spike_function_calling_2026-10-22": {
+      "status": "done",
+      "tanggal": "2026-10-22",
+      "model": "deepseek-chat",
+      "akurasi_tool_selection_pct": 73.3,
+      "akurasi_parameter_pct": 66.7,
+      "akurasi_end_to_end_pct": 33.3,
+      "akurasi_e2e_longgar_pct": 40.0,
+      "biaya_usd": 0.023135,
+      "biaya_run_final_usd": 0.00577458,
+      "rekomendasi": "BERHENTI",
+      "laporan": "tests/golden/spike_report_final.md",
+      "hasil_json": "tests/golden/spike_results.json",
+      "catatan": "Diuji 15 pertanyaan, 3 tool throwaway (list_records/count_records/get_metric), temperature 0, loop maks 3 putaran. Lulus e2e: G005, G010, G011, G012, G014. Kategori e2e 0%: wip, scrap, order_telat, produktivitas, stok, customer, scrap_rate, lead_time, data_kosong, majemuk. Diagnosis: tool selection 73,3% menunjukkan model paham intent; kegagalan didominasi cakupan tool (tidak ada stok/operator/metrik per dimensi/agregasi) + 2 ambiguitas GT (G001 'sedang dikerjakan', G015 'order aktif'). Gemini TIDAK diuji: AI_LLM_GEMINI_API_KEY tidak ada di env. Rekomendasi BERHENTI sesuai aturan e2e<60%, tetapi eskalasi model tidak akan menutup gap - perbaiki skema/cakupan tool dulu lalu ulangi spike sekali."
+    },
     "notes": {
       "test_env": "jsdom tidak jalan di bun → test pakai react-dom/server + walker",
       "runtime_versions": "bun 1.4.2; node v18.20.8; vitest 5; tsc 6.0; oxlint 1.81",

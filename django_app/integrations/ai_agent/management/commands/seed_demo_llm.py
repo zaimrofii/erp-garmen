@@ -37,6 +37,9 @@ class Command(BaseCommand):
             bundles = self._bundles(orders)
             self._events(bundles)
             self._ai_demo()
+        from integrations.ai_agent.data_access import invariants
+
+        invariants.assert_clean("seed_demo_llm")
         self.stdout.write(self.style.SUCCESS("Seed demo LLM selesai (idempoten)."))
 
     # ------------------------------------------------------------------ master

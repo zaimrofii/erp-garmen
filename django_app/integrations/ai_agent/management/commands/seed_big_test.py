@@ -88,6 +88,9 @@ class Command(BaseCommand):
             self._sync()
 
         self._analytics()
+        from integrations.ai_agent.data_access import invariants
+
+        invariants.assert_clean("seed_big_test")
         self.stdout.write(self.style.SUCCESS("Seed BIG TEST selesai (idempoten)."))
 
     # ------------------------------------------------------------------ master
