@@ -53,6 +53,13 @@ scoring:
     derived_tolerance_pct: 5.0
     allow_range: false             # TIDAK boleh "kebetulan di antara min-max"
     allow_mean_sum: false          # TIDAK boleh hanya cocok rata-rata tanpa dasar
+  # P2a/P2b (validasi): GT exact untuk hitungan/harga; toleransi hanya persen/avg.
+  gt_match:
+    exact: true
+    percent_tolerance_pct: 2.0
+  # P2d (validasi): identifier produk G006 boleh kode (ODOO-65) atau nama.
+  tool_param_alternatives:
+    G006: [["kaos"], ["odoo"]]
   # Denominator: tool/param dari 15 pertanyaan; e2e dari 13 (15 - excluded).
   tool_denominator: 15
   e2e_denominator: 13

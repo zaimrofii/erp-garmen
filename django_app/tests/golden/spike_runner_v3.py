@@ -148,7 +148,11 @@ def parse_numbers(text: str, rules: dict) -> list[float]:
 
 
 def check_ground_truth(question: dict, answer: str, rules: dict) -> tuple[bool, str]:
-    """Cocokkan jawaban dengan `check` di YAML (numeric/entity/refuse/no_data)."""
+    """Cocokkan jawaban dengan `check` di YAML (numeric/entity/refuse/no_data).
+
+    P2a/P2b: angka GT dicocokkan EXACT (toleransi 0); hanya `check.approx`
+    (persen/rata-rata/durasi) yang memakai toleransi dari aturan.
+    """
     check = question.get("check") or {}
     kind = check.get("type")
     low = (answer or "").lower()
@@ -163,10 +167,17 @@ def check_ground_truth(question: dict, answer: str, rules: dict) -> tuple[bool, 
     if entities and not any(entity.lower() in low for entity in entities):
         reasons.append("entity tidak muncul")
     for expected in check.get("numbers") or []:
-        if not any(abs(value - expected) <= 0.5 for value in numbers):
-            reasons.append(f"angka {expected} tidak ada")
+        if not any(abs(value - expected) == 0 for value in numbers):
+            reasons.append(f"angka {expected} tidak exact")
     if "approx" in check:
-        tolerance = float(check.get("tol", 0.5))
+        default_pct = float(
+            ((rules.get("scoring") or {}).get("gt_match") or {}).get(
+                "percent_tolerance_pct", 2.0
+            )
+        )
+        tolerance = float(check.get("tol") or 0)
+        if tolerance == 0:
+            tolerance = abs(float(check["approx"])) * default_pct / 100
         if not any(abs(value - check["approx"]) <= tolerance for value in numbers):
             reasons.append(f"~{check['approx']} tidak ada")
     return (not reasons), (", ".join(reasons) or "cocok")
@@ -378,6 +389,15 @@ def params_match(arguments: dict, must: list[str]) -> bool:
     return all(token.lower() in blob for token in must)
 
 
+def params_match_rules(question_id: str, arguments: dict, expected: dict, rules: dict) -> bool:
+    """P2d: alternatif identifier per pertanyaan (mis. G006: "kaos" atau "odoo")."""
+    groups = ((rules.get("scoring") or {}).get("tool_param_alternatives") or {}).get(question_id)
+    if groups:
+        blob = json.dumps(arguments, ensure_ascii=False).lower()
+        return any(all(str(token).lower() in blob for token in group) for group in groups)
+    return params_match(arguments, expected.get("must", []))
+
+
 def run_question(question: dict, scenario: str, rules: dict) -> tuple[dict, float]:
     """Satu pertanyaan; definisi sistem (P1) dikirim ke prompt."""
     scoring = rules.get("scoring", {})
@@ -481,7 +501,7 @@ def run_question(question: dict, scenario: str, rules: dict) -> tuple[dict, floa
                 tool_ok = bool(tool_names) and tool_names[0] in allowed
             else:
                 tool_ok = any(name in allowed for name in tool_names)
-            params_ok = params_match(first_args, expected.get("must", []))
+            params_ok = params_match_rules(question["id"], first_args, expected, rules)
         else:
             tool_ok, params_ok = (not tool_names), (not tool_names)
 

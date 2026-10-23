@@ -1645,8 +1645,36 @@
       "invariant_data": "PASS",
       "catatan": "15/15 ground truth dihitung via ORM (verified_by=manual_orm); file: tests/golden/questions.yaml. Baseline jalur lama $0: mode deterministic (pipeline asli + NullProvider) 3/15 = 20,0% (lulus harga G005, follow-up ordinal G010, safety G014); mode stub AI_AGENT_ENABLED=false 0/15. Invariant G.4 FAIL: (B) 1 produk di order line berharga Rp0 - Kaos Lapangan id 16 / ODOO-74 pada order S00029; (D) 39 dari 93 order line tanpa product_id (19 order, terbanyak S00004 dan S00007). Spike tidak dijalankan; bersihkan data di Fase 0.4/0.5 lalu ulangi."
     },
+    "fase_validasi_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "budget_awal_usd": 0.60,
+      "biaya_total_usd": 0.13567644,
+      "kumulatif_usd": 0.19474412,
+      "langkah": {
+        "desain_tool": {"status": "done", "test_pass": "11/11", "catatan": "get_metric stats berlabel, order is_late/days_late/days_remaining, date_from/date_to di schema, find_entity & get_stock envelope"},
+        "scorer": {"status": "done", "test_pass": "9/9", "catatan": "exact untuk count/harga; toleransi 2% hanya approx; G006 menerima kode atau nama"},
+        "golden": {"total": 30, "tuning": 20, "held_out": 10, "verified": 30},
+        "scrap_rate_v2": {"status": "done", "test_pass": "205 passed tests/analytics", "catatan": "kohort DONE, denominator 0 -> 0, clamp <=100, formula_version 2.0"}
+      },
+      "tuning": {
+        "deepseek": {"tool_pct": 100.0, "e2e_pct": 58.3, "e2e_dari_18_pct": 61.1, "angka_salah_pct": 6.7, "param_pct": 88.3, "biaya_usd": 0.04619818},
+        "gemini": null
+      },
+      "held_out": {
+        "deepseek": {"tool_pct": 80.0, "e2e_pct": 60.0, "angka_salah_pct": 16.7, "param_pct": 93.3, "biaya_usd": 0.02201626},
+        "gemini": null,
+        "catatan": "Gemini tidak tersedia: AI_LLM_GEMINI_API_KEY bukan kunci Google (AIza...) - HTTP 400 pada percobaan pertama"
+      },
+      "rekomendasi": "PERBAIKI",
+      "catatan": "Gate held-out gagal: tool 80% (<90), e2e 60% (<80), angka_salah 16,7% (>0). Kegagalan nyata: tidak ada tool operator_output (G024) dan relasi product->order_line (G027). Artefak skor: parameter dinilai dari tool pertama (G001/G019/G022) dan pertanyaan ber-expected None dihukum saat model memakai tool (G027). Prompt belum konsisten memakai stats.avg (G009) dan penanda 'tidak ada data' (G028). Biaya termasuk 2 run yang dibuang (tuning crash, held-out mapping salah): total putaran $0.1357.",
+      "laporan": "tests/golden/validation_report.md",
+      "hasil_tuning": "tests/golden/validation_results.json",
+      "hasil_held_out": "tests/golden/validation_results_held_out.json"
+    },
     "fase_spike3_runAB_2026-10-23": {
       "status": "done",
+      "superseded_by": "fase_validasi_2026-10-23",
       "tanggal": "2026-10-23",
       "model": "deepseek-chat",
       "parser_version": "v3-fixed-3 (45/45 PASS)",

@@ -36,7 +36,7 @@ _ODOO_SEQ = itertools.count(1)
 class GarmentMetricsTestBase(TestCase):
     """Helper pembuat bundle + event dengan timestamp terkontrol."""
 
-    def _bundle(self, *, qty=10, wo_qty=1000, wc=None, line=None):
+    def _bundle(self, *, qty=10, qty_done=0, wo_qty=1000, wc=None, line=None, state="DRAFT"):
         product = Product.objects.create(
             code=f"P-{uuid.uuid4().hex[:8]}", name="Produk", odoo_id=next(_ODOO_SEQ)
         )
@@ -45,8 +45,10 @@ class GarmentMetricsTestBase(TestCase):
         return make_bundle(
             work_order=work_order,
             qty=qty,
+            qty_done=qty_done,
             current_work_center=wc,
             production_line=line,
+            state=state,
         )
 
     def _event(self, bundle, event_type: str, ts=None, payload=None):
@@ -93,7 +95,7 @@ class RegistryAutodiscoverTests(GarmentMetricsTestBase):
 
 class ScrapRateTests(GarmentMetricsTestBase):
     def test_denominator_bundle_qty_bukan_wo_qty_planned(self):
-        bundle = self._bundle(qty=10, wo_qty=1000)
+        bundle = self._bundle(qty=10, qty_done=10, wo_qty=1000, state="DONE")
         self._event(bundle, "BUNDLE_FINISH", ts=DAY)
         self._scrap(bundle, 1)
 
@@ -105,8 +107,8 @@ class ScrapRateTests(GarmentMetricsTestBase):
         self.assertEqual(rows[0]["denominator"], 10)  # Bundle.qty, bukan 1000
         self.assertEqual(rows[0]["value"], 10.0)
 
-    def test_denominator_nol_value_none(self):
-        bundle = self._bundle()
+    def test_denominator_nol_value_nol(self):
+        bundle = self._bundle(state="DONE")
         self._scrap(bundle, 3)
 
         rows = scrap_rate._compute_scrap_rate(
@@ -115,7 +117,7 @@ class ScrapRateTests(GarmentMetricsTestBase):
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["denominator"], 0)
-        self.assertIsNone(rows[0]["value"])
+        self.assertEqual(rows[0]["value"], 0)
 
     def test_compute_set_based_maks_tiga_query(self):
         bundle = self._bundle()
@@ -204,7 +206,7 @@ class GroupingFilterTests(GarmentMetricsTestBase):
         wc1 = make_work_center()
         wc2 = make_work_center()
         for wc, qty in ((wc1, 1), (wc2, 2)):
-            bundle = self._bundle(wc=wc)
+            bundle = self._bundle(wc=wc, state="DONE")
             self._event(bundle, "BUNDLE_FINISH", ts=DAY)
             self._scrap(bundle, qty, wc=wc)
 
@@ -219,7 +221,7 @@ class GroupingFilterTests(GarmentMetricsTestBase):
         line1 = make_line()
         line2 = make_line()
         for production_line in (line1, line2):
-            bundle = self._bundle(line=production_line)
+            bundle = self._bundle(line=production_line, state="DONE")
             self._event(bundle, "BUNDLE_FINISH", ts=DAY)
             self._scrap(bundle, 1)
 
@@ -236,7 +238,7 @@ class GroupingFilterTests(GarmentMetricsTestBase):
         wc1 = make_work_center()
         wc2 = make_work_center()
         for wc in (wc1, wc2):
-            bundle = self._bundle(wc=wc)
+            bundle = self._bundle(wc=wc, state="DONE")
             self._event(bundle, "BUNDLE_FINISH", ts=DAY)
             self._scrap(bundle, 1)
 
@@ -250,7 +252,7 @@ class GroupingFilterTests(GarmentMetricsTestBase):
         line1 = make_line()
         line2 = make_line()
         for production_line in (line1, line2):
-            bundle = self._bundle(line=production_line)
+            bundle = self._bundle(line=production_line, state="DONE")
             self._event(bundle, "BUNDLE_FINISH", ts=DAY)
             self._scrap(bundle, 1)
 
@@ -262,15 +264,16 @@ class GroupingFilterTests(GarmentMetricsTestBase):
 
 
 class MetricMetadataTests(TestCase):
-    def test_formula_version_satu(self):
-        self.assertTrue(all(metric.formula_version == "1.0" for metric in METRICS))
+    def test_formula_version_dua(self):
+        by_id = {metric.metric_id: metric for metric in METRICS}
+        self.assertEqual(by_id["garment.scrap_rate"].formula_version, "2.0")
 
     def test_source_models_sesuai_kontrak(self):
         by_id = {metric.metric_id: metric for metric in METRICS}
 
         self.assertEqual(
             by_id["garment.scrap_rate"].source_models,
-            ["garment.ScrapAccumulator", "garment.BundleEvent"],
+            ["garment.ScrapAccumulator", "garment.Bundle"],
         )
         self.assertEqual(
             by_id["garment.rework_rate"].source_models,

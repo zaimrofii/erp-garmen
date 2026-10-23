@@ -149,10 +149,10 @@ class AnalyticsToggleOnTests(AnalyticsApiBase):
 
         metadata = body["summary"]["metadata"]
         self.assertEqual(metadata["metric_id"], "garment.scrap_rate")
-        self.assertEqual(metadata["formula_version"], "1.0")
+        self.assertEqual(metadata["formula_version"], "2.0")
         self.assertEqual(
             metadata["source_models"],
-            ["garment.ScrapAccumulator", "garment.BundleEvent"],
+            ["garment.ScrapAccumulator", "garment.Bundle"],
         )
 
     def test_health_200_dan_registry(self):
