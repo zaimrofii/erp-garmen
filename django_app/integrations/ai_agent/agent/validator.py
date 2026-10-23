@@ -239,6 +239,14 @@ def _is_refusal(answer: str) -> bool:
     return any(word in lowered for word in REFUSAL_WORDS)
 
 
+LIST_NUMBERING_RE = re.compile(r"(?<!\d)\b\d{1,2}[.)](?=\s+[A-Za-z\u00C0-\u024F])")
+
+
+def strip_list_numbering(text: str) -> str:
+    """Buang penomoran daftar ("1. Jaket", "2) Dress") di mana pun."""
+    return LIST_NUMBERING_RE.sub(" ", text or "")
+
+
 def validate_answer(
     answer: str,
     tool_results: list[dict] | dict | None = None,
@@ -252,8 +260,9 @@ def validate_answer(
     untuk jawaban ordinal ("yang kedua") yang merujuk daftar turn sebelumnya.
     """
     text = re.sub(r"\d{4}-\d{2}-\d{2}", " ", answer or "")
-    # Nomor urut daftar ("2. Dress Casual") bukan angka data.
-    text = re.sub(r"(?m)^\s*\d{1,2}[.)]\s+", " ", text)
+    # Nomor urut daftar ("1. Jaket", "2) Dress") di mana pun bukan angka data;
+    # "1.5" (desimal) dan "2.500" (ribuan) tetap dipertahankan.
+    text = strip_list_numbering(text)
     numbers = parse_numbers(text)
     if not numbers:
         # Jawaban hanya nama/teks (tanpa angka) bukan pelanggaran.

@@ -11,6 +11,20 @@
       "test_count_scope": "tests/ai_agent (suite penuh tests/ tidak selesai dalam batas waktu; angka 840 = hasil nyata `pytest tests/ai_agent -q`)",
       "test_pre_existing_failures": 0
     },
+    "fase_fix_regex_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "branch": "demo-ready",
+      "regex_fix": {"done": true, "test_pass": "6/6 (test_validator_list_numbering.py)", "detail": "strip_list_numbering() membuang 'N.'/'N)' di mana pun bila diikuti huruf; 1.5 dan 2.500 aman"},
+      "row_count_metadata": {"done": true, "test_pass": "2/2 (test_metadata_row_count.py)", "detail": "_trace menambahkan metadata.row_count; validator menerimanya"},
+      "demo_11": {"passed": 6, "blocked": 4, "fallback": 1, "status_per_soal": {"q1": "lulus", "q2": "lulus", "q3": "lulus", "q4": "lulus", "q5": "lulus", "q6": "blocked", "q7": "blocked", "q8": "fallback", "q9": "blocked", "q10": "lulus", "q11": "blocked"}},
+      "biaya_usd": 0.017434,
+      "kumulatif_usd": 0.614,
+      "rekomendasi": "ANALISIS ULANG",
+      "catatan": "Q1 kini LULUS (bug penomoran daftar terbukti). Namun total 6/11: Q6/Q7/Q9/Q11 masih diblokir validator (jawaban memuat angka hasil enumerasi/agregasi model yang tak ada di pool, mis. jumlah bundle per hari, count per baris) dan Q8 fallback. Sesuai gerbang (<8/11) putaran perbaikan dihentikan; perlu analisis ulang strategi validator (mode observasi atau whitelist angka rincian).",
+      "laporan": "docs/recon/DEMO_FIX_2026-10-23.md",
+      "hasil": "tests/golden/demo_agent_loop_results.json"
+    },
     "fase_fix_2bug_2026-10-23": {
       "status": "done",
       "tanggal": "2026-10-23",

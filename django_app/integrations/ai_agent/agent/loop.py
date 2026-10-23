@@ -267,6 +267,8 @@ def _fallback_answer(result: AgentResult, reason: str = "") -> str:
 
 def _trace(call: dict, outcome: ToolResult) -> dict:
     data = outcome.data if isinstance(outcome.data, dict) else {}
+    metadata = dict(getattr(outcome, "metadata", {}) or {})
+    metadata.setdefault("row_count", outcome.row_count)
     return {
         "id": call.get("id"),
         "tool": call.get("name"),
@@ -276,7 +278,7 @@ def _trace(call: dict, outcome: ToolResult) -> dict:
         "executed": outcome.error is None,
         "result": data,
         "warnings": list(outcome.warnings),
-        "metadata": dict(getattr(outcome, "metadata", {}) or {}),
+        "metadata": metadata,
     }
 
 
