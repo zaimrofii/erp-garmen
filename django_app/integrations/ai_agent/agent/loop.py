@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from ..tools import ToolResult, execute_tool, get_schemas_for_role
 from .validator import guard_answer
 
-DEFAULT_MAX_ITERATIONS = 5
+DEFAULT_MAX_ITERATIONS = 8
 DEFAULT_MAX_TOKENS = 800
 TOOL_CONTENT_CAP = 4000
 
@@ -164,9 +164,18 @@ def run_agent(
         result.tokens["total_cost_usd"] = round(result.cost_usd, 8)
 
         if not response.tool_calls:
-            final, verdict = guard_answer(response.text, result.tool_calls, question)
+            final, verdict = guard_answer(
+                response.text,
+                result.tool_calls,
+                question,
+                prior_results=config.get("prior_tool_results"),
+            )
             result.answer = final
             result.validator = verdict
+            if not result.answer.strip():
+                # Model bisa mengembalikan konten kosong (tanpa tool call) — jangan kirim "".
+                result.answer = "Informasi ini belum bisa diakses dari sistem."
+                result.blocked_reason = result.blocked_reason or "empty_response"
             result.latency_ms = max(1, int((time.monotonic() - started) * 1000))
             result.messages = working
             return result

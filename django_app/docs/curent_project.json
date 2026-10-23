@@ -11,6 +11,25 @@
       "test_count_scope": "tests/ai_agent (suite penuh tests/ tidak selesai dalam batas waktu; angka 840 = hasil nyata `pytest tests/ai_agent -q`)",
       "test_pre_existing_failures": 0
     },
+    "fase_demo_fix_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "branch": "demo-ready",
+      "max_iter_8": true,
+      "validator_v2": {"implemented": true, "test_pass": "8/8"},
+      "tiebreak": true,
+      "demo_11": {"passed": 9, "blocked": 1, "empty": 1, "total": 11},
+      "stok_tool_called": false,
+      "stok_bukti": "get_stock('FG-JKT-RICH') OK ke Odoo tetapi qty=0 rows=0; model tidak memanggil get_stock (Q11 dijawab 'belum bisa diakses')",
+      "scrap_konsisten": true,
+      "scrap_bukti": "SEWING-2 minggu 19-23 Okt = 77 unit (DB 77); 21 Okt SUM qty=39, metrik 14/20=70%",
+      "biaya_usd": 0.016593,
+      "kumulatif_usd": 0.5196,
+      "rekomendasi": "PERBAIKI DULU",
+      "catatan": "Validator v2 membuat Q2 (customer 17) dan Q7 (operator) lulus; max_iter 8 membuat Q10 selesai (6 tool). Sisa: Q8 empty (model balas kosong setelah 5 tool -> fallback ditambahkan setelah run), Q9 blocked karena nomor urut '2.' dihitung sebagai angka (fix validator setelah run), Q11 stok tidak memanggil get_stock (Odoo qty=0). Dua fix terakhir belum diukur ulang karena cap biaya.",
+      "laporan": "docs/recon/DEMO_FIX_2026-10-23.md",
+      "hasil": "tests/golden/demo_agent_loop_results.json"
+    },
     "fase_demo_agent_loop_2026-10-23": {
       "status": "done",
       "tanggal": "2026-10-23",

@@ -47,6 +47,7 @@ DEMO = [
     "Order mana paling telat dari deadline?",
     "Dari 3 produk termahal, mana yang kedua?",
     "Total order aktif, lalu mana yang paling lambat?",
+    "Stok produk paling banyak apa?",
 ]
 
 

@@ -22,7 +22,9 @@ SCHEMA = fn_schema(
     " is_late, days_late, days_remaining. Isi date_from/date_to hanya bila pertanyaan"
     " berperiode (minggu ini/bulan ini)."
     " Untuk pertanyaan 'aktif', WAJIB kirim filters {\"is_active\": true};"
-    " untuk entity=customer pelanggan = {\"is_customer\": true}.",
+    " untuk entity=customer pelanggan = {\"is_customer\": true}."
+    " Jika harga seri, urutkan dengan tie-break kode produk ASC"
+    " (sort='-sale_price' otomatis diikuti code ASC).",
     {
         "entity": {"type": "string", "enum": list(ENTITIES)},
         "filters": {
@@ -52,7 +54,14 @@ def run(
     criteria = clean_filters(entity, filters)
     criteria.update(date_criteria(entity, date_from, date_to))
     queryset = repo.model.objects.filter(**criteria)
-    queryset = queryset.order_by(str(sort)) if sort else queryset.order_by(*repo.order_by)
+    entity_key = str(entity).strip().lower()
+    sort_text = str(sort or "").strip()
+    if entity_key == "product" and (not sort_text or "sale_price" in sort_text):
+        # Tie-break deterministik: harga DESC, lalu kode ASC.
+        order = [sort_text] if sort_text else ["-sale_price"]
+        queryset = queryset.order_by(*order, "code")
+    else:
+        queryset = queryset.order_by(sort_text) if sort_text else queryset.order_by(*repo.order_by)
     rows = [repo._serialize(obj) for obj in queryset[:size]]
     if str(entity).strip().lower() == "order":
         rows = [order_derived(row) for row in rows]

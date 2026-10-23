@@ -200,17 +200,28 @@ def _is_refusal(answer: str) -> bool:
 
 
 def validate_answer(
-    answer: str, tool_results: list[dict] | dict | None = None, question: str = ""
+    answer: str,
+    tool_results: list[dict] | dict | None = None,
+    question: str = "",
+    prior_results: list[dict] | None = None,
 ) -> dict:
-    """Nilai konsistensi angka jawaban. Return {ok: bool, reason: str}."""
+    """Nilai konsistensi angka jawaban. Return {ok: bool, reason: str}.
+
+    `prior_results` = hasil tool dari turn sebelumnya (percakapan sama) — dipakai
+    untuk jawaban ordinal ("yang kedua") yang merujuk daftar turn sebelumnya.
+    """
     text = re.sub(r"\d{4}-\d{2}-\d{2}", " ", answer or "")
+    # Nomor urut daftar ("2. Dress Casual") bukan angka data.
+    text = re.sub(r"(?m)^\s*\d{1,2}[.)]\s+", " ", text)
     numbers = parse_numbers(text)
     if not numbers:
+        # Jawaban hanya nama/teks (tanpa angka) bukan pelanggaran.
         return {"ok": True, "reason": "no_numbers"}
 
     items = tool_results or []
     if isinstance(items, dict):
         items = [items]
+    combined = list(prior_results or []) + items
 
     stats = _stats_of(items)
     if stats:
@@ -221,7 +232,7 @@ def validate_answer(
         ):
             return {"ok": False, "reason": f"stats.{field_name} tidak cocok"}
 
-    pool = numbers_in_results(items)
+    pool = numbers_in_results(combined)
     if not pool:
         if all(value == 0 for value in numbers):
             return {"ok": True, "reason": "zero_only"}
@@ -252,10 +263,13 @@ def validate_answer(
 
 
 def guard_answer(
-    answer: str, tool_results: list[dict] | dict | None = None, question: str = ""
+    answer: str,
+    tool_results: list[dict] | dict | None = None,
+    question: str = "",
+    prior_results: list[dict] | None = None,
 ) -> tuple[str, dict]:
     """Return (jawaban_final, hasil_validasi); jawaban diganti bila tidak konsisten."""
-    verdict = validate_answer(answer, tool_results, question)
+    verdict = validate_answer(answer, tool_results, question, prior_results)
     if verdict["ok"]:
         return answer, verdict
     return BLOCKED_ANSWER, verdict
