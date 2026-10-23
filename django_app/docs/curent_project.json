@@ -5,10 +5,24 @@
       "architecture": "Modular Monolith: config/ + core/ + apps_industry/garment/ + integrations/ + master/",
       "concept": "MES = ERP Produksi (single point of input). Odoo = back-office pasif. Sync: master dua arah, transaksi satu arah (MES → Odoo).",
       "frontend_repo": "frontend_app_v2/ (hand-coded React); arsip: frontend_app/ (v1 metadata-driven)",
-      "last_updated": "2026-10-21",
-      "current_phase": "Seed BIG TEST DONE (50 order/200 bundle/30 hari); siap test besar",
-      "test_count_total": 3227,
+      "last_updated": "2026-10-23",
+      "current_phase": "Fase AI refactor: DEMO-READY (Fase 2 stabil, Fase 3 deferred)",
+      "test_count_total": 840,
+      "test_count_scope": "tests/ai_agent (suite penuh tests/ tidak selesai dalam batas waktu; angka 840 = hasil nyata `pytest tests/ai_agent -q`)",
       "test_pre_existing_failures": 0
+    },
+    "demo_ready": {
+      "tanggal": "2026-10-23",
+      "branch": "demo-ready",
+      "commit": "a4520a8",
+      "tools_production": 10,
+      "held_out_1run": {"e2e_pct": 100, "angka_salah_pct": 0},
+      "held_out_3run": {"e2e_pct": 90, "angka_salah_pct": 6.7},
+      "demo_questions_count": 10,
+      "jangan_demo": ["adversarial", "demo_script_fase3", "rework", "pertanyaan_di_luar_10_demo"],
+      "biaya_kumulatif_usd": 0.482,
+      "sisa_budget_usd": 0.178,
+      "next_after_demo": "wawancara klien → perluas golden → kembali Fase 3"
     },
     "test_status": {
       "pre_existing_failures": [],
@@ -1428,9 +1442,10 @@
       ]
     },
     "next_phase_proposal": {
-      "next": "FASE H5 SELESAI (8/8). Fase berikutnya belum ditentukan; prioritas teknis yang menunggu: sprint enforcement matrix izin + tech debt css-gate-ci-integration & odoo-api-stock-manager-group.",
-      "then": "Fase J (AI Agent Layer): Decision Gate, MCP tools, KG+Vector, Context Pruning, HITL, Observability",
-      "ops": "UAT 2 klien + live deploy (Docker + Nginx + SSL + backup + monitoring)"
+      "next": "DEMO ke calon klien dengan branch demo-ready (10 pertanyaan held-out)",
+      "then": "Wawancara klien 30 menit → golden set dari klien → Fase 3 diperbaiki",
+      "deferred": "Fase 3 adversarial, Fase 5 cutover (hapus context_builder)",
+      "ops": "UAT 2 klien + live deploy"
     },
     "uat_status": {
       "title": "UAT 2 klien",
@@ -1647,6 +1662,7 @@
     },
     "fase_2_g024_fix_2026-10-23": {
       "status": "done",
+      "superseded_by": "fase_2_agent_production_2026-10-23",
       "tanggal": "2026-10-23",
       "basis_head": "ad3d467",
       "perubahan": "event_count di aggregate_operator kini hanya menghitung event BUNDLE_FINISH (konfirmasi grep: OUTPUT_EVENT_TYPE dipakai untuk kedua field)",
@@ -1671,8 +1687,9 @@
       "hasil": "tests/golden/production_results_g024_fix.json"
     },
     "fase_2_agent_production_2026-10-23": {
-      "status": "done",
-      "superseded_by": "fase_2_g024_fix_2026-10-23",
+      "status": "demo_ready",
+      "demo_branch": "demo-ready",
+      "demo_commit": "a4520a8",
       "tanggal": "2026-10-23",
       "basis_head": "eb8261d",
       "langkah_1_4": {
@@ -1703,6 +1720,18 @@
         "biaya_usd": 0.02864428,
         "per_pertanyaan": {"G024": "0/3", "G026": "3/3", "G027": "3/3", "G028": "3/3", "G029": "3/3"}
       },
+      "held_out_1run": {
+        "model": "deepseek",
+        "runs_per_question": 1,
+        "tool_pct": 100.0,
+        "param_pct": 100.0,
+        "e2e_pct": 100.0,
+        "angka_salah_pct": 0.0
+      },
+      "tools_production": 10,
+      "test_backend": {"passed": 840, "failed": 0, "scope": "tests/ai_agent"},
+      "fixed_questions": ["G024", "G026", "G027", "G028", "G029"],
+      "biaya_kumulatif_usd": 0.482,
       "tuning": {
         "mode": "production_agent_loop",
         "runs_per_question": 1,
@@ -1714,7 +1743,6 @@
         "validator_blocked_total": 20,
         "biaya_usd": 0.02642654
       },
-      "fixed_questions": ["G026", "G027", "G028", "G029"],
       "biaya_usd": 0.05507082,
       "kumulatif_usd": 0.3597074,
       "rekomendasi": "PERBAIKI",
@@ -1722,6 +1750,20 @@
       "laporan": "tests/golden/validation_report.md",
       "hasil_held_out": "tests/golden/production_results_held_out.json",
       "hasil_tuning": "tests/golden/production_results_tuning.json"
+    },
+    "fase_3_adversarial_demo_2026-10-23": {
+      "status": "deferred_post_demo",
+      "tanggal": "2026-10-23",
+      "alasan": "adversarial 85%, demo script 9/12, held-out turun ke 80%. Fase 2 lebih stabil.",
+      "branch": "feat/agent-tools",
+      "superseded_by": "fase_2_agent_production_2026-10-23"
+    },
+    "fase_3_fix_2026-10-23": {
+      "status": "deferred_post_demo",
+      "tanggal": "2026-10-23",
+      "alasan": "Ditunda sampai demo selesai; hanya relevan bila Fase 3 dilanjutkan.",
+      "branch": "feat/agent-tools",
+      "superseded_by": "fase_2_agent_production_2026-10-23"
     },
     "fase_1_tools_production_2026-10-23": {
       "status": "done",
