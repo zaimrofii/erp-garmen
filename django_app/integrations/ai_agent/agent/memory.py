@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 
 from django.core.cache import cache
+
+logger = logging.getLogger(__name__)
 
 SUMMARY_PREFIX = "Ringkasan percakapan sebelumnya: "
 CACHE_TTL_SECONDS = 600
@@ -13,8 +16,8 @@ CACHE_TTL_SECONDS = 600
 
 def _summary_cache_key(conversation_id: str, older: list[dict]) -> str:
     blob = json.dumps(older, sort_keys=True, ensure_ascii=False, default=str)
-    digest = hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
-    return f"summary:{conversation_id or 'anon'}:{digest}"
+    digest = hashlib.sha1(blob.encode("utf-8")).hexdigest()[:16]
+    return f"summary:{conversation_id}:{digest}"
 
 
 def summarize_history(
@@ -25,16 +28,22 @@ def summarize_history(
 ) -> list[dict]:
     """Kembalikan <= max_turns turn terakhir, dengan ringkasan (cached) bila lebih.
 
-    Ringkasan di-cache 10 menit per conversation + hash turn lama, sehingga turn
-    baru tidak memicu panggilan LLM ulang selama bagian lama tidak berubah.
+    Tanpa `conversation_id`, ringkasan TIDAK di-cache (dan dicatat sebagai warning)
+    agar tidak terjadi kebocoran konteks antar percakapan.
     """
     items = [item for item in (history or []) if isinstance(item, dict) and item.get("content")]
     if len(items) <= max_turns:
         return items
 
     older, recent = items[:-max_turns], items[-max_turns:]
-    cache_key = _summary_cache_key(conversation_id, older)
-    summary = cache.get(cache_key) or ""
+    conversation_id = str(conversation_id or "").strip()
+    cache_key = ""
+    summary = ""
+    if conversation_id:
+        cache_key = _summary_cache_key(conversation_id, older)
+        summary = cache.get(cache_key) or ""
+    else:
+        logger.warning("summarize_history: conversation_id kosong -> cache dilewati")
 
     if not summary and provider is not None:
         transcript = "\n".join(
@@ -47,7 +56,7 @@ def summarize_history(
                 max_tokens=120,
             )
             summary = str(getattr(response, "text", "") or "").strip()
-            if summary:
+            if summary and cache_key:
                 cache.set(cache_key, summary, CACHE_TTL_SECONDS)
         except Exception:  # noqa: BLE001 - ringkasan gagal tidak boleh menggagalkan chat
             summary = ""

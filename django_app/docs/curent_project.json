@@ -11,6 +11,17 @@
       "test_count_scope": "tests/ai_agent (suite penuh tests/ tidak selesai dalam batas waktu; angka 840 = hasil nyata `pytest tests/ai_agent -q`)",
       "test_pre_existing_failures": 0
     },
+    "fase_cache_l3_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "branch": "demo-ready",
+      "implemented": true,
+      "key_format": "summary:{conversation_id}:{sha1(json.dumps(turn_lama, sort_keys=True))[:16]}",
+      "ttl_seconds": 600,
+      "test_pass": "6/6 (test_memory_cache.py): cache hit 2x->1 LLM, history berubah->2 LLM, TTL 600, tanpa conversation_id->tidak cache + warning, conversation terpisah, key sha1",
+      "biaya_usd": 0.0,
+      "catatan": "Menggantikan implementasi sha256/'anon' sebelumnya: key memakai SHA1 sesuai spesifikasi dan tanpa conversation_id cache dilewati (log warning) agar tidak bocor antar percakapan."
+    },
     "fase_fix_memory_cache_2026-10-23": {
       "status": "done",
       "tanggal": "2026-10-23",
