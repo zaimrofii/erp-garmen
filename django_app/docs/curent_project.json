@@ -1645,8 +1645,32 @@
       "invariant_data": "PASS",
       "catatan": "15/15 ground truth dihitung via ORM (verified_by=manual_orm); file: tests/golden/questions.yaml. Baseline jalur lama $0: mode deterministic (pipeline asli + NullProvider) 3/15 = 20,0% (lulus harga G005, follow-up ordinal G010, safety G014); mode stub AI_AGENT_ENABLED=false 0/15. Invariant G.4 FAIL: (B) 1 produk di order line berharga Rp0 - Kaos Lapangan id 16 / ODOO-74 pada order S00029; (D) 39 dari 93 order line tanpa product_id (19 order, terbanyak S00004 dan S00007). Spike tidak dijalankan; bersihkan data di Fase 0.4/0.5 lalu ulangi."
     },
+    "fase_spike3_runAB_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "model": "deepseek-chat",
+      "parser_version": "v3-fixed-3 (45/45 PASS)",
+      "skenario_A": {"tool_pct": 86.7, "param_pct": 80.0, "e2e_13_pct": 61.5, "e2e_15_pct": 53.3, "angka_salah_pct": 0.0, "latensi_p50": 2510.6, "latensi_p95": 3444.7},
+      "skenario_B": {"tool_pct": 100.0, "param_pct": 93.3, "e2e_13_pct": 61.5, "e2e_15_pct": 53.3, "angka_salah_pct": 13.3, "latensi_p50": 2665.7, "latensi_p95": 4205.8},
+      "runs_used": 1,
+      "biaya_usd": 0.01255492,
+      "biaya_kumulatif_usd": 0.05906768,
+      "rekomendasi": "BERHENTI",
+      "kegagalan_tersisa": [
+        "G002: aggregate tanpa filter periode (209 vs 77)",
+        "G003: sintesis telat (menjawab deadline terdekat, bukan 'tidak ada')",
+        "G006: parameter/skor token + angka di luar tool (jawaban 30 benar)",
+        "G009: sintesis rata-rata (memakai nilai hari terakhir 191,86)",
+        "G015: klausa 'paling lambat' tidak terjawab",
+        "G004/G008: dikecualikan (metrik operator Fase 1; formula scrap_rate Fase 0.4)"
+      ],
+      "laporan": "tests/golden/spike_report_v3_runAB.md",
+      "hasil_json": "tests/golden/spike_results_v3.json",
+      "catatan": "A+B selesai dengan parser 45/45 dan aturan strict; runs_used=1. e2e_13 61,5% di kedua skenario (tidak naik vs run sebelumnya, +0,0 poin), tetapi kualitas pengukuran membaik: angka_salah A 0%, tool selection B 100%. Multi-turn tidak lagi menambah e2e karena sisa kegagalan bersifat sintesis/definisi. 4 dari 5 kegagalan yang dihitung dapat diperbaiki di Fase 2 (prompt synthesizer + validator angka + hint periode), 1 menunggu Fase 0.4. Rekomendasi BERHENTI: jangan masuk Fase 1 sebelum Fase 2/0.4."
+    },
     "fase_spike3_final_2026-10-23": {
       "status": "blocked",
+      "superseded_by": "fase_spike3_runAB_2026-10-23",
       "tanggal": "2026-10-23",
       "model": "deepseek-chat",
       "parser_version": "v3-fixed-2",
