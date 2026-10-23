@@ -125,6 +125,8 @@ def run_agent(
     started = time.monotonic()
     repeats: dict[str, int] = {}
     per_tool: dict[str, int] = {}
+    last_signature: dict[str, str] = {}
+    last_args: dict[str, str] = {}
 
     if _is_write_intent(question):
         result.answer = WRITE_REFUSAL
@@ -209,12 +211,28 @@ def run_agent(
                 result.latency_ms = max(1, int((time.monotonic() - started) * 1000))
                 result.messages = working
                 return result
-            if per_tool[call.get("name")] >= 3:
-                # Tool yang sama dipanggil 3x dengan filter berbeda -> hentikan.
-                result.answer = (
-                    "Saya sudah mencari dengan beberapa filter, tapi belum bisa menyimpulkan. "
-                    "Bisa diperjelas pertanyaannya?"
-                )
+            # Deteksi loop tak produktif: tool sama dengan filter BERBEDA tetapi
+            # data yang dikembalikan identik (model berputar, bukan eksplorasi).
+            # Argumen identik sudah ditangani `repeated_tool_call` di atas.
+            data_signature = (
+                f"{outcome.row_count}:"
+                f"{json.dumps(outcome.data, sort_keys=True, default=str)}"
+            )
+            if (
+                outcome.row_count > 0
+                and last_args.get(call.get("name")) != signature
+                and last_signature.get(call.get("name")) == data_signature
+            ):
+                result.answer = _partial_answer(result)
+                result.blocked_reason = "duplicate_tool_result"
+                result.latency_ms = max(1, int((time.monotonic() - started) * 1000))
+                result.messages = working
+                return result
+            last_signature[call.get("name")] = data_signature
+            last_args[call.get("name")] = signature
+            if per_tool[call.get("name")] >= 5:
+                # Tool yang sama dipanggil 5x dengan filter berbeda -> berhenti.
+                result.answer = _partial_answer(result)
                 result.blocked_reason = "same_tool_limit"
                 result.latency_ms = max(1, int((time.monotonic() - started) * 1000))
                 result.messages = working
@@ -259,6 +277,19 @@ def run_agent(
     result.latency_ms = max(1, int((time.monotonic() - started) * 1000))
     result.messages = working
     return result
+
+
+def _partial_answer(result: AgentResult) -> str:
+    """Jawaban parsial saat loop berhenti di tengah pertanyaan majemuk."""
+    first = result.tool_calls[0] if result.tool_calls else None
+    if first:
+        detail = f"'{first.get('tool')}' ({first.get('row_count')} baris)"
+    else:
+        detail = "data awal"
+    return (
+        "Pertanyaan ini punya beberapa bagian. Saya sudah cari data untuk "
+        f"{detail}. Untuk bagian lain, bisa diperjelas?"
+    )
 
 
 def _fallback_answer(result: AgentResult, reason: str = "") -> str:

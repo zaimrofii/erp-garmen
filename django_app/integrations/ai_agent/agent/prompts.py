@@ -35,9 +35,11 @@ ATURAN:
 12. Sertakan definisi singkat dari `metadata.definition` (mis. "stok on-hand dari Odoo")
     saat menyebut angka, agar sumber angka jelas. Metadata ada di `tool_metadata`
     (tidak dikirim ke LLM saat loop; hanya untuk response final).
-13. Setelah 1-2 panggilan tool, kamu HARUS menyimpulkan jawaban. Jangan memanggil tool
-    yang sama berulang dengan filter berbeda. Kalau data tidak cukup setelah 2 tool,
-    jawab: "Data yang tersedia tidak cukup untuk menjawab ini. Bisa diperjelas?"."""
+13. Setelah 1-2 tool, SIMPULKAN. Jangan ulang tool sama dengan filter beda. Data kurang ->
+    "Data yang tersedia tidak cukup. Bisa diperjelas?".
+14. Referensi tanpa konteks ("order tadi", "produk itu", "tersebut", "yang kedua" tanpa
+    daftar) -> JANGAN pakai default periode. TANYA BALIK: "Bisa diperjelas? Sebutkan
+    kode/nama/periode."."""
 
 
 def build_system_prompt(today: str | None = None, role: str = "") -> str:
@@ -50,14 +52,3 @@ def build_system_prompt(today: str | None = None, role: str = "") -> str:
 
 __all__ = ("SYSTEM_PROMPT_TEMPLATE", "build_system_prompt")
 
-
-
-def build_system_prompt(today: str | None = None, role: str = "") -> str:
-    """Prompt final dengan tanggal hari ini (WIB) dan role pengguna."""
-    return SYSTEM_PROMPT_TEMPLATE.format(
-        today=today or timezone.localdate().isoformat(),
-        role=str(role or "").strip().upper() or "USER",
-    )
-
-
-__all__ = ("SYSTEM_PROMPT_TEMPLATE", "build_system_prompt")

@@ -39,16 +39,17 @@ def _messages():
 
 
 @pytest.mark.django_db
-def test_tool_sama_tiga_kali_berhenti():
+def test_tool_sama_lima_kali_berhenti():
+    states = ["CONFIRMED", "IN_PROGRESS", "DRAFT", "DONE", "CANCEL"]
     responses = [
         _response(tool_calls=[_list_call(index, {"state": state})])
-        for index, state in enumerate(["CONFIRMED", "IN_PROGRESS", "DRAFT", "DONE"])
+        for index, state in enumerate(states)
     ]
     provider = FakeProvider(responses)
     result = run_agent(_messages(), "SUPERVISOR", config={"provider": provider, "max_iterations": 8})
     assert result.blocked_reason == "same_tool_limit"
-    assert "beberapa filter" in result.answer
-    assert provider.calls == 3
+    assert "beberapa bagian" in result.answer
+    assert provider.calls == 5
 
 
 @pytest.mark.django_db

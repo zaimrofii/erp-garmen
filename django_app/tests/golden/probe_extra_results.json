@@ -1,0 +1,131 @@
+{
+  "spent_usd": 0.006427,
+  "rows": [
+    {
+      "tag": "B1",
+      "question": "apa itu sapi",
+      "status": 200,
+      "tools": [],
+      "blocked_reason": null,
+      "validator_ok": true,
+      "validator_reason": "no_tool_called",
+      "answer": "Pertanyaan ini di luar cakupan saya. Saya asisten untuk produksi garmen (order, bundle, work order, stok bahan, work center, dan metrik lini produksi). Kalau ada pertanyaan seputar produksi garmen, silakan sampaikan.",
+      "cost_usd": 0.00047,
+      "latency_ms": 2032
+    },
+    {
+      "tag": "B2",
+      "question": "siapa presiden Indonesia sekarang",
+      "status": 200,
+      "tools": [],
+      "blocked_reason": null,
+      "validator_ok": true,
+      "validator_reason": "no_tool_called",
+      "answer": "Pertanyaan itu di luar cakupan produksi garmen, jadi tidak bisa saya jawab di sini. Saya hanya bisa membantu untuk hal-hal seperti order, bundle, work order, stok produk, work center, atau metrik produksi (OEE, lead time, rework, dsb). Ada yang bisa saya bantu terkait produksi?",
+      "cost_usd": 0.000474,
+      "latency_ms": 1261
+    },
+    {
+      "tag": "B3",
+      "question": "bagaimana cuaca hari ini",
+      "status": 200,
+      "tools": [],
+      "blocked_reason": null,
+      "validator_ok": true,
+      "validator_reason": "no_tool_called",
+      "answer": "Pertanyaan ini di luar cakupan saya — saya asisten untuk data produksi garmen (order, bundle, work order, stok, metrik lini). Untuk info cuaca, silakan cek aplikasi cuaca atau BMKG.\n\nKalau ada yang bisa saya bantu soal produksi (mis. status order, stok produk, output operator, bottleneck work center",
+      "cost_usd": 0.00048,
+      "latency_ms": 2317
+    },
+    {
+      "tag": "B4",
+      "question": "berapa 2+2",
+      "status": 200,
+      "tools": [],
+      "blocked_reason": null,
+      "validator_ok": true,
+      "validator_reason": "no_tool_called",
+      "answer": "4.\n\nPertanyaan itu di luar konteks produksi garmen, jadi saya jawab singkat saja. Kalau ada yang perlu dicek dari sistem (stok, order, bundle, work order, metrik lini), tinggal sebutkan kode/nama/periode-nya.",
+      "cost_usd": 0.000471,
+      "latency_ms": 1604
+    },
+    {
+      "tag": "B5",
+      "question": "ceritakan lelucon singkat",
+      "status": 200,
+      "tools": [],
+      "blocked_reason": null,
+      "validator_ok": true,
+      "validator_reason": "no_tool_called",
+      "answer": "Maaf, saya asisten untuk urusan produksi garmen (order, bundle, work order, stok, work center). Saya tidak bisa bercerita lelucon.\n\nKalau ada yang perlu dicek soal produksi — misalnya stok produk, order yang terlambat, atau output operator — silakan sebutkan kode/nama/periode-nya.",
+      "cost_usd": 0.000476,
+      "latency_ms": 1737
+    },
+    {
+      "tag": "D1",
+      "question": "produk itu berapa harganya?",
+      "status": 200,
+      "tools": [],
+      "blocked_reason": null,
+      "validator_ok": true,
+      "validator_reason": "no_tool_called",
+      "answer": "Bisa diperjelas? Sebutkan kode/nama produknya — saya belum punya konteks \"produk itu\" di percakapan ini.",
+      "cost_usd": 0.000463,
+      "latency_ms": 983
+    },
+    {
+      "tag": "D2",
+      "question": "order tadi gimana?",
+      "status": 200,
+      "tools": [],
+      "blocked_reason": null,
+      "validator_ok": true,
+      "validator_reason": "no_tool_called",
+      "answer": "Bisa diperjelas? Sebutkan kode/nama order atau periodenya — \"order tadi\" belum bisa saya identifikasi.",
+      "cost_usd": 0.000461,
+      "latency_ms": 1435
+    },
+    {
+      "tag": "D3",
+      "question": "yang kedua?",
+      "status": 200,
+      "tools": [],
+      "blocked_reason": null,
+      "validator_ok": true,
+      "validator_reason": "no_tool_called",
+      "answer": "Bisa diperjelas? Sebutkan kode/nama produk, order, atau periode yang dimaksud — saya belum punya daftar konteks sebelumnya untuk menentukan \"yang kedua\".",
+      "cost_usd": 0.000464,
+      "latency_ms": 1159
+    },
+    {
+      "tag": "E2",
+      "question": "produk termahal dan stoknya?",
+      "status": 200,
+      "tools": [
+        "list_records",
+        "get_stock"
+      ],
+      "blocked_reason": null,
+      "validator_ok": true,
+      "validator_reason": "match",
+      "answer": "**Produk termahal:** FG-JKT-RICH — Jaket Bomber, harga jual Rp 250.000 (kategori Jaket, aktif).\n\n**Stoknya:** Stok produk itu tidak tercatat di sistem Odoo saat ini (stok on-hand dari Odoo = 0, tidak ada quant ditemukan).\n\nSebagai pembanding, urutan harga jual berikutnya: JEAN_9999 (Celana Jean Chin",
+      "cost_usd": 0.001576,
+      "latency_ms": 5549
+    },
+    {
+      "tag": "E3",
+      "question": "scrap minggu ini dan work center terbesar?",
+      "status": 200,
+      "tools": [
+        "aggregate",
+        "count_records"
+      ],
+      "blocked_reason": null,
+      "validator_ok": true,
+      "validator_reason": "match",
+      "answer": "**Scrap minggu ini (19–23 Okt 2026)** — total 20 catatan scrap, qty scrap per work center:\n\n| Work Center | Qty Scrap |\n|---|---|\n| **SEWING-2** | **77** |\n| PACKING | 6 |\n| QC-1 | 5 |\n| QC-2 | 1 |\n| SEWING-1 | 1 |\n| SEWING-3 | 1 |\n\n**Work center dengan scrap terbesar: SEWING-2 (77 pcs)** — jauh di ",
+      "cost_usd": 0.001092,
+      "latency_ms": 4215
+    }
+  ]
+}

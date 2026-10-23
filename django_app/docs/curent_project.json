@@ -11,6 +11,56 @@
       "test_count_scope": "tests/ai_agent (suite penuh tests/ tidak selesai dalam batas waktu; angka 840 = hasil nyata `pytest tests/ai_agent -q`)",
       "test_pre_existing_failures": 0
     },
+    "recon_horizontal_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "mode": "read-only recon (25 probe, 29 request, ~$0.026)",
+      "temuan": {
+        "validator_block_tanpa_tool": "CONFIRMED — B4 '2+2' -> '4' diblokir; #1725 'mantap' diblokir; 9 entri no-tool diblokir palsu (validator.py:297-304)",
+        "majemuk_fallback": "CONFIRMED — E1 same_tool_limit fallback (loop.py:209-219)",
+        "ambigu_dijawab_data_kosong": "CONFIRMED — D2 'order tadi gimana?' menjawab 'tidak ada order hari ini'",
+        "temperature_0_deterministik": "REFUTED — H1 flaky 3 run (2 redaksi berbeda)",
+        "role_kosong_tanpa_tool": "UNVERIFIED runtime; path CONFIRMED (views.py:101 + get_tools_for_role('')==[])",
+        "prompt_aturan_12_metadata": "CONFIRMED tidak bisa dipatuhi (metadata tidak dikirim ke LLM, loop.py:225-236)",
+        "write_injection": "CONFIRMED 3/3 ditolak (write_intent/pre-flight)",
+        "role_leak": "CONFIRMED 2/2 tidak bocor",
+        "log_lama_blocked": "33 entri 'Angka tidak konsisten'; 9 tanpa tool (palsu); 24 tanpa raw (UNVERIFIED)"
+      },
+      "hasil_probe": {"B_non_produksi": "4/5", "C_write": "3/3", "D_ambigu": "2/3", "E_majemuk": "2/3", "F_injection": "3/3", "G_role_leak": "2/2", "H_konsistensi": "FLAKY (H1), konsisten (H3), H2 tidak dijalankan"},
+      "lubang_fatal": [
+        "Validator memblokir jawaban tanpa tool yang memuat angka (validator.py:297-304)",
+        "Pertanyaan majemuk berakhir same_tool_limit fallback (loop.py:209-219)",
+        "Ambigu tanpa konteks dijawab 'tidak ada data' (prompt tidak mewajibkan tanya balik)",
+        "Temperature 0 tidak deterministik (H1 flaky)",
+        "Role kosong tidak ditolak, agent berjalan tanpa tool (views.py:101)",
+        "Aturan prompt 12 (metadata) mustahil dipatuhi + aturan 5 vs 13 bertentangan"
+      ],
+      "rekomendasi": "1) validator skip cek angka bila tool_calls kosong; 2) longgarkan same_tool_limit/ringkas hasil tool; 3) prompt wajib tanya balik untuk referensi tanpa konteks; 4) benahi aturan 12 & 5/13; 5) tolak role kosong. Estimasi ±3 jam.",
+      "biaya_usd": 0.026,
+      "laporan": "docs/recon/RECON_HORIZONTAL_2026-10-23.md"
+    },
+    "fase_fix_3kritis_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "branch": "demo-ready",
+      "basis": "HEAD 17a1127 + perubahan BLOCKED_ANSWER user (tidak di-revert)",
+      "fix_1_validator_no_tool": {"done": true, "file": "integrations/ai_agent/agent/validator.py", "perubahan": "tool_results kosong -> {ok:true, reason:'no_tool_called', post_tool:false} sebelum cek angka", "test": "tests/ai_agent/agent/test_validator_no_tool.py (4 passed); test_validator.py::test_invalid_tanpa_tool_diblokir disesuaikan"},
+      "fix_2_majemuk": {"done": true, "file": "integrations/ai_agent/agent/loop.py", "perubahan": ["same_tool_limit 3 -> 5", "deteksi duplicate_tool_result (filter beda, data identik, row_count>0) -> berhenti + jawaban parsial", "_partial_answer(): 'Pertanyaan ini punya beberapa bagian...'" ], "test": "tests/ai_agent/agent/test_loop_majemuk.py (3 passed); test_loop_same_tool_limit.py disesuaikan"},
+      "fix_3_prompt_ambigu": {"done": true, "file": "integrations/ai_agent/agent/prompts.py", "perubahan": "aturan 14 (referensi tanpa konteks -> TANYA BALIK, jangan default periode); prompt tetap <=2000 karakter (2050->1963), duplikat build_system_prompt dihapus", "test": "tests/ai_agent/agent/test_prompts_ambigu.py (3 passed)"},
+      "suite": {"agent": "107 passed", "agent_tools": "lihat log", "total_ai_agent": "semua hijau"},
+      "hasil_probe_endpoint": {
+        "non_produksi": "5/5 BENAR (B4 '2+2' kini menjawab '4.' tanpa blokir, reason=no_tool_called)",
+        "ambigu": "3/3 BENAR (D2 'order tadi gimana?' dan D3 'yang kedua?' kini tanya balik)",
+        "majemuk": "3/3 BENAR (E1 demo Q10 lulus: total 10 order + paling lambat; E2/E3 lulus)",
+        "operator_role": "lihat recon (tidak diubah)"
+      },
+      "demo_11": {"passed": 8, "blocked": 1, "fallback": 2, "status_per_soal": {"q3": "fallback (max_iterations, 5 tool beda)", "q6": "blocked ('angka 3.8 tidak ada di hasil tool' — konversi jam->hari)", "q8": "fallback (same_tool_limit 5x list_records, semua 0 baris)", "sisanya": "lulus (q1,q2,q4,q5,q7,q9,q10,q11)"}},
+      "biaya_usd": {"demo": 0.018265, "probe_extra": 0.006427, "total": 0.024692, "cap": 0.03},
+      "catatan": "Baseline temp0 sebelumnya 10/11, run ini 8/11 — variasi output temp 0 (terbukti flaky di recon H1) + Q6 blokir angka turunan (3,8 hari). Q10 (E1) yang sebelumnya fallback kini LULUS. Q3/Q8/Q6 perlu 1x rerun untuk memastikan regresi vs variasi.",
+      "rekomendasi": "PERBAIKI (gate demo butuh >=10/11): (a) validator izinkan angka turunan konversi satuan (jam->hari) atau minta model pakai satu satuan; (b) Q8 data kosong: beri prompt 'jika row_count=0 untuk semua filter, jawab tidak ada data'; (c) Q3 turunkan max_iterations pemakaian tool / kuatkan aturan 13.",
+      "hasil": ["tests/golden/demo_agent_loop_results.json", "tests/golden/probe_extra_results.json"],
+      "laporan": "docs/recon/RECON_HORIZONTAL_2026-10-23.md"
+    },
     "fase_temp0_2026-10-23": {
       "status": "done",
       "tanggal": "2026-10-23",

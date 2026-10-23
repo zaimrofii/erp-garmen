@@ -119,4 +119,6 @@ def test_loop_validator_memblokir_angka_asing():
     )
     result = run_agent(_messages(), "SUPERVISOR", config={"provider": provider})
     assert result.validator["ok"] is False
-    assert "tidak konsisten" in result.answer
+    # Pesan final = BLOCKED_ANSWER (redaksi bisa berubah, cukup beda dari jawaban model).
+    assert result.answer != "Ada 999 order."
+    assert result.validator["reason"]

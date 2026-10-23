@@ -19,7 +19,7 @@ from itertools import combinations
 from typing import Any
 
 BLOCKED_ANSWER = (
-    "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik."
+    "Gagal mendapatkan data terkait. Coba tanyakan lebih spesifik."
 )
 
 REFUSAL_WORDS = (
@@ -264,7 +264,16 @@ def validate_answer(
 
     `prior_results` = hasil tool dari turn sebelumnya (percakapan sama) — dipakai
     untuk jawaban ordinal ("yang kedua") yang merujuk daftar turn sebelumnya.
+
+    Jika TIDAK ADA tool dipanggil pada turn ini, cek angka dilewati: jawaban naratif
+    (salam, matematika dasar, penolakan) tidak boleh diblokir.
     """
+    items = tool_results or []
+    if isinstance(items, dict):
+        items = [items]
+    if not items:
+        return {"ok": True, "reason": "no_tool_called", "post_tool": False}
+
     text = re.sub(r"\d{4}-\d{2}-\d{2}", " ", answer or "")
     # Nomor urut daftar ("1. Jaket", "2) Dress") di mana pun bukan angka data;
     # "1.5" (desimal) dan "2.500" (ribuan) tetap dipertahankan.
@@ -274,9 +283,6 @@ def validate_answer(
         # Jawaban hanya nama/teks (tanpa angka) bukan pelanggaran.
         return {"ok": True, "reason": "no_numbers"}
 
-    items = tool_results or []
-    if isinstance(items, dict):
-        items = [items]
     if require_metadata:
         for item in list(prior_results or []) + list(items):
             if not isinstance(item, dict) or "tool" not in item:

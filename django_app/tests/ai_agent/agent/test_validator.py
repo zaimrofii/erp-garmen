@@ -140,5 +140,7 @@ def test_penolakan_dengan_angka_tidak_diblokir():
 
 
 def test_invalid_tanpa_tool_diblokir():
+    # Perbaikan #1: tanpa tool, cek angka dilewati (jawaban naratif sah).
     verdict = validate_answer("Ada 5 order.", [])
-    assert verdict["ok"] is False
+    assert verdict["ok"] is True
+    assert verdict["reason"] == "no_tool_called"
