@@ -221,6 +221,8 @@ def _agent_response(request, body, role: str, *, started: float, session_id: str
     payload["iterations"] = result.iterations
     payload["validator"] = result.validator
     payload["blocked_reason"] = getattr(result, "blocked_reason", None)
+    if getattr(result, "chart_data", None):
+        payload["chart_data"] = result.chart_data
     if result.clarification:
         payload["clarification"] = result.clarification
     return Response(payload)

@@ -34,6 +34,40 @@ ALL_ROLES = frozenset(
     {"ADMIN", "INVENTORY", "OPERATOR", "OWNER", "PURCHASING", "QC", "SUPERVISOR"}
 )
 
+#: Metadata kontrak per tool: {metric, dimension, definition, source}.
+TOOL_METADATA = {
+    "list_records": {"metric": "rows", "dimension": "entity", "definition": "daftar baris entity", "source": "MES"},
+    "count_records": {"metric": "count", "dimension": "entity", "definition": "jumlah baris entity", "source": "MES"},
+    "get_record": {"metric": "record", "dimension": "entity", "definition": "detail satu baris entity", "source": "MES"},
+    "aggregate": {"metric": "aggregate", "dimension": "entity", "definition": "agregasi field entity", "source": "MES"},
+    "get_metric": {"metric": "garment_metric", "dimension": "work_center/period", "definition": "metrik analytics", "source": "MES"},
+    "get_stock": {"metric": "stock_qty", "dimension": "product", "definition": "stok on-hand", "source": "Odoo"},
+    "find_entity": {"metric": "matches", "dimension": "entity", "definition": "pencarian kode/nama", "source": "MES"},
+    "aggregate_operator": {"metric": "operator_output", "dimension": "operator", "definition": "agregasi per operator (BUNDLE_FINISH)", "source": "MES"},
+    "get_product_orders": {"metric": "orders", "dimension": "product", "definition": "order yang memuat produk", "source": "MES"},
+    "propose_action": {"metric": "hitl_proposal", "dimension": "entity", "definition": "usulan tindakan ke HITL", "source": "MES"},
+}
+
+
+def _fill_metadata(name: str, result: ToolResult) -> ToolResult:
+    """Pastikan setiap ToolResult punya metadata lengkap (kontrak 2+2+1)."""
+    base = dict(TOOL_METADATA.get(name, {}))
+    applied = result.filters_applied or {}
+    period = applied.get("period")
+    if not period and isinstance(applied.get("range"), dict):
+        period = f"{applied['range'].get('from')}..{applied['range'].get('to')}"
+    if not period:
+        start = (applied.get("filters") or {}).get("created_at__date__gte")
+        end = (applied.get("filters") or {}).get("created_at__date__lte")
+        period = f"{start}..{end}" if start and end else "all-time"
+    base.setdefault("period", str(period) if period else "all-time")
+    merged = {**base, **(result.metadata or {})}
+    for key in ("metric", "dimension", "definition", "period", "source"):
+        merged.setdefault(key, "")
+    result.metadata = merged
+    return result
+
+
 
 def _spec(module, roles, needs_user: bool = False) -> ToolSpec:
     schema = module.SCHEMA["function"]
@@ -166,6 +200,7 @@ def execute_tool(name: str, args: dict | None, role: str, user=None) -> ToolResu
         result = ToolResult.failure(INTERNAL_ERROR, f"{type(exc).__name__}: {exc}")
 
     duration_ms = max(1, int((time.monotonic() - started) * 1000))
+    _fill_metadata(name, result)
     _log_tool_call(user, name, arguments, result, duration_ms, executed=executed)
     return result
 

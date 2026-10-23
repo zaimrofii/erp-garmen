@@ -1,24 +1,23 @@
 {
-  "label": "single-q5",
+  "label": "single-q9",
   "total": 1,
-  "spent_usd": 0.001031,
+  "spent_usd": 0.000979,
   "rows": [
     {
       "n": 1,
-      "question": "Berapa persen scrap SEWING-2 minggu ini?",
+      "question": "Dari 3 produk termahal, mana yang kedua?",
       "status": 200,
       "agent_mode": "tools",
       "blocked_reason": null,
       "tools": [
-        "get_metric",
-        "find_entity"
+        "list_records"
       ],
-      "answer": "**Scrap rate SEWING-2 minggu ini (19–23 Okt 2026):**\n\n- **Rata-rata: 47,71%** (dari 2 hari data tercatat)\n- Terendah: 25,42% (61 scrap / 240 output)\n- Tertinggi: 70,00% (7 scrap / 10 output) — volume kecil, jadi persentase mudah melonjak\n\nCatatan: angka rata-rata 47,71% sangat dipengaruhi hari dengan denominator kecil (10 unit). Kalau dilihat agregat total: 68 scrap dari 250 output ≈ **27,2%** — i",
+      "answer": "Produk termahal kedua adalah **JEAN_9999 — Celana Jean China**, dengan harga jual **Rp 180.000**.\n\nUrutan 3 produk termahal (berdasarkan harga jual dari data produk MES, all-time):\n1. FG-JKT-RICH — Jaket Bomber — Rp 250.000\n2. **JEAN_9999 — Celana Jean China — Rp 180.000** ← kedua\n3. FG-DRS-001 — Dress Casual Wanita — Rp 175.000",
       "gate": "AGENT_TOOLS",
       "confidence": null,
-      "cost_usd": 0.001031,
-      "latency_ms": 3819,
-      "new_logs": 3
+      "cost_usd": 0.000979,
+      "latency_ms": 2470,
+      "new_logs": 2
     }
   ]
 }

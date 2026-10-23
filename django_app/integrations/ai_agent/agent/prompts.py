@@ -31,7 +31,9 @@ ATURAN:
    Harga seri -> urutkan kode produk ASC.
 9. Read-only: jangan menulis/menghapus/mengubah data.
 10. Usulan tindakan -> `propose_action` (PENDING), jangan eksekusi.
-11. Di luar produksi garmen -> tolak sopan dan singkat."""
+11. Di luar produksi garmen -> tolak sopan dan singkat.
+12. Sertakan definisi singkat dari `metadata.definition` (mis. "stok on-hand dari Odoo")
+    saat menyebut angka, agar sumber angka jelas."""
 
 
 def build_system_prompt(today: str | None = None, role: str = "") -> str:

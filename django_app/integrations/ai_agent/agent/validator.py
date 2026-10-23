@@ -225,6 +225,7 @@ def validate_answer(
     tool_results: list[dict] | dict | None = None,
     question: str = "",
     prior_results: list[dict] | None = None,
+    require_metadata: bool = False,
 ) -> dict:
     """Nilai konsistensi angka jawaban. Return {ok: bool, reason: str}.
 
@@ -242,6 +243,13 @@ def validate_answer(
     items = tool_results or []
     if isinstance(items, dict):
         items = [items]
+    if require_metadata:
+        for item in list(prior_results or []) + list(items):
+            if not isinstance(item, dict) or "tool" not in item:
+                continue
+            meta = item.get("metadata") or {}
+            if not all(meta.get(key) for key in ("metric", "dimension", "definition", "period", "source")):
+                return {"ok": False, "reason": "missing_metadata"}
     combined = _ordered(list(prior_results or []) + list(items))
 
     stats = _stats_of(items)
@@ -288,9 +296,10 @@ def guard_answer(
     tool_results: list[dict] | dict | None = None,
     question: str = "",
     prior_results: list[dict] | None = None,
+    require_metadata: bool = False,
 ) -> tuple[str, dict]:
     """Return (jawaban_final, hasil_validasi); jawaban diganti bila tidak konsisten."""
-    verdict = validate_answer(answer, tool_results, question, prior_results)
+    verdict = validate_answer(answer, tool_results, question, prior_results, require_metadata)
     if verdict["ok"]:
         return answer, verdict
     return BLOCKED_ANSWER, verdict

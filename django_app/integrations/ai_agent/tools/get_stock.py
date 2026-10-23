@@ -8,17 +8,25 @@ NAME = "get_stock"
 STOCK_ROLES = frozenset({"INVENTORY", "SUPERVISOR", "ADMIN", "OWNER", "PURCHASING"})
 SCHEMA = fn_schema(
     NAME,
-    "Stok satu produk dari ERP (Odoo). Kembalikan {product_code, product_name, quantity,"
-    " reserved, available, uom, location_code, rows}.",
+    "Stok produk dari ERP (Odoo). mode='single' (default) butuh product_code; mode='top_n'"
+    " mengembalikan 10 produk dengan stok terbesar {rows: [{product_code, product_name,"
+    " quantity, uom}]}.",
     {
-        "product_code": {"type": "string", "description": "Kode produk, mis. 'ODOO-65'."},
+        "product_code": {"type": "string", "description": "Kode produk (wajib untuk mode=single)."},
         "location_code": {"type": "string", "description": "Kode/nama lokasi (opsional)."},
+        "mode": {"type": "string", "enum": ["single", "top_n"], "description": "Default single."},
+        "limit": {"type": "integer", "description": "Jumlah produk untuk mode top_n (default 10)."},
     },
-    ["product_code"],
+    [],
 )
 
 
-def run(product_code: str, location_code: str | None = None) -> ToolResult:
+def run(
+    product_code: str = "",
+    location_code: str | None = None,
+    mode: str = "single",
+    limit: int = 10,
+) -> ToolResult:
     from django.conf import settings
 
     adapter = str(getattr(settings, "ERP_ADAPTER", "") or "").strip().lower()
@@ -27,16 +35,26 @@ def run(product_code: str, location_code: str | None = None) -> ToolResult:
             ERP_NOT_CONFIGURED, f"ERP_ADAPTER={adapter or 'kosong'} (butuh 'odoo')"
         )
 
-    code = str(product_code or "").strip()
-    if not code:
-        raise ValueError("product_code wajib diisi")
+    mode_key = str(mode or "single").strip().lower()
+    if mode_key not in {"single", "top_n"}:
+        raise ValueError(f"mode tidak dikenal: {mode!r}")
+    if mode_key == "single" and not str(product_code or "").strip():
+        raise ValueError("product_code wajib diisi untuk mode=single")
 
     try:
         from integrations.erp_sync.transport.factory import get_transport
 
         transport = get_transport()
+        if mode_key == "top_n":
+            rows = transport.search_read(
+                "stock.quant",
+                [["location_id.usage", "=", "internal"]],
+                ["quantity", "reserved_quantity", "location_id", "product_id"],
+                limit=500,
+            )
+            return _top_n_result(rows, limit)
         domain = [
-            ["product_id.default_code", "=", code],
+            ["product_id.default_code", "=", str(product_code).strip()],
             ["location_id.usage", "=", "internal"],
         ]
         if location_code:
@@ -54,6 +72,7 @@ def run(product_code: str, location_code: str | None = None) -> ToolResult:
     reserved = sum(float(row.get("reserved_quantity") or 0) for row in rows)
     from master.models import Product
 
+    code = str(product_code or "").strip()
     product = Product.objects.filter(code__iexact=code).first()
     warnings = [] if rows else ["no_quant_found"]
     result = ToolResult.success(
@@ -70,10 +89,52 @@ def run(product_code: str, location_code: str | None = None) -> ToolResult:
         row_count=len(rows),
         filters_applied={"product_code": code, "location_code": location_code},
         warnings=warnings,
+        metadata={
+            "metric": "stock_qty",
+            "dimension": "product",
+            "definition": "stok on-hand (internal) dari Odoo",
+            "period": "snapshot",
+            "source": "Odoo",
+        },
     )
     if not rows:
         result.warnings.append(NO_DATA)
     return result
+
+
+def _top_n_result(raw_rows: list[dict], limit: int) -> ToolResult:
+    """Agregasi stok per produk (Odoo stock.quant), urut qty desc."""
+    size = max(1, min(int(limit or 10), 50))
+    totals: dict[str, dict] = {}
+    for row in raw_rows:
+        payload = row.get("product_id") or []
+        code = ""
+        name = ""
+        if isinstance(payload, (list, tuple)) and len(payload) >= 2:
+            code, name = str(payload[1] or ""), str(payload[0] or "")
+        key = code or name
+        if not key:
+            continue
+        entry = totals.setdefault(
+            key,
+            {"product_code": code, "product_name": name, "quantity": 0.0, "uom": None},
+        )
+        entry["quantity"] += float(row.get("quantity") or 0)
+    rows = sorted(totals.values(), key=lambda item: item["quantity"], reverse=True)[:size]
+    warnings = [] if rows else ["no_quant_found"]
+    return ToolResult.success(
+        {"rows": rows, "mode": "top_n"},
+        row_count=len(rows),
+        filters_applied={"mode": "top_n", "limit": size},
+        warnings=warnings,
+        metadata={
+            "metric": "stock_qty",
+            "dimension": "product",
+            "definition": f"top {size} produk berdasarkan stok on-hand Odoo",
+            "period": "snapshot",
+            "source": "Odoo",
+        },
+    )
 
 
 __all__ = ("NAME", "SCHEMA", "STOCK_ROLES", "run")

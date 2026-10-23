@@ -12,6 +12,7 @@ import time
 from dataclasses import dataclass, field
 
 from ..tools import ToolResult, execute_tool, get_schemas_for_role
+from .memory import summarize_history
 from .validator import guard_answer
 
 DEFAULT_MAX_ITERATIONS = 8
@@ -53,6 +54,7 @@ class AgentResult:
     clarification: dict | None = None
     blocked_reason: str | None = None
     agent_mode: str = "tools"
+    chart_data: dict | None = None
     messages: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -68,6 +70,7 @@ class AgentResult:
             "clarification": self.clarification,
             "blocked_reason": self.blocked_reason,
             "agent_mode": self.agent_mode,
+            "chart_data": self.chart_data,
         }
 
 
@@ -129,6 +132,7 @@ def run_agent(
     provider = _provider(config)
     schemas = get_schemas_for_role(role)
 
+    history = summarize_history(history, provider=provider)
     working = _compose(messages, history)
     pending = config.get("pending") or _load_pending(config)
     if pending:
@@ -170,6 +174,7 @@ def run_agent(
                 result.tool_calls,
                 question,
                 prior_results=config.get("prior_tool_results"),
+                require_metadata=True,
             )
             result.answer = final
             result.validator = verdict
@@ -185,6 +190,10 @@ def run_agent(
         for call in response.tool_calls:
             outcome = execute_tool(call["name"], call.get("arguments"), role, user)
             result.tool_calls.append(_trace(call, outcome))
+            if call.get("name") == "get_metric" and isinstance(outcome.data, dict):
+                chart = _chart_from_metric(outcome.data, question)
+                if chart is not None:
+                    result.chart_data = chart
             signature = f"{call.get('name')}:{json.dumps(call.get('arguments') or {}, sort_keys=True, default=str)}"
             repeats[signature] = repeats.get(signature, 0) + 1
             if repeats[signature] >= 3:
@@ -254,7 +263,23 @@ def _trace(call: dict, outcome: ToolResult) -> dict:
         "executed": outcome.error is None,
         "result": data,
         "warnings": list(outcome.warnings),
+        "metadata": dict(getattr(outcome, "metadata", {}) or {}),
     }
+
+
+def _chart_from_metric(data: dict, question: str) -> dict | None:
+    """Bangun chart_data dari series get_metric (>=2 titik) via chart_builder legacy."""
+    series = data.get("series") or []
+    if not isinstance(series, list) or len(series) < 2:
+        return None
+    try:
+        from ..orchestrator.chart_builder import build_chart_data
+
+        context = {"metrics": [{"metric_id": data.get("metric"), "rows": series}]}
+        chart = build_chart_data(context, "ANALYTICS_QUERY", question)
+        return chart if isinstance(chart, dict) else None
+    except Exception:  # noqa: BLE001 - chart opsional
+        return None
 
 
 def _error_code(exc: Exception) -> str:

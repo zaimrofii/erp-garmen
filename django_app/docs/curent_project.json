@@ -11,6 +11,24 @@
       "test_count_scope": "tests/ai_agent (suite penuh tests/ tidak selesai dalam batas waktu; angka 840 = hasil nyata `pytest tests/ai_agent -q`)",
       "test_pre_existing_failures": 0
     },
+    "fase_fundamental_2plus2plus1_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "branch": "demo-ready",
+      "fundamental_1_followup": {"done": true, "catatan": "agent loop tidak memanggil resolve_followup; history asli dikirim (test test_chart_memory)"},
+      "fundamental_2_metadata": {"done": true, "test_pass": "10 tool + validator reject (test_metadata.py)", "fields": ["metric", "dimension", "definition", "period", "source"]},
+      "extension_3_stock_top_n": {"done": true, "test_pass": "2/2 (test_stock_top_n.py)"},
+      "extension_4_chart": {"done": true, "test_pass": "1/1 (chart 3 titik via get_metric.series)"},
+      "memori_l3": {"done": true, "test_pass": "2/2 (summarize_history 15 turn -> 1 ringkasan + 10 turn)"},
+      "demo_11": {"run1_passed": 5, "blocked": 3, "fallback": 3, "total": 11, "status_per_soal": {"q1": "lulus", "q2": "lulus", "q3": "fallback", "q4": "lulus", "q5": "lulus", "q6": "blocked", "q7": "blocked", "q8": "fallback", "q9": "lulus", "q10": "fallback", "q11": "blocked"}},
+      "determinism": {"q9_consistent": true, "q9_bukti": "2 run identik: JEAN_9999", "chart_q6": "tidak terekam di runner (unit test chart hijau)", "stock_top_n_called": false},
+      "biaya_usd": 0.021288,
+      "kumulatif_usd": 0.579,
+      "rekomendasi": "TUNDA",
+      "catatan": "Fitur fundamental selesai dan unit-test hijau (111 passed), tetapi demo turun ke 5/11: metadata di payload tool menambah token sehingga Q3/Q8/Q10 habis 8 putaran (fallback), dan validator memblokir Q6/Q7/Q11 karena jawaban model menyertakan angka turunan (jumlah bundle harian, count baris) yang tidak ada di pool. Q9 stabil 2/2 dan stok top_n tersedia (belum dipakai model di run ini). Perlu revisi strategi payload (metadata ringkas, bukan di setiap tool message) sebelum demo.",
+      "laporan": "docs/recon/DEMO_FIX_2026-10-23.md",
+      "hasil": "tests/golden/demo_agent_loop_results.json"
+    },
     "fase_fix_1putaran_2026-10-23": {
       "status": "done",
       "tanggal": "2026-10-23",

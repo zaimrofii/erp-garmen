@@ -42,6 +42,7 @@ class ToolResult:
     filters_applied: dict = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
     error: str | None = None
+    metadata: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.as_of:
@@ -61,6 +62,7 @@ class ToolResult:
             "as_of": self.as_of,
             "filters_applied": self.filters_applied,
             "warnings": self.warnings,
+            "metadata": self.metadata,
         }
 
     @classmethod
@@ -72,6 +74,7 @@ class ToolResult:
         truncated: bool = False,
         filters_applied: dict | None = None,
         warnings: list[str] | None = None,
+        metadata: dict | None = None,
     ) -> "ToolResult":
         return cls(
             data=data,
@@ -79,6 +82,7 @@ class ToolResult:
             truncated=truncated,
             filters_applied=filters_applied or {},
             warnings=list(warnings or []),
+            metadata=dict(metadata or {}),
         )
 
     @classmethod
