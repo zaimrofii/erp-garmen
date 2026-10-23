@@ -808,6 +808,11 @@ SPECTACULAR_SETTINGS = {
 # (`{ok:false, reason:"not_implemented"}`). TRUE → delegasi ke ai_agent.
 AI_AGENT_ENABLED = env_bool("AI_AGENT_ENABLED", False)
 
+# Fase 1 — agent loop dengan 9 tool produksi. Default FALSE: /ai/chat tetap
+# memakai pipeline lama (context_builder → intent_classifier → tool_selector).
+AI_AGENT_TOOLS_ENABLED = env_bool("AI_AGENT_TOOLS_ENABLED", False)
+AI_AGENT_MAX_ITERATIONS = env_int("AI_AGENT_MAX_ITERATIONS", 5)
+
 # Sprint G — LLM provider (read-only + context injection, tanpa KG/vector DB).
 AI_LLM_PROVIDER = env("AI_LLM_PROVIDER", "deepseek")
 AI_LLM_MODEL = env("AI_LLM_MODEL", "deepseek-chat")

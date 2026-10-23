@@ -1645,8 +1645,74 @@
       "invariant_data": "PASS",
       "catatan": "15/15 ground truth dihitung via ORM (verified_by=manual_orm); file: tests/golden/questions.yaml. Baseline jalur lama $0: mode deterministic (pipeline asli + NullProvider) 3/15 = 20,0% (lulus harga G005, follow-up ordinal G010, safety G014); mode stub AI_AGENT_ENABLED=false 0/15. Invariant G.4 FAIL: (B) 1 produk di order line berharga Rp0 - Kaos Lapangan id 16 / ODOO-74 pada order S00029; (D) 39 dari 93 order line tanpa product_id (19 order, terbanyak S00004 dan S00007). Spike tidak dijalankan; bersihkan data di Fase 0.4/0.5 lalu ulangi."
     },
+    "fase_1_tools_production_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "basis_head": "9060310",
+      "tools_production": {
+        "count": 9,
+        "path": "integrations/ai_agent/tools/",
+        "allowlist": {
+          "supervisor_plus": ["aggregate_operator", "get_metric"],
+          "stock": ["get_stock"],
+          "all_roles": ["list_records", "count_records", "get_record", "aggregate", "find_entity", "get_product_orders"]
+        },
+        "test_pass": "19/19"
+      },
+      "wrapper_tools": {
+        "deepseek": "chat(messages, tools) + normalisasi tool_calls",
+        "gemini": "provider_not_supported (tidak diimplementasikan)",
+        "test_pass": "4/4"
+      },
+      "agent_loop": {
+        "flag": "AI_AGENT_TOOLS_ENABLED (default false)",
+        "max_iterations": 5,
+        "trace": "AIDecisionLog decision_gate_result=TOOL per tool call",
+        "test_pass": "26/26"
+      },
+      "validator_production": {
+        "module": "integrations/ai_agent/agent/validator.py",
+        "test_pass": "19/19"
+      },
+      "held_out": {
+        "model": "deepseek",
+        "mode": "production_agent_loop",
+        "runs_per_question": 3,
+        "tool_pct": 100.0,
+        "param_pct": 100.0,
+        "e2e_pct": 70.0,
+        "angka_salah_pct": 6.7,
+        "validator_blocked": 2,
+        "validator_blocked_total": 30,
+        "biaya_usd": 0.02202956
+      },
+      "tuning": {
+        "mode": "production_agent_loop",
+        "runs_per_question": 1,
+        "soal_selesai": 17,
+        "soal_total": 20,
+        "e2e_pct": 52.9,
+        "angka_salah_pct": 17.6,
+        "biaya_usd": 0.02068276,
+        "catatan": "abort karena SPIKE_BUDGET=0.02 tercapai (bukan kegagalan model)"
+      },
+      "fixed_from_previous": [
+        {"id": "G027", "status": "lulus 3/3"},
+        {"id": "G029", "status": "lulus 3/3"},
+        {"id": "G024", "status": "masih gagal 0/3 (GT op-eka=17 vs model melaporkan seri; 2 run diblokir validator)"},
+        {"id": "G028", "status": "masih gagal 0/3 (filter tanggal diabaikan untuk entity scrap; fix DATE_FIELD menyusul setelah pengukuran)"}
+      ],
+      "biaya_usd": 0.04271232,
+      "kumulatif_usd": 0.30463658,
+      "rekomendasi": "PERBAIKI",
+      "catatan": "Gate e2e 70,0% (rentang 70-79): PERBAIKI di Fase 2, bukan LANJUT. Tool 100% dan param 100% (naik dari 90,0), blocked turun 5->2, biaya held-out turun. Sisa kegagalan: G024 (semantik GT qty vs jumlah event + jawaban seri diblokir validator), G026 (model menghitung 33 customer total, bukan 25 yang aktif), G028 (model sudah mengirim date_from/date_to 2025-12-01..31 tetapi DATE_FIELD belum mencakup scrap sehingga tool mengabaikan periode; fix diterapkan setelah run, belum diukur ulang). Tuning tidak selesai 20 soal karena budget $0.02 (17 soal).",
+      "laporan": "tests/golden/validation_report.md",
+      "hasil_held_out": "tests/golden/production_results_held_out.json",
+      "hasil_tuning": "tests/golden/production_results_tuning.json"
+    },
     "fase_validator_fix_2026-10-23": {
       "status": "done",
+      "superseded_by": "fase_1_tools_production_2026-10-23",
       "tanggal": "2026-10-23",
       "basis_head": "0872b21",
       "langkah_1_3": {

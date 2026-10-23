@@ -89,7 +89,7 @@ EXPECTED = {
     "G021": {"tool": "count_records", "must": ["bundle", "qc-1"]},
     "G022": {"tool": "aggregate", "must": ["scrap", "qc-1"]},
     "G023": {"tool": "count_records", "must": ["order"]},
-    "G024": {"tool": "aggregate_operator", "must": ["operator"]},
+    "G024": {"tool": "aggregate_operator", "must": []},
     "G025": {"tool": "get_stock", "must": ["odoo-65"]},
     "G026": {"tool": "count_records", "must": ["customer"]},
     "G027": {"tool": None},

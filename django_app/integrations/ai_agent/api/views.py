@@ -6,6 +6,7 @@ import logging
 import time
 
 from pydantic import ValidationError
+from django.conf import settings
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -29,6 +30,7 @@ from ..orchestrator import (  # noqa: F401
 from .handlers import handle_pending_clarification, run_pipeline
 from .handlers.common import (
     RATE_LIMIT_PER_MINUTE,
+    elapsed_ms,
     is_rate_limited,
     rate_limit_key,
     response,
@@ -141,6 +143,9 @@ class AiChatView(APIView):
             )
             return Response({"ok": False, "error": "forbidden_context"})
 
+        if getattr(settings, "AI_AGENT_TOOLS_ENABLED", False):
+            return _agent_response(request, body, role, started=started)
+
         outcome = run_pipeline(
             request,
             body,
@@ -152,6 +157,84 @@ class AiChatView(APIView):
             return outcome["response"]
 
         return Response(outcome["result"])
+
+
+_AGENT_SYSTEM_PROMPT = """Kamu asisten MES garmen. Hari ini {today} (WIB). Peran user: {role}.
+ATURAN:
+- WAJIB pakai tool untuk pertanyaan data; jangan menghitung/mengarang sendiri.
+- Jawab SEMUA klausa pertanyaan dalam satu jawaban.
+- "minggu ini"/"bulan ini"/"7 hari terakhir" WAJIB diisi date_from dan date_to di tool.
+- Jika hasil tool punya `stats`, pakai field sesuai pertanyaan: "rata-rata" -> stats.avg,
+  "tertinggi"/"termahal" -> stats.max, "terendah"/"termurah" -> stats.min,
+  "terbaru"/"terakhir" -> stats.latest.
+- Jika `stats.count` = 0 atau `row_count` = 0 untuk periode yang diminta, jawab
+  "Tidak ada data untuk periode itu." JANGAN memakai angka periode lain.
+- Jika tool yang dibutuhkan tidak ada, jawab "Informasi ini belum bisa diakses dari sistem."
+- Read-only: jangan menyarankan/melakukan perubahan data."""
+
+
+def _agent_messages(body, role: str) -> list[dict]:
+    from django.utils import timezone
+
+    messages = [
+        {
+            "role": "system",
+            "content": _AGENT_SYSTEM_PROMPT.format(
+                today=timezone.localdate().isoformat(), role=role or "USER"
+            ),
+        }
+    ]
+    for item in body.history or []:
+        messages.append({"role": item.role, "content": item.content})
+    messages.append({"role": "user", "content": body.message})
+    return messages
+
+
+def _agent_response(request, body, role: str, *, started: float):
+    """Jalur baru `/ai/chat` (flag AI_AGENT_TOOLS_ENABLED=true)."""
+    from ..agent.loop import run_agent
+
+    result = run_agent(
+        _agent_messages(body, role),
+        role,
+        request.user,
+        config={"max_iterations": getattr(settings, "AI_AGENT_MAX_ITERATIONS", 5)},
+    )
+    latency_ms = elapsed_ms(started)
+    trace = [
+        {
+            "tool": call.get("tool"),
+            "input": call.get("args") or {},
+            "output_summary": f"row_count={call.get('row_count')} error={call.get('error')}"[:500],
+        }
+        for call in result.tool_calls
+    ]
+    log_decision(
+        user=request.user,
+        channel=body.channel,
+        query_text=body.message,
+        decision_gate_result="AGENT_TOOLS",
+        impact_score="LOW",
+        tools_called=trace,
+        prompt_tokens=int(result.tokens.get("prompt") or 0),
+        completion_tokens=int(result.tokens.get("completion") or 0),
+        total_cost_usd=result.cost_usd,
+        response_text=result.answer[:500],
+        latency_ms=latency_ms,
+    )
+    payload = _response(
+        ok=result.error is None,
+        answer=result.answer,
+        decision_gate_result="AGENT_TOOLS",
+        latency_ms=latency_ms,
+        error=result.error,
+        tool_calls=trace,
+        tokens=result.tokens,
+    )
+    payload["agent_mode"] = "tools"
+    payload["iterations"] = result.iterations
+    payload["validator"] = result.validator
+    return Response(payload)
 
 
 __all__ = ("AiChatView",)

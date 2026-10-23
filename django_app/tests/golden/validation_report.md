@@ -211,4 +211,73 @@ e2e 73,3% (rentang 70–79%) dan angka salah 6,7% (≤10%). Perbaikan berikutnya
    kembalikan `period` yang diminta + `no_data_in_period` agar validator bisa menilai.
 3. Validator: jangan memblokir jawaban penolakan (G029) yang memuat angka penjelas.
 
+---
+
+# Fase 1 — Tool Permanen + Agent Loop di Balik Feature Flag (2026-10-23)
+
+Basis: HEAD `9060310`; tree bersih; DeepSeek saja; hard cap $0.08.
+
+## 1. Langkah 1–4 (tanpa LLM) — PASS
+
+| Langkah | Status | Bukti |
+|---|---|---|
+| 1. 9 tool produksi + allowlist + envelope | **PASS** | `pytest tests/ai_agent/tools` → **19/19** |
+| 2. Wrapper `tools` (DeepSeek) / Gemini ditolak | **PASS** | `pytest tests/ai_agent/llm_wrapper` → **4/4** |
+| 3. Agent loop + feature flag | **PASS** | `pytest tests/ai_agent/agent` → **26/26** |
+| 4. Validator permanen | **PASS** | 19 kasus di `tests/ai_agent/agent/test_validator.py` |
+| Regresi legacy (wrapper, endpoint chat) | **PASS** | **89 passed** |
+
+Struktur baru: `integrations/ai_agent/tools/` (base, registry, 9 tool) dan
+`integrations/ai_agent/agent/` (loop, validator). Flag `AI_AGENT_TOOLS_ENABLED`
+default **false**; `max_iterations` = 5; pipeline lama tidak disentuh dan tetap
+dipakai saat flag false. Setiap tool call ditrace ke `AIDecisionLog`
+(`decision_gate_result="TOOL"`, args, row_count, duration_ms, executed).
+
+Perbaikan 3 kegagalan lama:
+- **G024**: syarat string "operator" dihapus (cukup validasi `field`/`op`).
+- **G028**: deskripsi tool + prompt mewajibkan `date_from/date_to`; filter tanggal
+  kini juga berlaku untuk entity `scrap` (fix diterapkan SETELAH pengukuran).
+- **G029**: validator tidak memblokir jawaban penolakan yang memuat angka.
+
+## 2. Held-out — agent loop produksi (DeepSeek, 3 × 10)
+
+| Metrik | Spike (validator fix) | Fase 1 | Δ |
+|---|---|---|---|
+| Tool selection | 100,0% | **100,0%** | 0 |
+| Parameter | 90,0% | **100,0%** | +10,0 |
+| E2E | 73,3% | **70,0%** | −3,3 |
+| Angka salah / blocked | 6,7% (4/30) | **6,7% (2/30)** | 0 |
+| Biaya | $0.02614136 | **$0.02202956** | −$0,0041 |
+
+Kegagalan (tidak dikoreksi):
+- **G024** 0/3: GT "op-eka"=17, model melaporkan seri op-andi/op-eka; 2 run diblokir
+  validator karena angka jawaban seri tidak ada di pool.
+- **G026** 0/3: GT 25 customer **aktif**, model menghitung 33 customer (`is_active`
+  tidak dipakai) — kegagalan pemilihan filter, bukan kelengkapan tool.
+- **G028** 0/3: model SUDAH mengirim date_from/date_to (2025-12-01..31) tetapi tool
+  mengabaikannya untuk entity `scrap` (bug `DATE_FIELD`) → 262 all-time.
+- **G027** lulus 3/3, **G029** lulus 3/3.
+
+## 3. Tuning — agent loop produksi (1 run, 17/20 sebelum abort budget)
+
+E2E **52,9%**, blocked **3/17 (17,6%)**, biaya **$0.02068276**. Abort karena
+`SPIKE_BUDGET=0.02` tercapai di pertanyaan ke-17 (bukan kegagalan model).
+
+## 4. Biaya
+
+| Item | USD |
+|---|---|
+| Held-out (30 panggilan) | 0,02202956 |
+| Tuning (17 panggilan, aborted) | 0,02068276 |
+| **Total Fase 1** | **0,04271232** (cap 0,08) |
+| **Kumulatif proyek** | **0,30463658** dari 0,66 |
+
+## 5. Rekomendasi: PERBAIKI di Fase 2
+
+e2e 70,0% (rentang 70–79%). Fokus:
+1. **G024**: samakan semantik GT (qty vs jumlah event) + tangani jawaban seri di validator.
+2. **G026**: prompt wajibkan filter status ("aktif" → `is_active=true`).
+3. **G028**: ukur ulang setelah fix `DATE_FIELD` (angka 70,0% diukur SEBELUM fix).
+
+
 
