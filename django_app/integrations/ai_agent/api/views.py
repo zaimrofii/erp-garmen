@@ -204,6 +204,9 @@ def _agent_response(request, body, role: str, *, started: float, session_id: str
         completion_tokens=int(result.tokens.get("completion") or 0),
         total_cost_usd=result.cost_usd,
         response_text=result.answer[:500],
+        raw_answer=(getattr(result, "raw_answer", "") or "")[:2000],
+        validator_ok=(result.validator or {}).get("ok"),
+        validator_reason=str((result.validator or {}).get("reason") or "")[:200],
         latency_ms=latency_ms,
     )
     payload = _response(

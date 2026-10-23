@@ -100,6 +100,10 @@ class AIDecisionLog(models.Model):
     )
     hitl_latency_seconds = models.PositiveIntegerField(null=True, blank=True)
     response_text = models.TextField("jawaban", blank=True, default="")
+    # Observability pra-demo: jawaban LLM mentah + verdict validator.
+    raw_answer = models.TextField("jawaban mentah", blank=True, default="")
+    validator_ok = models.BooleanField("validator ok", null=True, blank=True)
+    validator_reason = models.CharField("alasan validator", max_length=200, blank=True, default="")
     model_used = models.CharField("model", max_length=50, blank=True, default="")
     latency_ms = models.PositiveIntegerField("latency (ms)", default=0)
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .base import (
     AGG_ENTITIES,
+    DATE_FIELD,
     GROUP_ALIASES,
     MAX_LIMIT,
     OPS,
@@ -48,6 +49,13 @@ def run(
 
     entity_key = str(entity or "").strip().lower()
     model = model_for(entity_key)
+    # Entity berperiode WAJIB menyertakan rentang tanggal (cegah all-time tak sengaja).
+    if entity_key in DATE_FIELD and not (date_from and date_to):
+        return ToolResult.failure(
+            "missing_date_range",
+            "Pertanyaan tentang periode WAJIB menyebutkan date_from dan date_to. Contoh: "
+            "'minggu ini' = 2026-10-19 sampai 2026-10-23.",
+        )
     op_key = str(op or "").strip().lower()
     if op_key not in OPS:
         raise ValueError(f"op tidak dikenal: {op_key!r}")

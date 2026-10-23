@@ -11,6 +11,40 @@
       "test_count_scope": "tests/ai_agent (suite penuh tests/ tidak selesai dalam batas waktu; angka 840 = hasil nyata `pytest tests/ai_agent -q`)",
       "test_pre_existing_failures": 0
     },
+    "fase_temp0_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "branch": "demo-ready",
+      "temperature_0": {"done": true, "env": ".env:81 AI_LLM_TEMPERATURE=0 (tidak di-commit)", "verifikasi": "AI_CONFIG['llm']['temperature'] terbaca 0 setelah recreate django"},
+      "persist_raw_reason": {"done": true, "test_pass": "1/1 (test_log_persist.py); suite agent+tools 138 passed", "fields": ["raw_answer", "validator_ok", "validator_reason"], "migrasi": "0006_aidecisionlog_raw_answer_aidecisionlog_validator_ok_and_more"},
+      "aggregate_date_guard": {"done": true, "test_pass": "2/2 (aggregate scrap tanpa tanggal -> missing_date_range; dengan tanggal -> OK)"},
+      "demo_11": {"passed": 10, "blocked": 0, "fallback": 1, "status_per_soal": {"q1": "lulus", "q2": "lulus", "q3": "lulus", "q4": "lulus", "q5": "lulus", "q6": "lulus", "q7": "lulus", "q8": "lulus", "q9": "lulus", "q10": "fallback (same_tool_limit)", "q11": "lulus"}},
+      "q4": "lulus (SEWING-2 77 unit)",
+      "biaya_usd": 0.013101,
+      "kumulatif_usd": 0.643,
+      "rekomendasi": "DEMO",
+      "catatan": "Temperature 0 membuat seluruh 11 jawaban stabil (0 blocked). Q4 lulus. Sisa satu fallback Q10 karena model memang memanggil list_records 3x (aturan same_tool_limit). raw_answer/validator_reason kini tersimpan di AIDecisionLog sehingga kegagalan berikutnya bisa didiagnosis tanpa patch runtime.",
+      "laporan": "docs/recon/DEMO_FIX_2026-10-23.md",
+      "hasil": "tests/golden/demo_agent_loop_results.json"
+    },
+    "recon_scrap_flaky_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "mode": "read-only recon",
+      "temuan": {
+        "q4_tanpa_history_tidak_konsisten": "CONFIRMED (#1605 lulus vs #1680 diblokir, args tool identik)",
+        "validator_nondeterministik": "REFUTED (deterministik; unit test 10x identik)",
+        "cache_penyebab": "REFUTED (agent path tanpa semantic_cache; memory cache hanya >10 turn)",
+        "konteks_satu_satunya_pemicu": "REFUTED (kegagalan juga tanpa history)",
+        "llm_teks_bervariasi_temperature_0_3": "CONFIRMED (config.py:40, deepseek.py:59,86)",
+        "history_bisa_membuat_tanpa_tool": "CONFIRMED (#1676, #1637, #1638 tools_called [])",
+        "tanpa_date_range_all_time": "CONFIRMED (#1635 row_count=8)",
+        "angka_pemicu_blokir_1680": "UNVERIFIED (jawaban mentah tidak tersimpan)"
+      },
+      "rekomendasi": "Set AI_LLM_TEMPERATURE=0 untuk demo; persist jawaban mentah + validator.reason; pertimbangkan aggregate menolak missing_date_range untuk entity berperiode. Validator & cache tidak perlu diubah.",
+      "biaya_usd": 0.0035,
+      "laporan": "docs/recon/RECON_SCRAP_FLAKY_2026-10-23.md"
+    },
     "fase_cache_l3_2026-10-23": {
       "status": "done",
       "tanggal": "2026-10-23",

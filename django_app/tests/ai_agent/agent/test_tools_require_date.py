@@ -4,7 +4,23 @@ from __future__ import annotations
 
 import pytest
 
-from integrations.ai_agent.tools import get_metric
+from integrations.ai_agent.tools import aggregate, get_metric
+
+
+@pytest.mark.django_db
+def test_aggregate_scrap_tanpa_tanggal_ditolak():
+    result = aggregate.run("scrap", "qty", "sum")
+    assert result.error == "missing_date_range"
+    assert result.data == {}
+
+
+@pytest.mark.django_db
+def test_aggregate_scrap_dengan_tanggal_ok():
+    result = aggregate.run(
+        "scrap", "qty", "sum", date_from="2026-10-19", date_to="2026-10-23"
+    )
+    assert result.ok
+    assert result.row_count == 1
 
 
 @pytest.mark.django_db

@@ -54,6 +54,7 @@ class AgentResult:
     clarification: dict | None = None
     blocked_reason: str | None = None
     agent_mode: str = "tools"
+    raw_answer: str = ""
     chart_data: dict | None = None
     tool_metadata: list = field(default_factory=list)
     messages: list = field(default_factory=list)
@@ -181,6 +182,7 @@ def run_agent(
             )
             result.answer = final
             result.validator = verdict
+            result.raw_answer = response.text or ""
             if not result.answer.strip():
                 # Model bisa mengembalikan konten kosong (tanpa tool call) — jangan kirim "".
                 result.answer = "Informasi ini belum bisa diakses dari sistem."
