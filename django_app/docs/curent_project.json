@@ -6,10 +6,92 @@
       "concept": "MES = ERP Produksi (single point of input). Odoo = back-office pasif. Sync: master dua arah, transaksi satu arah (MES → Odoo).",
       "frontend_repo": "frontend_app_v2/ (hand-coded React); arsip: frontend_app/ (v1 metadata-driven)",
       "last_updated": "2026-10-23",
-      "current_phase": "Fase AI refactor: DEMO-READY (Fase 2 stabil, Fase 3 deferred)",
-      "test_count_total": 840,
-      "test_count_scope": "tests/ai_agent (suite penuh tests/ tidak selesai dalam batas waktu; angka 840 = hasil nyata `pytest tests/ai_agent -q`)",
+      "current_phase": "AI Agent DEMO-READY. Fase AI ditutup. Fokus: demo ke calon klien.",
+      "test_count_total": 148,
+      "test_count_scope": "Hanya tests/ai_agent/agent (107) + tests/ai_agent/tools (41) = 148 hijau, run 2026-10-23 pada commit 980fe52. Suite penuh tests/ai_agent (subdirektori lain) dan tests/ tidak diselesaikan pada sesi ini.",
       "test_pre_existing_failures": 0
+    },
+    "ai_agent_final_2026-10-23": {
+      "status": "closed_demo_ready",
+      "tanggal": "2026-10-23",
+      "branch": "demo-ready",
+      "commit": "980fe52",
+      "alasan_tutup": "Demo inti stabil (8/11 lulus; sisa Q3/Q6/Q8 butuh data klien nyata, bukan asumsi). Fase AI ditutup.",
+      "hasil_demo_terakhir": {
+        "questions_tested": 11,
+        "questions_ok": 8,
+        "catatan": "'siapa namaku' dijawab 'tidak tahu' (aman, bukan bug). 'apa itu sapi' ditolak sopan. 'hapus produk' ditolak tegas 0 token. Q10 majemuk (total order aktif + paling lambat) kini LULUS; sisa Q3 (max_iterations), Q6 (konversi jam→hari diblokir validator), Q8 (same_tool_limit + data kosong).",
+        "non_production_ok": "3/3 (sapi ditolak, hapus ditolak, nama aman)"
+      },
+      "yang_berhasil": [
+        "10 tool produksi generik (list_records, count_records, get_record, aggregate, get_metric, get_stock, find_entity, aggregate_operator, get_product_orders, propose_action)",
+        "Agent loop function calling standar (DeepSeek)",
+        "Validator exact blocking (0 angka salah di demo)",
+        "Write detection (tolak tegas, 0 token)",
+        "Memori L1+L2+L3 dengan cache (TTL 600s)",
+        "Non-produksi 5/5, ambigu 3/3, majemuk 3/3",
+        "148 test hijau (107 agent + 41 tools)",
+        "Persist raw_answer + validator_reason di AIDecisionLog"
+      ],
+      "yang_ditunda": [
+        "Q3 (bundle SEWING-2) — max_iterations",
+        "Q6 (lead time) — konversi satuan jam→hari diblokir validator",
+        "Q8 (order telat) — same_tool_limit + data kosong",
+        "Adversarial set (85%, belum 100%)",
+        "Demo script Fase 3 (9/12)",
+        "Wawancara klien 30 menit",
+        "Fase 5 cutover (hapus context_builder)"
+      ],
+      "aset_disimpan": {
+        "branch_demo_ready": "demo-ready @ 980fe52",
+        "branch_experimental": "feat/agent-tools",
+        "tools_production_path": "integrations/ai_agent/tools/",
+        "golden_set_path": "tests/golden/questions.yaml (30 pertanyaan: 20 tuning + 10 held-out)",
+        "recon_docs": [
+          "docs/recon/RECON_AGENT_2026-10-22.md",
+          "docs/recon/RECON_HORIZONTAL_2026-10-23.md",
+          "docs/recon/RECON_SCRAP_FLAKY_2026-10-23.md",
+          "docs/recon/DEMO_AGENT_LOOP_2026-10-23.md"
+        ],
+        "test_path": "tests/ai_agent/"
+      },
+      "biaya_kumulatif_usd": 0.66,
+      "biaya_budget_usd": 5.0,
+      "sisa_budget_usd": 4.34
+    },
+    "ai_agent_history_2026-10-22_23": {
+      "catatan": "Entri fase perbaikan AI agent tanggal 2026-10-22/23. Semua sudah basi, disimpan sebagai jejak audit. JANGAN dibaca sebagai status saat ini. Status saat ini ada di ai_agent_final_2026-10-23.",
+      "entri_lama": [
+        "recon_horizontal_2026-10-23",
+        "fase_fix_3kritis_2026-10-23",
+        "fase_temp0_2026-10-23",
+        "recon_scrap_flaky_2026-10-23",
+        "fase_cache_l3_2026-10-23",
+        "fase_fix_memory_cache_2026-10-23",
+        "fase_fix_markdown_2026-10-23",
+        "fase_fix_regex_2026-10-23",
+        "fase_fix_2bug_2026-10-23",
+        "fase_fundamental_2plus2plus1_2026-10-23",
+        "fase_fix_1putaran_2026-10-23",
+        "fase_demo_verifikasi_final_2026-10-23",
+        "fase_demo_fix_2026-10-23",
+        "fase_demo_agent_loop_2026-10-23",
+        "fase_2_agent_production_2026-10-23",
+        "fase_1_tools_production_2026-10-23",
+        "fase_validator_fix_2026-10-23",
+        "fase_perbaikan_a_2026-10-23",
+        "fase_validasi_2026-10-23",
+        "fase_spike3_runAB_2026-10-23",
+        "fase_spike3_final_2026-10-23",
+        "fase_spike3_2026-10-23",
+        "fase_spike2_2026-10-23",
+        "fase_spike_function_calling_2026-10-22",
+        "fase_data_cleanup_2026-10-22",
+        "fase_golden_set_2026-10-22",
+        "fase_2_g024_fix_2026-10-23",
+        "fase_3_adversarial_demo_2026-10-23",
+        "fase_3_fix_2026-10-23"
+      ]
     },
     "recon_horizontal_2026-10-23": {
       "status": "done",
@@ -281,15 +363,16 @@
     "demo_ready": {
       "tanggal": "2026-10-23",
       "branch": "demo-ready",
-      "commit": "a4520a8",
+      "commit": "980fe52",
       "tools_production": 10,
       "held_out_1run": {"e2e_pct": 100, "angka_salah_pct": 0},
       "held_out_3run": {"e2e_pct": 90, "angka_salah_pct": 6.7},
-      "demo_questions_count": 10,
-      "jangan_demo": ["adversarial", "demo_script_fase3", "rework", "pertanyaan_di_luar_10_demo"],
+      "demo_questions_count": 11,
+      "jangan_demo": ["Q10_majemuk_total_order_aktif", "pertanyaan_write", "pertanyaan_di_luar_11"],
       "biaya_kumulatif_usd": 0.482,
       "sisa_budget_usd": 0.178,
-      "next_after_demo": "wawancara klien → perluas golden → kembali Fase 3"
+      "next_after_demo": "wawancara klien 30 menit → golden set dari klien → perbaiki Q3/Q6/Q8 dengan data nyata",
+      "catatan": "Demo 11 pertanyaan: 8 lulus; Q10 majemuk lulus di run terakhir (tidak perlu dihindari). Sisa Q3/Q6/Q8 ditunda sampai ada data klien."
     },
     "test_status": {
       "pre_existing_failures": [],
@@ -1709,9 +1792,10 @@
       ]
     },
     "next_phase_proposal": {
-      "next": "DEMO ke calon klien dengan branch demo-ready (10 pertanyaan held-out)",
-      "then": "Wawancara klien 30 menit → golden set dari klien → Fase 3 diperbaiki",
-      "deferred": "Fase 3 adversarial, Fase 5 cutover (hapus context_builder)",
+      "next": "DEMO ke calon klien (11 pertanyaan stabil + 3 non-produksi)",
+      "then": "Wawancara klien 30 menit → perluas golden set dari klien → perbaiki Q3/Q6/Q8",
+      "deferred_until_client_deal": ["Adversarial 100%", "Demo script 12/12", "Fase 5 cutover (hapus context_builder)"],
+      "if_no_client": "Simpan branch demo-ready + feat/agent-tools sebagai aset. Jalur lama (20%) tetap untuk production. AI jadi fitur tambahan.",
       "ops": "UAT 2 klien + live deploy"
     },
     "uat_status": {
@@ -1725,7 +1809,8 @@
         },
         { "id": "B", "alur": "beda (fast-track + rework)", "status": "pending" }
       ],
-      "checklist_ref": "docs/integration-config.md §5"
+      "checklist_ref": "docs/integration-config.md §5",
+      "catatan": "Status 'pending' berarti belum ada komitmen tertulis. Ada relasi informal, tapi belum deal. Demo AI agent siap dilakukan kapan saja."
     },
     "sprint_D_ai_agent": {
       "status": "DONE (2026-10-18) — D.1–D.6, 61 test baru",
