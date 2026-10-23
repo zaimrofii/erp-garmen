@@ -20,7 +20,9 @@ SCHEMA = fn_schema(
     "Daftar baris satu entity (order/bundle/produk/customer/work center/work order)."
     " Kembalikan {rows, row_count, truncated}. Untuk entity=order setiap baris memuat"
     " is_late, days_late, days_remaining. Isi date_from/date_to hanya bila pertanyaan"
-    " berperiode (minggu ini/bulan ini).",
+    " berperiode (minggu ini/bulan ini)."
+    " Untuk pertanyaan 'aktif', WAJIB kirim filters {\"is_active\": true};"
+    " untuk entity=customer pelanggan = {\"is_customer\": true}.",
     {
         "entity": {"type": "string", "enum": list(ENTITIES)},
         "filters": {

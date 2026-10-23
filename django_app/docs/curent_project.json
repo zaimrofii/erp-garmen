@@ -1645,8 +1645,61 @@
       "invariant_data": "PASS",
       "catatan": "15/15 ground truth dihitung via ORM (verified_by=manual_orm); file: tests/golden/questions.yaml. Baseline jalur lama $0: mode deterministic (pipeline asli + NullProvider) 3/15 = 20,0% (lulus harga G005, follow-up ordinal G010, safety G014); mode stub AI_AGENT_ENABLED=false 0/15. Invariant G.4 FAIL: (B) 1 produk di order line berharga Rp0 - Kaos Lapangan id 16 / ODOO-74 pada order S00029; (D) 39 dari 93 order line tanpa product_id (19 order, terbanyak S00004 dan S00007). Spike tidak dijalankan; bersihkan data di Fase 0.4/0.5 lalu ulangi."
     },
+    "fase_2_agent_production_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "basis_head": "eb8261d",
+      "langkah_1_4": {
+        "g028_fixed": true,
+        "g024_gt_fixed": true,
+        "g026_fixed": true,
+        "history": true,
+        "clarification": true,
+        "prompt_final": true,
+        "propose_action": true,
+        "test_pass": "63/63 (agent+tools+wrapper); 103/103 dengan legacy"
+      },
+      "verifikasi_db": {
+        "g024": "op-eka 17 event BUNDLE_FINISH Okt 2026, op-andi 16; qty_done seri 150 -> GT diperjelas ke jumlah event",
+        "g026": "customer is_customer=True = 25, semuanya aktif (vendor membuat hitungan naif 33)",
+        "g028": "scrap Des 2025 = 0 baris; all-time 262; rentang data 2026-10-08..2026-10-21"
+      },
+      "held_out": {
+        "model": "deepseek",
+        "mode": "production_agent_loop",
+        "runs_per_question": 3,
+        "tool_pct": 100.0,
+        "param_pct": 100.0,
+        "e2e_pct": 90.0,
+        "angka_salah_pct": 6.7,
+        "validator_blocked": 2,
+        "validator_blocked_total": 30,
+        "biaya_usd": 0.02864428,
+        "per_pertanyaan": {"G024": "0/3", "G026": "3/3", "G027": "3/3", "G028": "3/3", "G029": "3/3"}
+      },
+      "tuning": {
+        "mode": "production_agent_loop",
+        "runs_per_question": 1,
+        "tool_pct": 90.0,
+        "param_pct": 95.0,
+        "e2e_pct": 75.0,
+        "angka_salah_pct": 15.0,
+        "validator_blocked": 3,
+        "validator_blocked_total": 20,
+        "biaya_usd": 0.02642654
+      },
+      "fixed_questions": ["G026", "G027", "G028", "G029"],
+      "biaya_usd": 0.05507082,
+      "kumulatif_usd": 0.3597074,
+      "rekomendasi": "PERBAIKI",
+      "catatan": "E2E held-out 70,0 -> 90,0 (+20,0); tool/param 100%. G026, G027, G028, G029 lulus 3/3. G024 masih 0/3 karena event_count menghitung SEMUA tipe event (model menjawab op-andi 132, bukan op-eka 17 FINISH); 2 run diblokir validator. Semantik event_count sudah diperbaiki menjadi khusus BUNDLE_FINISH setelah run, belum diukur ulang karena cap biaya ($0.055 dari $0.08). Angka salah 6,7% > 5% sehingga gate belum LANJUT walau e2e memenuhi 85%.",
+      "laporan": "tests/golden/validation_report.md",
+      "hasil_held_out": "tests/golden/production_results_held_out.json",
+      "hasil_tuning": "tests/golden/production_results_tuning.json"
+    },
     "fase_1_tools_production_2026-10-23": {
       "status": "done",
+      "superseded_by": "fase_2_agent_production_2026-10-23",
       "tanggal": "2026-10-23",
       "basis_head": "9060310",
       "tools_production": {

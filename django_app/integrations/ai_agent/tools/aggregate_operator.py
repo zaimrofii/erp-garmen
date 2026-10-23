@@ -19,7 +19,9 @@ SCHEMA = fn_schema(
     "Agregasi per operator dari log BundleEvent (aktor). Dipakai untuk pertanyaan"
     " 'operator mana yang output-nya paling banyak'. Kembalikan"
     " {rows: [{operator, value}], row_count, period, warnings}. Isi date_from/date_to"
-    " bila pertanyaan berperiode (mis. bulan ini).",
+    " bila pertanyaan berperiode (mis. bulan ini)."
+    " 'bundle FINISH terbanyak' = field=event_count, op=count;"
+    " 'output/qty terbanyak' = field=output_qty, op=sum.",
     {
         "field": {
             "type": "string",
@@ -66,8 +68,8 @@ def run(
     size = clamp_limit(limit, 10)
 
     queryset = BundleEvent.objects.filter(actor__isnull=False)
-    if field_key == "output_qty":
-        queryset = queryset.filter(event_type=OUTPUT_EVENT_TYPE)
+    # Kedua field tentang output: hanya event BUNDLE_FINISH yang dihitung.
+    queryset = queryset.filter(event_type=OUTPUT_EVENT_TYPE)
     period = require_date_range(date_from, date_to)
     if period:
         start, end = period

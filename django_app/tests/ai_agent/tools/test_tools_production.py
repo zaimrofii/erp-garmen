@@ -30,8 +30,8 @@ from master.models import Partner
 ENVELOPE_KEYS = {"ok", "error", "data", "row_count", "truncated", "as_of", "filters_applied", "warnings"}
 
 
-def test_registry_berisi_sembilan_tool():
-    assert len(TOOLS) == 9
+def test_registry_berisi_sepuluh_tool():
+    assert len(TOOLS) == 10
     assert set(TOOLS) == {
         "list_records",
         "count_records",
@@ -42,6 +42,7 @@ def test_registry_berisi_sembilan_tool():
         "find_entity",
         "aggregate_operator",
         "get_product_orders",
+        "propose_action",
     }
 
 
@@ -50,8 +51,9 @@ def test_allowlist_role():
     assert "get_metric" not in operator_tools
     assert "aggregate_operator" not in operator_tools
     assert "get_stock" not in operator_tools
+    assert "propose_action" not in operator_tools
     supervisor_tools = {spec.name for spec in get_tools_for_role("SUPERVISOR")}
-    assert len(supervisor_tools) == 9
+    assert len(supervisor_tools) == 10
     assert get_tools_for_role("") == []
 
 
@@ -115,6 +117,17 @@ def test_aggregate_scrap_menerapkan_filter_tanggal():
 
 
 @pytest.mark.django_db
+def test_list_records_filter_is_active():
+    from master.models import Product
+
+    Product.objects.create(code="F2-AKTIF", name="Produk Aktif", sale_price=1000, is_active=True)
+    Product.objects.create(code="F2-NONAKTIF", name="Produk Nonaktif", sale_price=1000, is_active=False)
+    result = list_records.run("product", filters={"is_active": True, "code__startswith": "F2-"})
+    codes = {row["code"] for row in result.data["rows"]}
+    assert codes == {"F2-AKTIF"}
+
+
+@pytest.mark.django_db
 def test_get_metric_envelope_stats():
     result = get_metric.run(
         "garment.lead_time", {"from": "2026-10-19", "to": "2026-10-23"}
@@ -127,6 +140,26 @@ def test_get_metric_envelope_stats():
 def test_find_entity_envelope():
     result = find_entity.run("work_center", "SEWING")
     assert result.ok and {"matches", "ambiguous", "count"} <= set(result.data)
+
+
+@pytest.mark.django_db
+def test_aggregate_operator_event_count_hanya_finish():
+    """G024: event_count = jumlah event BUNDLE_FINISH, bukan semua tipe event."""
+    from django.db.models import Count
+
+    from apps_industry.garment.models import BundleEvent
+
+    expected = {
+        row["actor__username"]: row["value"]
+        for row in BundleEvent.objects.filter(
+            event_type="BUNDLE_FINISH", actor__isnull=False
+        )
+        .values("actor__username")
+        .annotate(value=Count("id"))
+    }
+    result = aggregate_operator.run("event_count", "count", limit=100)
+    got = {row["operator"]: int(row["value"]) for row in result.data["rows"]}
+    assert got == expected
 
 
 @pytest.mark.django_db

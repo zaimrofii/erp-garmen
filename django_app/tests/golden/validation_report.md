@@ -279,5 +279,63 @@ e2e 70,0% (rentang 70–79%). Fokus:
 2. **G026**: prompt wajibkan filter status ("aktif" → `is_active=true`).
 3. **G028**: ukur ulang setelah fix `DATE_FIELD` (angka 70,0% diukur SEBELUM fix).
 
+---
+
+# Fase 2 — Agent Loop Production + Perbaikan Sisa (2026-10-23)
+
+Basis: HEAD `eb8261d`; tree bersih; DeepSeek saja; hard cap $0.08.
+
+## 1. Langkah 1–4 (tanpa LLM) — PASS
+
+| Langkah | Status | Bukti |
+|---|---|---|
+| 1a. G028 — `DATE_FIELD` scrap | **PASS** | `test_aggregate_scrap_menerapkan_filter_tanggal` |
+| 1b. G024 — GT diverifikasi ke DB | **PASS** | OP: `op-eka` 17 event FINISH (op-andi 16); qty_done seri 150 → GT diperjelas ke **jumlah event** |
+| 1c. G026 — filter `is_active` | **PASS** | deskripsi tool + prompt + `test_list_records_filter_is_active` |
+| 2. History asli + klarifikasi ambigu | **PASS** | `test_history_and_clarification.py` (4 kasus) |
+| 3. Prompt final | **PASS** | `agent/prompts.py` + `test_prompts.py` (4 kasus) |
+| 4. `propose_action` → HITL | **PASS** | `test_propose_action.py` (4 kasus) |
+| Regresi | **PASS** | **63 passed** (agent+tools+wrapper), **103 passed** bersama legacy |
+
+Verifikasi DB langsung (bukan output AI): scrap Des 2025 = **0 baris** (all-time 262,
+rentang data 2026-10-08..2026-10-21); customer aktif = **25/25** (total `is_customer` 25,
+vendor membuat hitungan naif jadi 33); FINISH per operator Okt 2026 = op-eka 17, op-andi 16.
+
+## 2. Held-out — agent loop (DeepSeek 3 × 10)
+
+| Metrik | Fase 1 | Fase 2 | Δ |
+|---|---|---|---|
+| Tool | 100,0% | **100,0%** | 0 |
+| Parameter | 100,0% | **100,0%** | 0 |
+| E2E | 70,0% | **90,0%** | **+20,0** |
+| Angka salah / blocked | 6,7% (2/30) | **6,7% (2/30)** | 0 |
+| Biaya | $0.02202956 | **$0.02864428** | +$0,0066 |
+
+Per pertanyaan kunci: **G026 3/3**, **G027 3/3**, **G028 3/3**, **G029 3/3**, **G024 0/3**.
+G024 gagal karena `event_count` masih menghitung SEMUA tipe event (model menjawab
+op-andi 132) sehingga 17 tidak muncul; 2 run diblokir validator. Semantik tool sudah
+diperbaiki SETELAH run (event_count = event BUNDLE_FINISH) — belum diukur ulang (cap).
+
+## 3. Tuning (20 × 1 run)
+
+E2E **75,0%**, tool 90,0%, param 95,0%, blocked **3/20 (15,0%)**, biaya **$0.02642654**.
+
+## 4. Biaya
+
+| Item | USD |
+|---|---|
+| Held-out | 0,02864428 |
+| Tuning | 0,02642654 |
+| **Total Fase 2** | **0,05507082** (cap 0,08) |
+| **Kumulatif** | **0,35970740** dari 0,66 |
+
+## 5. Rekomendasi: PERBAIKI (fokus G024)
+
+E2E 90,0% memenuhi ambang 85%, tetapi **angka salah 6,7% > 5%** sehingga gate belum
+LANJUT. Penyebab tunggal: G024 (tool menghitung semua event; fix semantik sudah masuk
+kode + test, tinggal diukur ulang). Fase 3: jalankan ulang held-out setelah fix,
+lalu klarifikasi penuh + adversarial.
+
+
 
 

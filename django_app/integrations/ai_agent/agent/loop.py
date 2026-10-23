@@ -7,6 +7,7 @@ registry (allowlist + trace AIDecisionLog), lalu mengembalikan `AgentResult`.
 from __future__ import annotations
 
 import json
+import re
 import time
 from dataclasses import dataclass, field
 
@@ -28,6 +29,7 @@ class AgentResult:
     iterations: int = 0
     error: str | None = None
     validator: dict | None = None
+    clarification: dict | None = None
     messages: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -40,7 +42,9 @@ class AgentResult:
             "iterations": self.iterations,
             "error": self.error,
             "validator": self.validator,
+            "clarification": self.clarification,
         }
+
 
 
 def _provider(config: dict):
@@ -74,8 +78,13 @@ def run_agent(
     role: str,
     user=None,
     config: dict | None = None,
+    history: list[dict] | None = None,
 ) -> AgentResult:
-    """Jalankan loop agent (maks `max_iterations`)."""
+    """Jalankan loop agent (maks `max_iterations`).
+
+    `history` = 5-10 turn terakhir [{"role","content"}] dari percakapan asli;
+    dikirim apa adanya sebagai bagian `messages` (tanpa text-merge).
+    """
     config = config or {}
     max_iterations = int(config.get("max_iterations") or DEFAULT_MAX_ITERATIONS)
     max_tokens = int(config.get("max_tokens") or DEFAULT_MAX_TOKENS)
@@ -85,7 +94,26 @@ def run_agent(
 
     result = AgentResult(tokens={"prompt": 0, "completion": 0, "total_cost_usd": 0})
     started = time.monotonic()
-    working = list(messages)
+    working = _compose(messages, history)
+    pending = config.get("pending") or _load_pending(config)
+    if pending:
+        choice = resolve_choice(_last_user_text(working), pending.get("matches") or [])
+        if choice is not None:
+            working.append(
+                {
+                    "role": "system",
+                    "content": (
+                        "Pengguna memilih kandidat: "
+                        f"{choice.get('code') or choice.get('name') or choice.get('id')}."
+                    ),
+                }
+            )
+            _clear_pending(config)
+        else:
+            result.answer = _clarify_text(pending.get("matches") or [])
+            result.clarification = pending
+            result.latency_ms = max(1, int((time.monotonic() - started) * 1000))
+            return result
 
     for iteration in range(1, max_iterations + 1):
         result.iterations = iteration
@@ -113,6 +141,21 @@ def run_agent(
         for call in response.tool_calls:
             outcome = execute_tool(call["name"], call.get("arguments"), role, user)
             result.tool_calls.append(_trace(call, outcome))
+            if (
+                call.get("name") == "find_entity"
+                and isinstance(outcome.data, dict)
+                and outcome.data.get("ambiguous")
+            ):
+                state = {
+                    "kind": "entity_choice",
+                    "matches": list(outcome.data.get("matches") or [])[:5],
+                }
+                _save_pending(config, state)
+                result.answer = _clarify_text(state["matches"])
+                result.clarification = state
+                result.latency_ms = max(1, int((time.monotonic() - started) * 1000))
+                result.messages = working
+                return result
             working.append(
                 {
                     "role": "tool",
@@ -152,4 +195,90 @@ def _last_user_text(messages: list[dict]) -> str:
     return ""
 
 
-__all__ = ("AgentResult", "DEFAULT_MAX_ITERATIONS", "run_agent")
+def _compose(messages: list[dict], history: list[dict] | None) -> list[dict]:
+    """System + history asli (maks 10 turn) + pesan baru, tanpa text-merge."""
+    items = list(messages or [])
+    if not history:
+        return items
+    head = [item for item in items if item.get("role") == "system"]
+    tail = [item for item in items if item.get("role") != "system"]
+    turns = [dict(item) for item in history if item.get("content")][-10:]
+    return head + turns + tail
+
+
+ORDINALS = {
+    "pertama": 0, "1": 0, "satu": 0,
+    "kedua": 1, "2": 1, "dua": 1,
+    "ketiga": 2, "3": 2, "tiga": 2,
+}
+
+
+def resolve_choice(message: str, matches: list[dict]) -> dict | None:
+    """Pilih kandidat dari jawaban user ("yang pertama", kode, atau nama)."""
+    if not matches:
+        return None
+    lowered = str(message or "").lower()
+    for token, index in ORDINALS.items():
+        if re.search(rf"\b{token}\b", lowered) and index < len(matches):
+            return matches[index]
+    for match in matches:
+        for key in ("code", "name"):
+            value = str(match.get(key) or "").lower()
+            if value and value in lowered:
+                return match
+    return None
+
+
+def _clarify_text(matches: list[dict]) -> str:
+    items = ", ".join(
+        f"{index + 1}) {match.get('code') or match.get('name') or match.get('id')}"
+        for index, match in enumerate(matches)
+    )
+    return f"Saya menemukan {len(matches)} kandidat: {items}. Mana yang dimaksud?"
+
+
+def _pending_scope(config: dict) -> tuple[int, str] | None:
+    user_id = config.get("user_id")
+    session_id = config.get("session_id")
+    if not user_id or not session_id:
+        return None
+    return int(user_id), str(session_id)
+
+
+def _save_pending(config: dict, state: dict) -> None:
+    scope = _pending_scope(config)
+    if scope is None:
+        return
+    try:
+        from ..clarification import pending_state
+
+        pending_state.save(scope[0], scope[1], state)
+    except Exception:  # noqa: BLE001 - penyimpanan pending tidak boleh memblokir jawaban
+        pass
+
+
+def _load_pending(config: dict) -> dict | None:
+    scope = _pending_scope(config)
+    if scope is None:
+        return None
+    try:
+        from ..clarification import pending_state
+
+        return pending_state.load(scope[0], scope[1])
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _clear_pending(config: dict) -> None:
+    scope = _pending_scope(config)
+    if scope is None:
+        return
+    try:
+        from ..clarification import pending_state
+
+        pending_state.clear(scope[0], scope[1])
+    except Exception:  # noqa: BLE001
+        pass
+
+
+__all__ = ("AgentResult", "DEFAULT_MAX_ITERATIONS", "resolve_choice", "run_agent")

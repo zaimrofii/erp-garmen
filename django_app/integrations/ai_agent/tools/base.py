@@ -98,6 +98,7 @@ class ToolSpec:
     parameters: dict
     roles: frozenset[str]
     handler: Callable[..., ToolResult]
+    needs_user: bool = False
 
     def schema(self) -> dict:
         """Format OpenAI-compatible `tools` payload."""

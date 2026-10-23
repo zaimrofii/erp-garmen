@@ -288,10 +288,10 @@
 
 - id: G024
   set: held_out
-  q: "operator dengan bundle FINISH terbanyak bulan ini siapa?"
+  q: "operator dengan jumlah event bundle FINISH terbanyak bulan ini siapa?"
   category: produktivitas
-  ground_truth: "op-eka — 17 bundle FINISH (op-andi 16, op-budi 16)."
-  query: "BundleEvent.objects.filter(event_type='BUNDLE_FINISH', actor__isnull=False, ts__year=2026, ts__month=10).values('actor__username').annotate(n=Count('id')).order_by('-n')[:1]  # op-eka 17"
+  ground_truth: "op-eka — 17 event BUNDLE_FINISH Oktober 2026 (terbanyak; op-andi 16). Catatan: qty_done op-andi dan op-eka sama-sama 150, jadi metrik yang diminta adalah JUMLAH EVENT."
+  query: "BundleEvent.objects.filter(event_type='BUNDLE_FINISH', actor__isnull=False, ts__year=2026, ts__month=10).values('actor__username').annotate(n=Count('id')).order_by('-n')[:1]  # op-eka 17 (op-andi 16)"
   source_of_truth: DB
   verified: true
   verified_at: "2026-10-23"

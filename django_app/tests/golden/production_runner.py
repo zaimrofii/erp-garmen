@@ -27,7 +27,7 @@ import yaml  # noqa: E402
 from django.utils import timezone  # noqa: E402
 
 from integrations.ai_agent.agent.loop import run_agent  # noqa: E402
-from integrations.ai_agent.api.views import _AGENT_SYSTEM_PROMPT  # noqa: E402
+from integrations.ai_agent.agent.prompts import build_system_prompt  # noqa: E402
 from tests.golden.spike_runner_v3 import check_ground_truth, load_rules  # noqa: E402
 from tests.golden.validation_runner import EXPECTED, evaluate_tools  # noqa: E402
 
@@ -41,9 +41,7 @@ def run_question(question: dict, rules: dict) -> tuple[dict, float]:
     messages = [
         {
             "role": "system",
-            "content": _AGENT_SYSTEM_PROMPT.format(
-                today=timezone.localdate().isoformat(), role=ROLE
-            ),
+            "content": build_system_prompt(role=ROLE),
         },
         {"role": "user", "content": question["q"]},
     ]

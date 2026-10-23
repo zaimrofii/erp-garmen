@@ -19,6 +19,7 @@ from . import (
     get_record,
     get_stock,
     list_records,
+    propose_action,
 )
 from .base import (
     FORBIDDEN,
@@ -34,9 +35,16 @@ ALL_ROLES = frozenset(
 )
 
 
-def _spec(module, roles) -> ToolSpec:
+def _spec(module, roles, needs_user: bool = False) -> ToolSpec:
     schema = module.SCHEMA["function"]
-    return ToolSpec(module.NAME, schema["description"], schema["parameters"], roles, module.run)
+    return ToolSpec(
+        module.NAME,
+        schema["description"],
+        schema["parameters"],
+        roles,
+        module.run,
+        needs_user=needs_user,
+    )
 
 
 TOOLS: dict[str, ToolSpec] = {
@@ -51,6 +59,7 @@ TOOLS: dict[str, ToolSpec] = {
         _spec(find_entity, find_entity.ALL_ROLES),
         _spec(aggregate_operator, aggregate_operator.SUPERVISOR_PLUS),
         _spec(get_product_orders, get_product_orders.ALL_ROLES),
+        _spec(propose_action, propose_action.SUPERVISOR_PLUS, needs_user=True),
     )
 }
 
@@ -102,7 +111,7 @@ def _log_tool_call(
             tools_called=[
                 {
                     "tool": name,
-                    "args": args,
+                    "args": {key: value for key, value in args.items() if key != "requested_by"},
                     "row_count": result.row_count,
                     "error": result.error,
                     "executed": executed,
@@ -137,6 +146,8 @@ def execute_tool(name: str, args: dict | None, role: str, user=None) -> ToolResu
 
     arguments = args if isinstance(args, dict) else {}
     arguments = _known_arguments(spec, arguments)
+    if spec.needs_user:
+        arguments["requested_by"] = user
     missing = _missing_required(spec, arguments)
     if missing:
         result = ToolResult.failure(INVALID_ARGUMENT, f"argumen wajib kosong: {', '.join(missing)}")

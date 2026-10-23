@@ -144,7 +144,7 @@ class AiChatView(APIView):
             return Response({"ok": False, "error": "forbidden_context"})
 
         if getattr(settings, "AI_AGENT_TOOLS_ENABLED", False):
-            return _agent_response(request, body, role, started=started)
+            return _agent_response(request, body, role, started=started, session_id=session)
 
         outcome = run_pipeline(
             request,
@@ -159,46 +159,30 @@ class AiChatView(APIView):
         return Response(outcome["result"])
 
 
-_AGENT_SYSTEM_PROMPT = """Kamu asisten MES garmen. Hari ini {today} (WIB). Peran user: {role}.
-ATURAN:
-- WAJIB pakai tool untuk pertanyaan data; jangan menghitung/mengarang sendiri.
-- Jawab SEMUA klausa pertanyaan dalam satu jawaban.
-- "minggu ini"/"bulan ini"/"7 hari terakhir" WAJIB diisi date_from dan date_to di tool.
-- Jika hasil tool punya `stats`, pakai field sesuai pertanyaan: "rata-rata" -> stats.avg,
-  "tertinggi"/"termahal" -> stats.max, "terendah"/"termurah" -> stats.min,
-  "terbaru"/"terakhir" -> stats.latest.
-- Jika `stats.count` = 0 atau `row_count` = 0 untuk periode yang diminta, jawab
-  "Tidak ada data untuk periode itu." JANGAN memakai angka periode lain.
-- Jika tool yang dibutuhkan tidak ada, jawab "Informasi ini belum bisa diakses dari sistem."
-- Read-only: jangan menyarankan/melakukan perubahan data."""
-
-
 def _agent_messages(body, role: str) -> list[dict]:
-    from django.utils import timezone
+    from ..agent.prompts import build_system_prompt
 
-    messages = [
-        {
-            "role": "system",
-            "content": _AGENT_SYSTEM_PROMPT.format(
-                today=timezone.localdate().isoformat(), role=role or "USER"
-            ),
-        }
+    return [
+        {"role": "system", "content": build_system_prompt(role=role)},
+        {"role": "user", "content": body.message},
     ]
-    for item in body.history or []:
-        messages.append({"role": item.role, "content": item.content})
-    messages.append({"role": "user", "content": body.message})
-    return messages
 
 
-def _agent_response(request, body, role: str, *, started: float):
+def _agent_response(request, body, role: str, *, started: float, session_id: str = ""):
     """Jalur baru `/ai/chat` (flag AI_AGENT_TOOLS_ENABLED=true)."""
     from ..agent.loop import run_agent
 
+    history = [{"role": item.role, "content": item.content} for item in (body.history or [])]
     result = run_agent(
         _agent_messages(body, role),
         role,
         request.user,
-        config={"max_iterations": getattr(settings, "AI_AGENT_MAX_ITERATIONS", 5)},
+        config={
+            "max_iterations": getattr(settings, "AI_AGENT_MAX_ITERATIONS", 5),
+            "user_id": getattr(request.user, "pk", None),
+            "session_id": session_id,
+        },
+        history=history,
     )
     latency_ms = elapsed_ms(started)
     trace = [
@@ -234,6 +218,8 @@ def _agent_response(request, body, role: str, *, started: float):
     payload["agent_mode"] = "tools"
     payload["iterations"] = result.iterations
     payload["validator"] = result.validator
+    if result.clarification:
+        payload["clarification"] = result.clarification
     return Response(payload)
 
 
