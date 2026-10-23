@@ -32,6 +32,8 @@ from django.utils import timezone  # noqa: E402
 from integrations.ai_agent.config import AI_CONFIG  # noqa: E402
 from tests.golden import spike_tools_v4 as tools  # noqa: E402
 from tests.golden.spike_runner_v3 import (  # noqa: E402
+    _derived_percentages,
+    _subset_stats,
     check_ground_truth,
     load_rules,
     numbers_in_results,
@@ -118,6 +120,10 @@ ATURAN:
   "terbaru"/"terakhir" -> stats.latest. JANGAN memilih field lain.
 - Jika `stats.count` = 0 atau hasil tool kosong, jawab "Tidak ada data untuk periode itu."
   JANGAN mengarang angka.
+- Jika pertanyaan menyebut periode tertentu ("minggu ini", "bulan ini", "hari ini",
+  "7 hari terakhir") DAN hasil tool menunjukkan `stats.count = 0` atau `row_count = 0`
+  untuk periode ITU, jawab "Tidak ada data untuk [periode] itu." JANGAN menjawab angka
+  dari periode lain (mis. all-time).
 - Jika tool yang dibutuhkan tidak tersedia, jawab "Informasi ini belum bisa diakses dari sistem."
 - Read-only: jangan menyarankan/melakukan perubahan data."""
 
@@ -167,10 +173,38 @@ def _matches_pool(value: float, pool: list[float], rules: dict) -> bool:
     return False
 
 
+DIFF_WORDS = ("naik", "turun", "selisih", "beda", "meningkat", "menurun", "bertambah",
+              "berkurang", "kenaikan", "penurunan", "delta")
+
+
+def _derived_close(value: float, references: set[float], rules: dict) -> bool:
+    tolerance = float(
+        ((rules.get("scoring") or {}).get("angka_salah") or {}).get(
+            "derived_tolerance_pct", 5.0
+        )
+    ) / 100
+    for reference in references:
+        if abs(value - reference) <= max(abs(reference) * tolerance, 0.01):
+            return True
+    return False
+
+
+def _derived_diffs(pool: list[float]) -> set[float]:
+    values: set[float] = set()
+    for left in pool:
+        for right in pool:
+            if left == right:
+                continue
+            values.add(round(abs(left - right), 6))
+    return values
+
+
 def validate_answer(question: dict, answer: str, results: list[dict], rules: dict) -> tuple[str, bool]:
     """Validator angka pasca-jawaban. Return (jawaban_final, diblokir).
 
-    Ketat: setiap angka di jawaban harus ada di hasil tool (tanpa angka turunan).
+    Ketat terhadap angka asing, tetapi menerima angka TURUNAN yang sah:
+    sum/avg subset (5%), persen rasio, dan selisih (bila jawaban menyebut
+    "naik/turun/selisih/..."). 0 selalu sah.
     """
     text = re.sub(r"\d{4}-\d{2}-\d{2}", " ", answer or "")
     numbers = parse_numbers(text, rules)
@@ -188,7 +222,22 @@ def validate_answer(question: dict, answer: str, results: list[dict], rules: dic
     pool = numbers_in_results(results, rules)
     if not pool:
         return (BLOCKED_ANSWER, True) if any(v != 0 for v in numbers) else (answer, False)
-    if any(v != 0 and not _matches_pool(v, pool, rules) for v in numbers):
+
+    sums, avgs = _subset_stats(pool)
+    derived: set[float] = set(sums) | set(avgs)
+    lowered = text.lower()
+    if "%" in text or "persen" in lowered:
+        derived |= _derived_percentages(pool)
+    if any(word in lowered for word in DIFF_WORDS):
+        derived |= _derived_diffs(pool)
+
+    for value in numbers:
+        if value == 0:
+            continue  # 0 (mis. count = 0) selalu sah
+        if _matches_pool(value, pool, rules):
+            continue
+        if _derived_close(value, derived, rules):
+            continue
         return BLOCKED_ANSWER, True
     return answer, False
 

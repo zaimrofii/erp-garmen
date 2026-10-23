@@ -41,6 +41,12 @@ def test_aggregate_operator_envelope():
     assert result["period"] == {"from": None, "to": None}
 
 
+def test_baris_operator_memakai_field_operator():
+    rows = T._format_operator_rows([{"actor__username": "budi", "value": 17}])
+    assert rows == [{"operator": "budi", "operator_username": "budi", "value": 17.0}]
+    assert "operator" in rows[0] and "operator_username" in rows[0]
+
+
 @pytest.mark.django_db
 def test_aggregate_operator_filter_tanggal_tercatat_di_period():
     result = T.execute(

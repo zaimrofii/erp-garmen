@@ -31,7 +31,8 @@ def _extra_schemas() -> list[dict]:
                 "description": (
                     "Agregasi per operator (dari BundleEvent.actor). Dipakai untuk pertanyaan"
                     " 'operator siapa yang output-nya terbanyak' atau 'berapa event per operator'."
-                    " Kembalikan {rows: [{operator_username, value}], row_count, period, warnings}."
+                    " Kembalikan {rows: [{operator, operator_username, value}], row_count, period,"
+                    " warnings}."
                     " Isi date_from/date_to bila pertanyaan berperiode (mis. bulan ini)."
                 ),
                 "parameters": {
@@ -112,6 +113,18 @@ def _period(date_from: str | None, date_to: str | None) -> dict:
     }
 
 
+def _format_operator_rows(rows: list[dict]) -> list[dict]:
+    """Envelope baris: `operator` (dibaca scorer) + alias `operator_username`."""
+    return [
+        {
+            "operator": row.get("actor__username"),
+            "operator_username": row.get("actor__username"),
+            "value": float(row.get("value") or 0),
+        }
+        for row in rows
+    ]
+
+
 def aggregate_operator(
     field: str,
     op: str,
@@ -152,13 +165,7 @@ def aggregate_operator(
         .annotate(value=expression)
         .order_by("-value", "actor__username")[:size]
     )
-    formatted = [
-        {
-            "operator_username": row.get("actor__username"),
-            "value": float(row.get("value") or 0),
-        }
-        for row in rows
-    ]
+    formatted = _format_operator_rows(rows)
     warnings: list[str] = []
     if not formatted:
         warnings.append("no_data_in_period")

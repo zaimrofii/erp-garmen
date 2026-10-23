@@ -150,3 +150,65 @@ jangan masuk Fase 1. Bukti pendukung: validator menaikkan presisi angka (16,7% �
 menurunkan e2e (blokir palsu 16,7% held-out, 30% tuning), dan 2 tool baru tidak menutup
 G024/G027 karena masalahnya semantik tool + artefak penilaian, bukan kelengkapan tool.
 
+---
+
+# Putaran Perbaikan Validator — Longgarkan Derived, Field Operator, Prompt G028 (2026-10-23)
+
+Basis: HEAD `0872b21`; tree bersih; DeepSeek saja; hard cap $0.035.
+Diagnosis: validator memblokir jawaban BENAR (G027 3/3, G030 2/3, 6/20 tuning).
+
+## 1. Langkah 1–3 (tanpa LLM) — PASS
+
+| Langkah | Status | Bukti |
+|---|---|---|
+| 1. Validator menerima angka turunan | **PASS** | `pytest tests/golden/test_validator_v1.py` → **18/18** |
+| 2. `aggregate_operator` field `operator` | **PASS** | `pytest tests/golden/test_tools_v4.py` → **10/10** |
+| 3. Prompt periode kosong (G028) | **PASS** | aturan ditambahkan di `system_prompt()` |
+| Regresi suite golden | **PASS** | `pytest tests/golden` → **120 passed** |
+
+Validator v2 menerima: exact match pool, derived sum/avg subset (5%), derived persen
+(hanya bila jawaban memuat `%`/`persen`), derived selisih (hanya bila jawaban memuat
+"naik/turun/selisih/beda/..."), dan angka 0. Pool = seluruh angka numerik di envelope tool
+(`stats`, `series`, `rows`, `numerator`, `denominator`, `value`, dst).
+
+## 2. Held-out (DeepSeek, mode B, 3 × 10)
+
+| Metrik | Sebelum | Sekarang | Δ |
+|---|---|---|---|
+| Tool selection | 100,0% | **100,0%** | 0 |
+| Parameter | 83,3% | **90,0%** | +6,7 |
+| E2E | 56,7% | **73,3%** | **+16,6** |
+| Angka salah | 0,0% | **6,7%** | +6,7 |
+| Validator blocked | 5/30 | **4/30** | −1 |
+
+Sisa kegagalan (tidak dikoreksi):
+- **G024** 0/3: argumen model tidak memuat string "operator" (artefak `must:["operator"]`),
+  GT mengharapkan 17 sedangkan model melaporkan op-andi/op-eka seri; 2 run diblokir.
+- **G028** 0/3: model tetap memakai `aggregate` tanpa `date_from/date_to` sehingga
+  mengembalikan 262 all-time; validator tidak bisa memblokir karena 262 memang ada di hasil tool.
+- **G029** 1/3: 2 run penolakan diblokir validator (jawaban penolakan memuat angka).
+
+## 3. Tuning — TIDAK DIJALANKAN (aturan 5c)
+
+Biaya Langkah 4 = **$0.02614136** > $0.025, jadi Langkah 5 dihentikan; sisa budget putaran
+($0.0089) juga di bawah kebutuhan tuning 20 panggilan (~$0.015).
+
+## 4. Biaya
+
+| Item | USD |
+|---|---|
+| Held-out (30 panggilan) | 0,02614136 |
+| Tuning | — |
+| **Total putaran** | **0,02614136** (cap 0,035) |
+| **Kumulatif proyek** | **0,26192426** dari 0,66 |
+
+## 5. Rekomendasi: PERBAIKI sekali lagi
+
+e2e 73,3% (rentang 70–79%) dan angka salah 6,7% (≤10%). Perbaikan berikutnya, spesifik:
+1. Skor G024: jangan wajibkan string "operator" di argumen (tool tidak punya field itu);
+   samakan semantik GT (qty vs jumlah event).
+2. G028: wajibkan `date_from/date_to` di `aggregate` untuk pertanyaan berperiode, atau
+   kembalikan `period` yang diminta + `no_data_in_period` agar validator bisa menilai.
+3. Validator: jangan memblokir jawaban penolakan (G029) yang memuat angka penjelas.
+
+

@@ -1645,8 +1645,43 @@
       "invariant_data": "PASS",
       "catatan": "15/15 ground truth dihitung via ORM (verified_by=manual_orm); file: tests/golden/questions.yaml. Baseline jalur lama $0: mode deterministic (pipeline asli + NullProvider) 3/15 = 20,0% (lulus harga G005, follow-up ordinal G010, safety G014); mode stub AI_AGENT_ENABLED=false 0/15. Invariant G.4 FAIL: (B) 1 produk di order line berharga Rp0 - Kaos Lapangan id 16 / ODOO-74 pada order S00029; (D) 39 dari 93 order line tanpa product_id (19 order, terbanyak S00004 dan S00007). Spike tidak dijalankan; bersihkan data di Fase 0.4/0.5 lalu ulangi."
     },
+    "fase_validator_fix_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "basis_head": "0872b21",
+      "langkah_1_3": {
+        "validator_fixed": true,
+        "operator_field_fixed": true,
+        "g028_prompt_fixed": true,
+        "test_pass": "validator_v1 18/18, tools_v4 10/10, scoring_v5 8/8; suite golden 120 passed"
+      },
+      "held_out": {
+        "model": "deepseek",
+        "runs_per_question": 3,
+        "tool_pct": 100.0,
+        "param_pct": 90.0,
+        "e2e_pct": 73.3,
+        "angka_salah_pct": 6.7,
+        "validator_blocked": 4,
+        "validator_blocked_total": 30,
+        "biaya_usd": 0.02614136
+      },
+      "tuning": {
+        "e2e_pct": null,
+        "angka_salah_pct": null,
+        "validator_blocked": null,
+        "catatan": "tidak dijalankan: biaya Langkah 4 $0.02614 > $0.025 (aturan 5c) dan sisa budget putaran $0.0089"
+      },
+      "biaya_usd": 0.02614136,
+      "kumulatif_usd": 0.26192426,
+      "rekomendasi": "PERBAIKI",
+      "catatan": "Validator v2 menerima derived sum/avg (5%), persen (bila jawaban memuat %/persen), selisih (bila jawaban memuat naik/turun/selisih), dan angka 0. Held-out e2e 56,7 -> 73,3 (+16,6); param 83,3 -> 90,0; angka salah 0 -> 6,7; blocked 5 -> 4. Sisa: G024 artefak must 'operator' di argumen + GT 17 vs laporan seri op-andi/op-eka (0/3); G028 masih 262 all-time karena aggregate dipanggil tanpa date filter (0/3); G029 2/3 penolakan diblokir validator karena memuat angka.",
+      "laporan": "tests/golden/validation_report.md",
+      "hasil_held_out": "tests/golden/validation_results_held_out.json"
+    },
     "fase_perbaikan_a_2026-10-23": {
       "status": "done",
+      "superseded_by": "fase_validator_fix_2026-10-23",
       "tanggal": "2026-10-23",
       "basis_head": "72334bd",
       "langkah_1_3": {
