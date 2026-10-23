@@ -40,6 +40,16 @@ def test_parse_tahun_diabaikan():
     assert parse_numbers("tahun 2026", RULES) == []
 
 
+def test_parse_desimal_titik_tidak_jadi_ribuan():
+    # "0.375" dari JSON Django = desimal, bukan 375.
+    assert parse_numbers("lead time 0,375 jam (0.375)", RULES) == [0.375, 0.375]
+
+
+def test_parse_rentang_tanggal_diabaikan():
+    assert parse_numbers("periode 1–31 Januari 2026", RULES) == []
+    assert parse_numbers("tanggal 19-25 Okt 2026", RULES) == []
+
+
 # ------------------------------------------------------------- angka_salah
 def test_angka_di_luar_hasil_tool_dianggap_salah():
     # 40 berada di antara 10 dan 90, tetapi range TIDAK lagi diizinkan.

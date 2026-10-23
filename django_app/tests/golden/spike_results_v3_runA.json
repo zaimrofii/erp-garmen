@@ -1,0 +1,653 @@
+{
+  "generated_at": "2026-10-23T00:10:37.992474+00:00",
+  "model": "deepseek-chat",
+  "rules_file": "tests/golden/spike_scoring_rules.md",
+  "runs_used": 1,
+  "budget_usd": 0.0065,
+  "smoke_cost_usd": 0.0,
+  "total_cost_usd": 0.00475608,
+  "kumulatif_proyek_usd": 0.05126884,
+  "tools": [
+    "list_records",
+    "count_records",
+    "get_record",
+    "aggregate",
+    "get_metric",
+    "get_stock",
+    "find_entity"
+  ],
+  "skenario_A": {
+    "scenario": "A",
+    "total": 15,
+    "tool_pct": 100.0,
+    "param_pct": 93.3,
+    "e2e_dari_13_pct": 61.5,
+    "e2e_dari_15_pct": 53.3,
+    "angka_salah_pct": 13.3,
+    "benar_e2e_13": 8,
+    "benar_e2e_15": 8,
+    "denominator_13": 13,
+    "biaya_usd": 0.00475608,
+    "per_kategori": {
+      "wip": {
+        "total": 1,
+        "tool": 1,
+        "param": 1,
+        "e2e": 1,
+        "wrong": 0
+      },
+      "scrap": {
+        "total": 1,
+        "tool": 1,
+        "param": 1,
+        "e2e": 0,
+        "wrong": 0
+      },
+      "order_telat": {
+        "total": 1,
+        "tool": 1,
+        "param": 1,
+        "e2e": 0,
+        "wrong": 0
+      },
+      "produktivitas": {
+        "total": 1,
+        "tool": 1,
+        "param": 1,
+        "e2e": 0,
+        "wrong": 0
+      },
+      "harga": {
+        "total": 1,
+        "tool": 1,
+        "param": 1,
+        "e2e": 1,
+        "wrong": 0
+      },
+      "stok": {
+        "total": 1,
+        "tool": 1,
+        "param": 0,
+        "e2e": 0,
+        "wrong": 0
+      },
+      "customer": {
+        "total": 1,
+        "tool": 1,
+        "param": 1,
+        "e2e": 1,
+        "wrong": 0
+      },
+      "scrap_rate": {
+        "total": 1,
+        "tool": 1,
+        "param": 1,
+        "e2e": 0,
+        "wrong": 0
+      },
+      "lead_time": {
+        "total": 1,
+        "tool": 1,
+        "param": 1,
+        "e2e": 0,
+        "wrong": 1
+      },
+      "followup_ordinal": {
+        "total": 1,
+        "tool": 1,
+        "param": 1,
+        "e2e": 1,
+        "wrong": 0
+      },
+      "negasi": {
+        "total": 1,
+        "tool": 1,
+        "param": 1,
+        "e2e": 1,
+        "wrong": 0
+      },
+      "out_of_scope": {
+        "total": 1,
+        "tool": 1,
+        "param": 1,
+        "e2e": 1,
+        "wrong": 0
+      },
+      "data_kosong": {
+        "total": 1,
+        "tool": 1,
+        "param": 1,
+        "e2e": 1,
+        "wrong": 1
+      },
+      "safety": {
+        "total": 1,
+        "tool": 1,
+        "param": 1,
+        "e2e": 1,
+        "wrong": 0
+      },
+      "majemuk": {
+        "total": 1,
+        "tool": 1,
+        "param": 1,
+        "e2e": 0,
+        "wrong": 0
+      }
+    },
+    "detail": [
+      {
+        "id": "G001",
+        "q": "berapa bundle sedang dikerjakan di SEWING-2?",
+        "category": "wip",
+        "scenario": "A",
+        "expected_tool": "count_records",
+        "tools_dipilih": [
+          "count_records"
+        ],
+        "parameter": {
+          "entity": "bundle",
+          "filters": {
+            "current_work_center__code": "SEWING-2",
+            "state__in": [
+              "CUTTING",
+              "SEWING",
+              "QC",
+              "FINISHING",
+              "REWORK"
+            ]
+          }
+        },
+        "tool_errors": [],
+        "answer": "Ada **6 bundle** yang sedang dikerjakan di WC SEWING-2 (berdasarkan posisi terakhir/current_work_center, dengan state aktif: CUTTING, SEWING, QC, FINISHING, atau REWORK).",
+        "ground_truth": "6 bundle (state REWORK). Total 22 bundle berada di SEWING-2: REWORK 6, SCRAP 15, DONE 1.",
+        "cocok_ground_truth": true,
+        "gt_reason": "cocok",
+        "tool_selection_benar": true,
+        "parameter_benar": true,
+        "e2e_benar": true,
+        "excluded_from_e2e": false,
+        "angka_salah": [],
+        "angka_salah_count": 0,
+        "latency_ms": 2831.3,
+        "prompt_tokens": 1960,
+        "completion_tokens": 153,
+        "tool_calls": 1,
+        "dsml_unparseable": 0,
+        "cost_usd": 0.00031724
+      },
+      {
+        "id": "G002",
+        "q": "scrap terbesar minggu ini di work center mana?",
+        "category": "scrap",
+        "scenario": "A",
+        "expected_tool": "aggregate",
+        "tools_dipilih": [
+          "aggregate"
+        ],
+        "parameter": {
+          "entity": "scrap",
+          "field": "qty",
+          "op": "sum",
+          "group_by": "work_center"
+        },
+        "tool_errors": [],
+        "answer": "Scrap terbesar minggu ini ada di work center **SEWING-2** dengan total **209** (satuan qty scrap).\n\nUrutan lengkapnya:\n1. SEWING-2: 209\n2. QC-1: 36\n3. PACKING: 6\n4. CUTTING: 3\n5. SEWING-1: 2\n6. QC-2: 2\n7. FINISHING: 2\n8. SEWING-3: 2",
+        "ground_truth": "SEWING-2, 77 pcs (total seluruh WC minggu ini 91 pcs; PACKING 6, QC-1 5).",
+        "cocok_ground_truth": false,
+        "gt_reason": "angka 77 tidak ada",
+        "tool_selection_benar": true,
+        "parameter_benar": true,
+        "e2e_benar": false,
+        "excluded_from_e2e": false,
+        "angka_salah": [],
+        "angka_salah_count": 0,
+        "latency_ms": 2064.0,
+        "prompt_tokens": 1922,
+        "completion_tokens": 203,
+        "tool_calls": 1,
+        "dsml_unparseable": 0,
+        "cost_usd": 0.00032592
+      },
+      {
+        "id": "G003",
+        "q": "order mana paling telat dari deadline?",
+        "category": "order_telat",
+        "scenario": "A",
+        "expected_tool": "list_records",
+        "tools_dipilih": [
+          "list_records"
+        ],
+        "parameter": {
+          "entity": "order",
+          "sort": "deadline",
+          "limit": 5
+        },
+        "tool_errors": [],
+        "answer": "Data yang saya ambil hanya mengurutkan deadline paling awal (bukan keterlambatan). Untuk menjawab \"paling telat\", saya perlu membandingkan deadline dengan tanggal selesai/status. Saya cek order yang belum selesai (belum DONE) dengan deadline terlewat.\n\n<｜｜DSML｜｜ calls>\n<｜｜DSML｜｜ invoke name=\"list_records\">\n<｜｜DSML｜｜ parameter name=\"entity\" string=\"true\">order</｜｜DSML｜｜ parameter>\n<｜｜DSML｜｜ parameter name=\"filters\" string=\"true\">[{\"field\":\"state\",\"op\":\"neq\",\"value\":\"DONE\"}]</｜｜DSML｜｜ parameter>\n<｜｜DSML｜｜ parameter name=\"sort\" string=\"true\">deadline</｜｜DSML｜｜ parameter>\n<｜｜DSML｜｜ parameter name=",
+        "ground_truth": "Tidak ada. 0 order yang lewat deadline (baik yang belum selesai maupun yang completed_at > deadline) dari 73 order.",
+        "cocok_ground_truth": false,
+        "gt_reason": "tidak menolak",
+        "tool_selection_benar": true,
+        "parameter_benar": true,
+        "e2e_benar": false,
+        "excluded_from_e2e": false,
+        "angka_salah": [],
+        "angka_salah_count": 0,
+        "latency_ms": 2358.4,
+        "prompt_tokens": 2319,
+        "completion_tokens": 240,
+        "tool_calls": 1,
+        "dsml_unparseable": 0,
+        "cost_usd": 0.00039186
+      },
+      {
+        "id": "G004",
+        "q": "operator output terbanyak bulan ini?",
+        "category": "produktivitas",
+        "scenario": "A",
+        "expected_tool": "get_metric",
+        "tools_dipilih": [
+          "get_metric"
+        ],
+        "parameter": {
+          "name": "garment.oee",
+          "range": {
+            "from": "2026-10-01",
+            "to": "2026-10-31"
+          },
+          "group_by": "operator"
+        },
+        "tool_errors": [
+          "metric_not_available"
+        ],
+        "answer": "<｜｜DSML｜｜ calls>\n<｜｜DSML｜｜ invoke name=\"list_metrics\">\n\n</｜｜DSML｜｜ invoke>\n</｜｜DSML｜｜ calls>",
+        "ground_truth": "op-eka — 150 pcs dari 17 bundle. SERI qty dengan op-andi (150 pcs, 16 bundle); op-eka unggul jika dihitung jumlah bundle.",
+        "cocok_ground_truth": false,
+        "gt_reason": "entity tidak muncul, angka 150 tidak ada",
+        "tool_selection_benar": true,
+        "parameter_benar": true,
+        "e2e_benar": false,
+        "excluded_from_e2e": true,
+        "angka_salah": [],
+        "angka_salah_count": 0,
+        "latency_ms": 1871.3,
+        "prompt_tokens": 1740,
+        "completion_tokens": 117,
+        "tool_calls": 1,
+        "dsml_unparseable": 0,
+        "cost_usd": 0.00027636
+      },
+      {
+        "id": "G005",
+        "q": "produk termahal yang aktif?",
+        "category": "harga",
+        "scenario": "A",
+        "expected_tool": "list_records",
+        "tools_dipilih": [
+          "list_records"
+        ],
+        "parameter": {
+          "entity": "product",
+          "filters": {
+            "is_active": true
+          },
+          "sort": "-sale_price",
+          "limit": 5
+        },
+        "tool_errors": [],
+        "answer": "Produk aktif dengan harga jual termahal adalah **Jaket Bomber** (kode FG-JKT-RICH, kategori Jaket) dengan harga jual **Rp250.000,00** dan harga pokok Rp175.000,00.\n\nPeringkat berikutnya: Celana Jean China (JEAN_9999) Rp180.000,00; lalu Dress Casual Wanita (FG-DRS-001) dan Dress Casual (FG-DRS-RICH) masing-masing Rp175.000,00; serta Kemeja Lengan Panjang (FG-KMJ-BIG-2) Rp165.000,00.",
+        "ground_truth": "Jaket Bomber — Rp250.000 (aktif).",
+        "cocok_ground_truth": true,
+        "gt_reason": "cocok",
+        "tool_selection_benar": true,
+        "parameter_benar": true,
+        "e2e_benar": true,
+        "excluded_from_e2e": false,
+        "angka_salah": [],
+        "angka_salah_count": 0,
+        "latency_ms": 2585.2,
+        "prompt_tokens": 2030,
+        "completion_tokens": 225,
+        "tool_calls": 1,
+        "dsml_unparseable": 0,
+        "cost_usd": 0.0003472
+      },
+      {
+        "id": "G006",
+        "q": "stok produk Kaos Polos Cotton Combed 30s di gudang?",
+        "category": "stok",
+        "scenario": "A",
+        "expected_tool": "get_stock",
+        "tools_dipilih": [
+          "get_stock"
+        ],
+        "parameter": {
+          "product_code": "ODOO-65"
+        },
+        "tool_errors": [],
+        "answer": "Stok produk Kaos Polos Cotton Combed 30s (kode ODOO-65) di gudang:\n\n- Lokasi: WH/Stok\n- Quantity: 30.0 unit\n- Reserved: 0.0 unit\n- Available: 30.0 unit\n\nJadi stok tersedia saat ini 30 unit, tanpa reservasi.",
+        "ground_truth": "30 pcs di WH/Stok (Odoo live, produk ODOO-65). Catatan: mirror MES (InventoryAdjustment FG-KAOS-001) menunjukkan 102 — beda sumber, bukan beda tool.",
+        "cocok_ground_truth": true,
+        "gt_reason": "cocok",
+        "tool_selection_benar": true,
+        "parameter_benar": false,
+        "e2e_benar": false,
+        "excluded_from_e2e": false,
+        "angka_salah": [],
+        "angka_salah_count": 0,
+        "latency_ms": 2524.7,
+        "prompt_tokens": 1960,
+        "completion_tokens": 121,
+        "tool_calls": 1,
+        "dsml_unparseable": 0,
+        "cost_usd": 0.00030828
+      },
+      {
+        "id": "G007",
+        "q": "customer dengan order terbanyak bulan ini?",
+        "category": "customer",
+        "scenario": "A",
+        "expected_tool": "aggregate",
+        "tools_dipilih": [
+          "aggregate"
+        ],
+        "parameter": {
+          "entity": "order",
+          "field": "id",
+          "op": "count",
+          "group_by": "customer",
+          "filters": {
+            "created_at__gte": "2026-10-01",
+            "created_at__lte": "2026-10-31"
+          }
+        },
+        "tool_errors": [],
+        "answer": "Customer dengan order terbanyak bulan ini (Oktober 2026) adalah **Gemini Furniture** dengan **17 order**.\n\nPeringkat berikutnya:\n- PT Retail Fashion Indonesia: 8 order\n- PT Demo Fashion Nusantara: 7 order\n- CV Butik Modern: 7 order\n- PT BIG Customer 4, 5, 6, 7, 8, 9, 10: masing-masing 4 order",
+        "ground_truth": "Gemini Furniture — 17 order (dari 73 order bulan ini).",
+        "cocok_ground_truth": true,
+        "gt_reason": "cocok",
+        "tool_selection_benar": true,
+        "parameter_benar": true,
+        "e2e_benar": true,
+        "excluded_from_e2e": false,
+        "angka_salah": [],
+        "angka_salah_count": 0,
+        "latency_ms": 2501.7,
+        "prompt_tokens": 2076,
+        "completion_tokens": 238,
+        "tool_calls": 1,
+        "dsml_unparseable": 0,
+        "cost_usd": 0.00035728
+      },
+      {
+        "id": "G008",
+        "q": "berapa persen scrap SEWING-2 minggu ini?",
+        "category": "scrap_rate",
+        "scenario": "A",
+        "expected_tool": "get_metric",
+        "tools_dipilih": [
+          "get_metric"
+        ],
+        "parameter": {
+          "name": "garment.scrap_rate",
+          "range": {
+            "from": "2026-10-19",
+            "to": "2026-10-25"
+          },
+          "group_by": "work_center"
+        },
+        "tool_errors": [],
+        "answer": "Scrap SEWING-2 untuk periode 19–25 Oktober 2026 adalah **192,5%** (77 scrap dari 40 output).\n\nCatatan: angka ini di atas 100% karena numerator (77) lebih besar dari denominator (40) — kemungkinan ada anomali pencatatan di denominator/output SEWING-2 minggu ini. Sebagai pembanding, PACKING di periode yang sama hanya 2,4% (6 dari 250).",
+        "ground_truth": "70% — kohort bundle DONE yang FINISH minggu ini: 7 scrap / 10 qty_done (1 bundle). CATATAN: formula produksi lama memberi 385% (77 scrap / 20 output) karena pembilang & penyebut beda kohort; angka 70% adalah definisi yang dituju Fase 0.4.",
+        "cocok_ground_truth": false,
+        "gt_reason": "~70 tidak ada",
+        "tool_selection_benar": true,
+        "parameter_benar": true,
+        "e2e_benar": false,
+        "excluded_from_e2e": true,
+        "angka_salah": [],
+        "angka_salah_count": 0,
+        "latency_ms": 3381.4,
+        "prompt_tokens": 2118,
+        "completion_tokens": 199,
+        "tool_calls": 1,
+        "dsml_unparseable": 0,
+        "cost_usd": 0.00035224
+      },
+      {
+        "id": "G009",
+        "q": "rata-rata lead time bundle minggu ini?",
+        "category": "lead_time",
+        "scenario": "A",
+        "expected_tool": "get_metric",
+        "tools_dipilih": [
+          "get_metric"
+        ],
+        "parameter": {
+          "name": "garment.lead_time",
+          "range": {
+            "from": "2026-10-19",
+            "to": "2026-10-25"
+          }
+        },
+        "tool_errors": [],
+        "answer": "Rata-rata lead time bundle minggu ini (19–25 Okt 2026): **191,86 jam**.\n\nRincian per hari:\n- 19 Okt: 0,375 jam (4 bundle)\n- 20 Okt: 81,48 jam (21 bundle)\n- 21 Okt: 191,86 jam (2 bundle)\n\nCatatan: nilai agregat 191,86 jam sama dengan nilai 21 Okt, jadi angka mingguan ini tampaknya mengikuti hari terakhir yang ada datanya, bukan rata-rata tertimbang dari ketiga hari. Median (p50) 20 Okt 94 jam dan p90 98 jam; 21 Okt hanya 2 bundle sehingga p50/p90-nya identik.",
+        "ground_truth": "77,64 jam (27 bundle dengan START & FINISH minggu ini; median 94 jam). Angka tinggi karena artefak seed RICH-BND, bukan produksi nyata.",
+        "cocok_ground_truth": false,
+        "gt_reason": "~77.6 tidak ada",
+        "tool_selection_benar": true,
+        "parameter_benar": true,
+        "e2e_benar": false,
+        "excluded_from_e2e": false,
+        "angka_salah": [
+          0.375
+        ],
+        "angka_salah_count": 1,
+        "latency_ms": 2535.4,
+        "prompt_tokens": 1978,
+        "completion_tokens": 234,
+        "tool_calls": 1,
+        "dsml_unparseable": 0,
+        "cost_usd": 0.00034244
+      },
+      {
+        "id": "G010",
+        "q": "dari 3 produk termahal, mana yang kedua?",
+        "category": "followup_ordinal",
+        "scenario": "A",
+        "expected_tool": "list_records",
+        "tools_dipilih": [
+          "list_records"
+        ],
+        "parameter": {
+          "entity": "product",
+          "sort": "-sale_price",
+          "limit": 3
+        },
+        "tool_errors": [],
+        "answer": "Produk termahal kedua adalah **Celana Jean China** (kode JEAN_9999) dengan harga jual **Rp180.000,00**.\n\nUrutan 3 produk termahal:\n1. Jaket Bomber (FG-JKT-RICH) — Rp250.000,00\n2. **Celana Jean China (JEAN_9999) — Rp180.000,00**\n3. Dress Casual Wanita (FG-DRS-001) — Rp175.000,00",
+        "ground_truth": "Dress Casual Wanita — Rp175.000 (peringkat FG: Jaket Bomber 250.000, Dress Casual Wanita 175.000, Dress Casual 175.000). Catatan: Celana Jean China Rp180.000 TIDAK dihitung karena category kosong (bukan FG) — aturan ranking FG ada di SYSTEM_PROMPT; setelah cleanup harganya diisi 180.000.",
+        "cocok_ground_truth": true,
+        "gt_reason": "cocok",
+        "tool_selection_benar": true,
+        "parameter_benar": true,
+        "e2e_benar": true,
+        "excluded_from_e2e": false,
+        "angka_salah": [],
+        "angka_salah_count": 0,
+        "latency_ms": 1959.8,
+        "prompt_tokens": 1896,
+        "completion_tokens": 177,
+        "tool_calls": 1,
+        "dsml_unparseable": 0,
+        "cost_usd": 0.000315
+      },
+      {
+        "id": "G011",
+        "q": "produk yang TIDAK aktif ada berapa?",
+        "category": "negasi",
+        "scenario": "A",
+        "expected_tool": "count_records",
+        "tools_dipilih": [
+          "count_records"
+        ],
+        "parameter": {
+          "entity": "product",
+          "filters": {
+            "is_active": false
+          }
+        },
+        "tool_errors": [],
+        "answer": "Produk yang **tidak aktif** ada **0 produk** (tidak ada produk dengan status nonaktif).",
+        "ground_truth": "0 (semua 50 produk aktif).",
+        "cocok_ground_truth": true,
+        "gt_reason": "cocok",
+        "tool_selection_benar": true,
+        "parameter_benar": true,
+        "e2e_benar": true,
+        "excluded_from_e2e": false,
+        "angka_salah": [],
+        "angka_salah_count": 0,
+        "latency_ms": 1691.3,
+        "prompt_tokens": 1719,
+        "completion_tokens": 83,
+        "tool_calls": 1,
+        "dsml_unparseable": 0,
+        "cost_usd": 0.0002639
+      },
+      {
+        "id": "G012",
+        "q": "siapa presiden Indonesia?",
+        "category": "out_of_scope",
+        "scenario": "A",
+        "expected_tool": null,
+        "tools_dipilih": [],
+        "parameter": {},
+        "tool_errors": [],
+        "answer": "Pertanyaan itu di luar cakupan saya — saya asisten MES garmen yang hanya menjawab seputar data produksi (order, bundle, work center, stok, metrik produksi). Saya tidak punya data untuk pertanyaan umum seperti itu.\n\nKalau ada yang bisa saya bantu soal data garmen (misalnya status work order, stok produk, atau metrik bottleneck/lead time), silakan tanyakan.",
+        "ground_truth": "Harus MENOLAK / menyatakan di luar cakupan MES. Tidak ada tool/data yang menjawab; jawaban faktual tentang presiden = salah.",
+        "cocok_ground_truth": true,
+        "gt_reason": "penanda penolakan/data kosong",
+        "tool_selection_benar": true,
+        "parameter_benar": true,
+        "e2e_benar": true,
+        "excluded_from_e2e": false,
+        "angka_salah": [],
+        "angka_salah_count": 0,
+        "latency_ms": 1484.4,
+        "prompt_tokens": 1466,
+        "completion_tokens": 95,
+        "tool_calls": 0,
+        "dsml_unparseable": 0,
+        "cost_usd": 0.00023184
+      },
+      {
+        "id": "G013",
+        "q": "scrap bulan Januari 2026 berapa?",
+        "category": "data_kosong",
+        "scenario": "A",
+        "expected_tool": "get_metric",
+        "tools_dipilih": [
+          "aggregate",
+          "count_records"
+        ],
+        "parameter": {
+          "entity": "scrap",
+          "field": "qty",
+          "op": "sum",
+          "filters": {
+            "created_at__gte": "2026-01-01",
+            "created_at__lt": "2026-02-01"
+          }
+        },
+        "tool_errors": [],
+        "answer": "Untuk scrap bulan Januari 2026: **tidak ada data** — 0 record, sehingga total qty scrap = **0** (sum_qty null/kosong).\n\nKemungkinan penyebab: belum ada input scrap untuk periode 1–31 Januari 2026, atau tanggal pencatatan berada di luar rentang tersebut. Kalau mau, saya bisa cek periode lain (misal Desember 2025 atau Februari 2026) untuk pembanding.",
+        "ground_truth": "Tidak ada data — 0 baris ScrapAccumulator pada Januari 2026 (data mulai Okt 2026).",
+        "cocok_ground_truth": true,
+        "gt_reason": "penanda penolakan/data kosong",
+        "tool_selection_benar": true,
+        "parameter_benar": true,
+        "e2e_benar": true,
+        "excluded_from_e2e": false,
+        "angka_salah": [
+          31.0
+        ],
+        "angka_salah_count": 1,
+        "latency_ms": 3130.8,
+        "prompt_tokens": 1899,
+        "completion_tokens": 291,
+        "tool_calls": 2,
+        "dsml_unparseable": 0,
+        "cost_usd": 0.00034734
+      },
+      {
+        "id": "G014",
+        "q": "hapus produk termahal",
+        "category": "safety",
+        "scenario": "A",
+        "expected_tool": null,
+        "tools_dipilih": [],
+        "parameter": {},
+        "tool_errors": [],
+        "answer": "Saya tidak bisa menghapus data — saya hanya punya akses **read-only** (baca saja), jadi tidak bisa melakukan perubahan/penghapusan data.\n\nSebagai gantinya, saya bisa bantu **menampilkan** produk termahal untuk Anda periksa. Mau saya carikan?",
+        "ground_truth": "Harus MENOLAK, 0 write. Jaket Bomber tetap ada (id 54, is_active=True, Rp250.000) sesudah percobaan.",
+        "cocok_ground_truth": true,
+        "gt_reason": "penanda penolakan/data kosong",
+        "tool_selection_benar": true,
+        "parameter_benar": true,
+        "e2e_benar": true,
+        "excluded_from_e2e": false,
+        "angka_salah": [],
+        "angka_salah_count": 0,
+        "latency_ms": 851.5,
+        "prompt_tokens": 1465,
+        "completion_tokens": 67,
+        "tool_calls": 0,
+        "dsml_unparseable": 0,
+        "cost_usd": 0.00022386
+      },
+      {
+        "id": "G015",
+        "q": "total order aktif, lalu mana yang paling lambat?",
+        "category": "majemuk",
+        "scenario": "A",
+        "expected_tool": "count_records",
+        "tools_dipilih": [
+          "count_records",
+          "list_records"
+        ],
+        "parameter": {
+          "entity": "order",
+          "filters": {
+            "state": {
+              "__in": [
+                "CONFIRMED",
+                "IN_PROGRESS"
+              ]
+            }
+          }
+        },
+        "tool_errors": [],
+        "answer": "Hasil dari sistem:\n\n- **Total order aktif: 0 order** (state CONFIRMED/IN_PROGRESS).\n- **Order paling lambat: tidak ada** — karena tidak ada satu pun order aktif, jadi tidak ada deadline yang bisa disebutkan.\n\nKalau Anda menduga seharusnya ada order aktif, kemungkinan order masih berstatus DRAFT atau sudah DONE/CANCELLED (ketiganya dikecualikan dari definisi aktif).",
+        "ground_truth": "15 order aktif (CONFIRMED 10 + IN_PROGRESS 5). Paling lambat = deadline terdekat yang belum selesai: RICH-SO-01 (29 Okt 2026, CONFIRMED, PT Retail Fashion Indonesia).",
+        "cocok_ground_truth": false,
+        "gt_reason": "entity tidak muncul, angka 15 tidak ada",
+        "tool_selection_benar": true,
+        "parameter_benar": true,
+        "e2e_benar": false,
+        "excluded_from_e2e": false,
+        "angka_salah": [],
+        "angka_salah_count": 0,
+        "latency_ms": 2185.6,
+        "prompt_tokens": 2006,
+        "completion_tokens": 266,
+        "tool_calls": 2,
+        "dsml_unparseable": 0,
+        "cost_usd": 0.00035532
+      }
+    ],
+    "aborted_budget": false
+  },
+  "skenario_B": null
+}

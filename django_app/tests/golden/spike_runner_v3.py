@@ -88,13 +88,23 @@ def parse_numbers(text: str, rules: dict) -> list[float]:
     thousand = cfg.get("thousand_separator", ".")
     decimal = cfg.get("decimal_separator", ",")
     text = re.sub(r"(?i)\brp\.?\s*", "Rp ", text or "")
+    # Rentang tanggal ("19–25 Okt 2026", "1-31 Januari") bukan angka metrik.
+    text = re.sub(
+        r"\b\d{1,2}\s*[–-]\s*\d{1,2}\s*(?:jan|feb|mar|apr|mei|jun|jul|agu|sep|okt|nov|des)\w*",
+        " ",
+        text,
+        flags=re.I,
+    )
 
     out: list[float] = []
     pattern = r"(?<![\w-])(\d[\d.,]*)\s*(ribu|rb|juta)?"
     for match in re.finditer(pattern, text):
         token = match.group(1).rstrip(".,")
         scale_word = (match.group(2) or "").lower()
-        if re.fullmatch(rf"\d{{1,3}}({re.escape(thousand)}\d{{3}})+({re.escape(decimal)}\d+)?", token):
+        if re.fullmatch(r"0\.\d+", token):
+            # "0.375" = desimal (Django JSON memakai titik desimal), bukan 375.
+            value = float(token)
+        elif re.fullmatch(rf"\d{{1,3}}({re.escape(thousand)}\d{{3}})+({re.escape(decimal)}\d+)?", token):
             whole, _, frac = token.replace(thousand, "").partition(decimal)
             value = float(f"{whole}.{frac}" if frac else whole)
         elif re.fullmatch(rf"\d+{re.escape(decimal)}\d+", token):
@@ -531,39 +541,118 @@ def run_scenario(scenario: str, questions: list[dict], rules: dict) -> tuple[dic
     return summary, cost_total
 
 
-def main() -> int:
-    rules = load_rules()
-    questions = yaml.safe_load((BASE / "questions.yaml").read_text(encoding="utf-8"))
-    model_label = str(getattr(settings, "AI_LLM_MODEL", "") or "deepseek-chat")
+def _arg(name: str, default: str | None = None) -> str | None:
+    if name in sys.argv:
+        index = sys.argv.index(name)
+        if index + 1 < len(sys.argv):
+            return sys.argv[index + 1]
+    return default
 
-    global TOTAL_SPENT
-    TOTAL_SPENT = smoke_test(rules, questions)
-    summary_a, cost_a = run_scenario("A", questions, rules)
-    summary_b, cost_b = run_scenario("B", questions, rules)
 
+def merge_outputs() -> int:
+    """Gabungkan hasil dua proses (A dan B) menjadi satu payload final."""
+    path_a = BASE / "spike_results_v3_runA.json"
+    path_b = BASE / "spike_results_v3_runB.json"
+    if not path_a.exists() or not path_b.exists():
+        raise SystemExit("File runA/runB belum ada; jalankan kedua skenario dulu")
+    data_a = json.loads(path_a.read_text(encoding="utf-8"))
+    data_b = json.loads(path_b.read_text(encoding="utf-8"))
+    cost_a = float(data_a.get("total_cost_usd") or 0)
+    cost_b = float(data_b.get("total_cost_usd") or 0)
     payload = {
         "generated_at": datetime.now(dt_tz.utc).isoformat(),
-        "model": model_label,
+        "model": data_a.get("model"),
         "rules_file": "tests/golden/spike_scoring_rules.md",
         "runs_used": 1,
-        "budget_usd": BUDGET_USD,
+        "budget_usd": 0.015,
         "total_cost_usd": round(cost_a + cost_b, 8),
-        "kumulatif_proyek_usd": round(0.0370657 + cost_a + cost_b, 8),
-        "tools": [t["function"]["name"] for t in tools.TOOLS_SCHEMA],
-        "skenario_A": summary_a,
-        "skenario_B": summary_b,
+        "kumulatif_proyek_usd": round(0.04651276 + cost_a + cost_b, 8),
+        "tools": data_a.get("tools"),
+        "skenario_A": data_a["skenario_A"],
+        "skenario_B": data_b["skenario_B"],
     }
     out = BASE / "spike_results_v3.json"
     out.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-
-    for name, summary in (("A", summary_a), ("B", summary_b)):
+    for name in ("A", "B"):
+        summary = payload[f"skenario_{name}"]
         print(
             f"SKENARIO {name}: tool={summary['tool_pct']}% param={summary['param_pct']}% "
             f"e2e13={summary['e2e_dari_13_pct']}% e2e15={summary['e2e_dari_15_pct']}% "
             f"salah={summary['angka_salah_pct']}% biaya=${summary['biaya_usd']:.6f}"
         )
     print(
-        f"TOTAL run ${cost_a + cost_b:.8f} kumulatif ${0.0370657 + cost_a + cost_b:.8f} -> {out}"
+        f"TOTAL ${cost_a + cost_b:.8f} kumulatif ${0.04651276 + cost_a + cost_b:.8f} -> {out}"
+    )
+    return 0
+
+
+def main() -> int:
+    rules = load_rules()
+    questions = yaml.safe_load((BASE / "questions.yaml").read_text(encoding="utf-8"))
+    model_label = str(getattr(settings, "AI_LLM_MODEL", "") or "deepseek-chat")
+
+    if "--merge" in sys.argv:
+        return merge_outputs()
+
+    global BUDGET_USD, TOTAL_SPENT
+    BUDGET_USD = float(_arg("--budget", str(BUDGET_USD)) or BUDGET_USD)
+    scenario = str(_arg("--scenario", "both") or "both").upper()
+    out_name = str(_arg("--out", "spike_results_v3.json") or "spike_results_v3.json")
+
+    spent_smoke = 0.0
+    if "--no-smoke" in sys.argv:
+        print("SMOKE skipped (parser sudah diverifikasi pra-run)")
+    else:
+        spent_smoke = smoke_test(rules, questions)
+    TOTAL_SPENT = spent_smoke
+
+    summary_a = summary_b = None
+    cost_a = cost_b = 0.0
+
+    if scenario in {"A", "BOTH"}:
+        summary_a, cost_a = run_scenario("A", questions, rules)
+
+    if scenario in {"B", "BOTH"}:
+        if scenario == "BOTH":
+            estimate_b = max(cost_a * 1.9, 0.006)
+            if TOTAL_SPENT + estimate_b > BUDGET_USD:
+                print(
+                    f"NOT_ENOUGH_BUDGET_FOR_B: spent ${TOTAL_SPENT:.6f}, "
+                    f"estimasi B ${estimate_b:.6f}, cap ${BUDGET_USD}"
+                )
+            else:
+                summary_b, cost_b = run_scenario("B", questions, rules)
+        else:
+            summary_b, cost_b = run_scenario("B", questions, rules)
+
+    total_cost = round(cost_a + cost_b + spent_smoke, 8)
+    payload = {
+        "generated_at": datetime.now(dt_tz.utc).isoformat(),
+        "model": model_label,
+        "rules_file": "tests/golden/spike_scoring_rules.md",
+        "runs_used": 1,
+        "budget_usd": BUDGET_USD,
+        "smoke_cost_usd": round(spent_smoke, 8),
+        "total_cost_usd": total_cost,
+        "kumulatif_proyek_usd": round(0.04651276 + total_cost, 8),
+        "tools": [t["function"]["name"] for t in tools.TOOLS_SCHEMA],
+        "skenario_A": summary_a,
+        "skenario_B": summary_b,
+    }
+    out = BASE / out_name
+    out.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    for name, summary in (("A", summary_a), ("B", summary_b)):
+        if summary is None:
+            print(f"SKENARIO {name}: TIDAK DIJALANKAN")
+            continue
+        print(
+            f"SKENARIO {name}: tool={summary['tool_pct']}% param={summary['param_pct']}% "
+            f"e2e13={summary['e2e_dari_13_pct']}% e2e15={summary['e2e_dari_15_pct']}% "
+            f"salah={summary['angka_salah_pct']}% biaya=${summary['biaya_usd']:.6f}"
+        )
+    print(
+        f"TOTAL ${total_cost:.8f} kumulatif ${0.04651276 + total_cost:.8f} -> {out}"
     )
     return 0
 

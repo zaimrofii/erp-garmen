@@ -1645,8 +1645,26 @@
       "invariant_data": "PASS",
       "catatan": "15/15 ground truth dihitung via ORM (verified_by=manual_orm); file: tests/golden/questions.yaml. Baseline jalur lama $0: mode deterministic (pipeline asli + NullProvider) 3/15 = 20,0% (lulus harga G005, follow-up ordinal G010, safety G014); mode stub AI_AGENT_ENABLED=false 0/15. Invariant G.4 FAIL: (B) 1 produk di order line berharga Rp0 - Kaos Lapangan id 16 / ODOO-74 pada order S00029; (D) 39 dari 93 order line tanpa product_id (19 order, terbanyak S00004 dan S00007). Spike tidak dijalankan; bersihkan data di Fase 0.4/0.5 lalu ulangi."
     },
+    "fase_spike3_final_2026-10-23": {
+      "status": "blocked",
+      "tanggal": "2026-10-23",
+      "model": "deepseek-chat",
+      "parser_version": "v3-fixed-2",
+      "scoring_rules_version": "strict",
+      "dsml_fix": true,
+      "skenario_A": {"tool_pct": 100.0, "param_pct": 93.3, "e2e_13_pct": 61.5, "e2e_15_pct": 53.3, "angka_salah_pct": 13.3},
+      "skenario_B": {"tool_pct": null, "param_pct": null, "e2e_13_pct": null, "e2e_15_pct": null, "angka_salah_pct": null, "catatan": "tidak dijalankan: budget hard-cap $0.015 tidak cukup setelah A + perbaikan parser"},
+      "runs_used": 1,
+      "biaya_usd": 0.00475608,
+      "biaya_kumulatif_usd": 0.05126884,
+      "rekomendasi": "BERHENTI",
+      "laporan": "tests/golden/spike_report_v3_final.md",
+      "hasil_json": "tests/golden/spike_results_v3_runA.json",
+      "catatan": "Run A selesai (tool 100%, param 93,3%, e2e13 61,5%), tetapi ditemukan 2 cacat parser (0.375 JSON dibaca 375; rentang tanggal 1-31 Januari dibaca 31). Parser diperbaiki SETELAH run (v3-fixed-2, 19 test hijau) sehingga angka_salah run ini tidak sah; e2e tidak terpengaruh. Skenario B TIDAK dijalankan karena sisa hard-cap $0.015 hanya $0.01024 sedangkan run bersih A+B butuh ~$0.0135. Tidak ada koreksi post-hoc. Butuh tambahan ~$0,004-0,005 untuk run bersih A+B."
+    },
     "fase_spike3_2026-10-23": {
       "status": "blocked",
+      "superseded_by": "fase_spike3_final_2026-10-23",
       "tanggal": "2026-10-23",
       "model": "deepseek-chat",
       "biaya_usd": 0.00944706,
