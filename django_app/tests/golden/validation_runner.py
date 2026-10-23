@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import time
 from datetime import datetime, timezone as dt_tz
@@ -29,16 +30,20 @@ from django.conf import settings  # noqa: E402
 from django.utils import timezone  # noqa: E402
 
 from integrations.ai_agent.config import AI_CONFIG  # noqa: E402
-from tests.golden import spike_tools_v3 as tools  # noqa: E402
+from tests.golden import spike_tools_v4 as tools  # noqa: E402
 from tests.golden.spike_runner_v3 import (  # noqa: E402
     check_ground_truth,
     load_rules,
+    numbers_in_results,
     params_match_rules,
+    parse_numbers,
     wrong_numbers,
 )
 
-BUDGET_USD = 0.50
+BUDGET_USD = float(os.environ.get("SPIKE_BUDGET", "0.04"))
 TOTAL_SPENT = 0.0
+# Biaya kumulatif sebelum putaran perbaikan A (dari fase_validasi_2026-10-23).
+PREVIOUS_USD = 0.19474412
 MAX_ROUNDS = 3
 MAX_TOKENS = 250
 TOOL_CONTENT_CAP = 5000
@@ -82,7 +87,7 @@ EXPECTED = {
     "G021": {"tool": "count_records", "must": ["bundle", "qc-1"]},
     "G022": {"tool": "aggregate", "must": ["scrap", "qc-1"]},
     "G023": {"tool": "count_records", "must": ["order"]},
-    "G024": {"tool": None},
+    "G024": {"tool": "aggregate_operator", "must": ["operator"]},
     "G025": {"tool": "get_stock", "must": ["odoo-65"]},
     "G026": {"tool": "count_records", "must": ["customer"]},
     "G027": {"tool": None},
@@ -96,6 +101,9 @@ EXPECT_ALT = {"G002": {"aggregate", "get_metric"}, "G013": {"aggregate", "get_me
               "G020": {"aggregate", "list_records"}, "G022": {"aggregate", "get_metric"},
               "G028": {"aggregate", "get_metric"}}
 REFUSAL_IDS = {"G012", "G014", "G029"}
+BLOCKED_ANSWER = (
+    "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik."
+)
 
 
 def system_prompt() -> str:
@@ -103,10 +111,106 @@ def system_prompt() -> str:
     return f"""Kamu asisten MES garmen. Hari ini {today} (WIB).
 ATURAN:
 - WAJIB pakai tool untuk pertanyaan data; jangan menghitung/mengarang sendiri.
-- Jawab SEMUA klausa pertanyaan (dipisah "dan", "lalu", koma).
+- Jawab SEMUA klausa pertanyaan (dipisah "dan", "lalu", koma) dalam satu jawaban.
 - Untuk "minggu ini" isi date_from awal minggu; "bulan ini" awal bulan; snapshot kosongkan tanggal.
-- Untuk pertanyaan rata-rata pakai stats.avg dari get_metric, bukan nilai hari terakhir.
+- Jika hasil tool punya `stats`, GUNAKAN field sesuai pertanyaan: "rata-rata" -> stats.avg;
+  "tertinggi"/"termahal" -> stats.max; "terendah"/"termurah" -> stats.min;
+  "terbaru"/"terakhir" -> stats.latest. JANGAN memilih field lain.
+- Jika `stats.count` = 0 atau hasil tool kosong, jawab "Tidak ada data untuk periode itu."
+  JANGAN mengarang angka.
+- Jika tool yang dibutuhkan tidak tersedia, jawab "Informasi ini belum bisa diakses dari sistem."
 - Read-only: jangan menyarankan/melakukan perubahan data."""
+
+
+def expected_stat(question_text: str) -> str | None:
+    """Field `stats` yang diminta pertanyaan (None bila pertanyaan tidak minta satu field)."""
+    text = (question_text or "").lower()
+    if "rata-rata" in text or "rata rata" in text:
+        return "avg"
+    if "tertinggi" in text or "termahal" in text or "paling mahal" in text:
+        return "max"
+    if "terendah" in text or "termurah" in text or "paling murah" in text:
+        return "min"
+    if "terbaru" in text or "terakhir" in text:
+        return "latest"
+    return None
+
+
+def latest_stats(results: list[dict]) -> dict | None:
+    for result in reversed(results):
+        if isinstance(result, dict) and isinstance(result.get("stats"), dict):
+            return result["stats"]
+    return None
+
+
+def close_enough(value: float, candidates: list[float], rules: dict) -> bool:
+    tolerance = float((rules.get("tolerance") or {}).get("approx") or 0.02)
+    for candidate in candidates:
+        limit = max(abs(candidate) * tolerance, 0.01)
+        if abs(value - candidate) <= limit:
+            return True
+    return False
+
+
+def _matches_pool(value: float, pool: list[float], rules: dict) -> bool:
+    """Exact untuk bilangan bulat (count/harga), toleransi 2% untuk desimal."""
+    tolerance = float((rules.get("tolerance") or {}).get("approx") or 0.02)
+    integral = float(value).is_integer()
+    for candidate in pool:
+        if integral and float(candidate).is_integer():
+            if value == candidate:
+                return True
+            continue
+        limit = max(abs(candidate) * tolerance, 0.01)
+        if abs(value - candidate) <= limit:
+            return True
+    return False
+
+
+def validate_answer(question: dict, answer: str, results: list[dict], rules: dict) -> tuple[str, bool]:
+    """Validator angka pasca-jawaban. Return (jawaban_final, diblokir).
+
+    Ketat: setiap angka di jawaban harus ada di hasil tool (tanpa angka turunan).
+    """
+    text = re.sub(r"\d{4}-\d{2}-\d{2}", " ", answer or "")
+    numbers = parse_numbers(text, rules)
+
+    stats = latest_stats(results)
+    if stats:
+        wanted = expected_stat(question.get("q", ""))
+        target = stats.get(wanted) if wanted else None
+        if target is not None and numbers and not close_enough(float(target), numbers, rules):
+            return BLOCKED_ANSWER, True
+
+    if not numbers:
+        return answer, False
+
+    pool = numbers_in_results(results, rules)
+    if not pool:
+        return (BLOCKED_ANSWER, True) if any(v != 0 for v in numbers) else (answer, False)
+    if any(v != 0 and not _matches_pool(v, pool, rules) for v in numbers):
+        return BLOCKED_ANSWER, True
+    return answer, False
+
+
+def evaluate_tools(
+    question_id: str,
+    tool_names: list[str],
+    arguments_list: list[dict],
+    expected: dict,
+    rules: dict,
+) -> tuple[bool, bool]:
+    """Tool & parameter dinilai dari SELURUH rantai tool, bukan hanya tool pertama."""
+    if expected.get("tool") is None:
+        # Penolakan / tool tidak tersedia: tool baca-saja tidak mengubah data -> LULUS.
+        return True, True
+    allowed = EXPECT_ALT.get(question_id, {expected["tool"]})
+    tool_ok = any(name in allowed for name in tool_names)
+    params_ok = any(
+        params_match_rules(question_id, arguments, expected, rules)
+        for arguments in arguments_list
+    )
+    return tool_ok, params_ok
 
 
 def call_model(model: str, messages: list[dict], with_tools: bool = True) -> dict:
@@ -200,25 +304,25 @@ def run_once(model: str, question: dict, rules: dict) -> tuple[dict, float]:
         ).strip()
 
     expected = EXPECTED.get(question["id"], {"tool": None})
-    first_args = arguments_list[0] if arguments_list else {}
-    if question["id"] in REFUSAL_IDS:
-        tool_ok = params_ok = True
-    else:
-        allowed = EXPECT_ALT.get(
-            question["id"], {expected["tool"]} if expected["tool"] else set()
-        )
-        tool_ok = any(name in allowed for name in tool_names)
-        params_ok = params_match_rules(question["id"], first_args, expected, rules)
+    tool_ok, params_ok = evaluate_tools(
+        question["id"], tool_names, arguments_list, expected, rules
+    )
+
+    raw_answer = answer
+    answer, blocked = validate_answer(question, answer, results, rules)
 
     gt_ok, gt_reason = check_ground_truth(question, answer, rules)
-    bad = wrong_numbers(answer, results, rules)
+    bad = [] if blocked else wrong_numbers(answer, results, rules)
 
     row = {
         "id": question["id"],
         "category": question["category"],
         "tools": tool_names,
-        "parameter": first_args,
+        "parameter": arguments_list[0] if arguments_list else {},
+        "arguments": arguments_list,
         "answer": answer[:500],
+        "answer_raw": raw_answer[:300],
+        "validator_blocked": bool(blocked),
         "expected_tool": expected["tool"],
         "tool_ok": bool(tool_ok),
         "param_ok": bool(params_ok),
@@ -248,6 +352,10 @@ def summarize(rows: list[dict], model: str, cost: float) -> dict:
         "e2e_pct": pct(sum(1 for r in rows if r["e2e"]), total),
         "e2e_dari_18_pct": pct(sum(1 for r in scored if r["e2e"]), len(scored)),
         "angka_salah_pct": pct(sum(1 for r in rows if r["angka_salah"]), total),
+        "validator_blocked_count": sum(1 for r in rows if r.get("validator_blocked")),
+        "validator_blocked_pct": pct(
+            sum(1 for r in rows if r.get("validator_blocked")), total
+        ),
         "latensi_p50": lat[len(lat) // 2] if lat else 0,
         "latensi_p95": lat[int(len(lat) * 0.95) - 1] if lat else 0,
         "biaya_usd": round(cost, 8),
@@ -305,6 +413,9 @@ def main() -> int:
         chosen = sys.argv[sys.argv.index("--model") + 1].split(",")
     else:
         chosen = ["deepseek"]
+    repeats = 3
+    if "--repeats" in sys.argv:
+        repeats = max(1, int(sys.argv[sys.argv.index("--repeats") + 1]))
 
     out: dict = {
         "generated_at": datetime.now(dt_tz.utc).isoformat(),
@@ -326,7 +437,7 @@ def main() -> int:
             print("gemini: TIDAK TERSEDIA (kredensial bukan kunci Google)")
             continue
         try:
-            summary = run_model(model, questions, rules)
+            summary = run_model(model, questions, rules, repeats=repeats)
         except Exception as exc:  # noqa: BLE001
             out[model] = {"available": False, "reason": str(exc)[:200]}
             print(f"{model}: GAGAL ({exc})")
@@ -335,7 +446,7 @@ def main() -> int:
         total += summary["biaya_usd"]
 
     out["total_cost_usd"] = round(total, 8)
-    out["kumulatif_proyek_usd"] = round(0.05906768 + total, 8)
+    out["kumulatif_proyek_usd"] = round(PREVIOUS_USD + total, 8)
     (BASE / f"validation_results_{set_name}.json").write_text(
         json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8"
     )
@@ -349,7 +460,7 @@ def main() -> int:
             f"e2e={summary['e2e_pct']}% e2e18={summary['e2e_dari_18_pct']}% "
             f"salah={summary['angka_salah_pct']}% biaya=${summary['biaya_usd']:.6f}"
         )
-    print(f"TOTAL ${total:.8f} kumulatif ${0.05906768 + total:.8f}")
+    print(f"TOTAL ${total:.8f} kumulatif ${PREVIOUS_USD + total:.8f}")
     return 0
 
 

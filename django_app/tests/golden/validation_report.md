@@ -87,3 +87,66 @@ namun belum menutup gap sintesis dan dua tool yang hilang.
 4. Perluas definisi no_data (mis. "0 record", "kosong") sebelum run berikutnya.
 
 Gate held-out belum lolos (tool 80% <90, e2e 60% <80, angka salah 16,7% >0). Jangan masuk Fase 1.
+
+---
+
+# Putaran Perbaikan A — Fix Skor, 2 Tool Baru, Prompt + Validator (2026-10-23)
+
+Basis: HEAD `72334bd`; tree bersih; DeepSeek saja; hard cap $0.05.
+
+## 1. Langkah 1–3 (tanpa LLM) — PASS
+
+| Langkah | Status | Bukti |
+|---|---|---|
+| 1. Fix skor (param lintas-rantai, `expected: null`) | **PASS** | `pytest tests/golden/test_scoring_v5.py` → **8/8** |
+| 2. Tool 8 `aggregate_operator` + tool 9 `get_product_orders` | **PASS** | `pytest tests/golden/test_tools_v4.py` → **8/8** |
+| 3. Prompt synthesizer + validator angka | **PASS** | `pytest tests/golden/test_validator_v1.py` → **6/6** |
+| Regresi suite golden | **PASS** | `pytest tests/golden` → **107 passed** |
+
+Perubahan:
+- Parameter dinilai dari **seluruh rantai tool** (ada satu tool yang cocok → LULUS).
+- `expected: null` (G012/G014/G027/G029): baca dulu lalu menolak = LULUS; tidak ada tool tulis.
+- Prompt: `stats` → field sesuai pertanyaan, `count = 0` → "Tidak ada data", multi-klausa, tool kurang.
+- Validator: setiap angka jawaban harus ada di hasil tool (exact integer, 2% desimal);
+  jika minta rata-rata → wajib `stats.avg`; pelanggaran → jawaban diganti + `validator_blocked`.
+
+## 2. Held-out (DeepSeek, mode B, 3 run × 10) — TIDAK dipakai untuk tuning
+
+| Metrik | Sebelum | Sekarang | Δ |
+|---|---|---|---|
+| Tool selection | 80,0% | **100,0%** | +20,0 |
+| Parameter | 93,3% | **83,3%** | −10,0 |
+| E2E | 60,0% | **56,7%** | −3,3 |
+| Angka salah | 16,7% | **0,0%** | −16,7 |
+| Validator blocked | — | **5/30 (16,7%)** | — |
+
+Kegagalan (semua sebelum validator, tidak dikoreksi):
+- **G024** 0/3: parameter dinilai `must:["operator"]` padahal tool tidak punya field itu
+  (artefak skor), dan GT 17 (qty) vs jawaban model (jumlah event) — semantik tool ambigu.
+- **G027** 0/3: jawaban benar 34 **diblokir validator** karena 34 hasil turunan, bukan angka mentah tool.
+- **G028** 0/3: scrap Des 2025 dijawab 262 (nilai all-time) — tidak ada deteksi periode kosong.
+- **G030** 1/3: 2 run diblokir validator untuk angka turunan (100/15).
+- **G022** 1/3 gagal parameter (artefak: filter memakai id, bukan teks "qc-1").
+
+## 3. Tuning (DeepSeek, 1 run × 20) — regresi
+
+E2E **40,0%** (sebelumnya 58,3%), angka salah **0,0%**, `validator_blocked` **6/20**.
+Regresi terutama dari validator yang memblokir angka turunan yang sah (G010/G016/G017/G020)
+dan DSML bocor di G003. Perbandingan 1 run vs 3 run sebelumnya = derau, bukan tren.
+
+## 4. Biaya
+
+| Item | USD |
+|---|---|
+| Held-out (30 panggilan) | 0,02560978 |
+| Tuning (20 panggilan) | 0,01542898 |
+| **Total putaran** | **0,04103876** (cap 0,05) |
+| **Kumulatif proyek** | **0,23578290** dari 0,66 |
+
+## 5. Rekomendasi: BERHENTI
+
+Gate held-out: e2e 56,7% < 60% (tool 100%, angka salah 0%). Sesuai aturan gerbang → **BERHENTI**;
+jangan masuk Fase 1. Bukti pendukung: validator menaikkan presisi angka (16,7% → 0%) tetapi
+menurunkan e2e (blokir palsu 16,7% held-out, 30% tuning), dan 2 tool baru tidak menutup
+G024/G027 karena masalahnya semantik tool + artefak penilaian, bukan kelengkapan tool.
+

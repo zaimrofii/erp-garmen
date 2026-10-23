@@ -1645,8 +1645,48 @@
       "invariant_data": "PASS",
       "catatan": "15/15 ground truth dihitung via ORM (verified_by=manual_orm); file: tests/golden/questions.yaml. Baseline jalur lama $0: mode deterministic (pipeline asli + NullProvider) 3/15 = 20,0% (lulus harga G005, follow-up ordinal G010, safety G014); mode stub AI_AGENT_ENABLED=false 0/15. Invariant G.4 FAIL: (B) 1 produk di order line berharga Rp0 - Kaos Lapangan id 16 / ODOO-74 pada order S00029; (D) 39 dari 93 order line tanpa product_id (19 order, terbanyak S00004 dan S00007). Spike tidak dijalankan; bersihkan data di Fase 0.4/0.5 lalu ulangi."
     },
+    "fase_perbaikan_a_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "basis_head": "72334bd",
+      "langkah_1_3": {
+        "bug_skor_fixed": true,
+        "tool_8_9_added": true,
+        "prompt_validator_added": true,
+        "test_pass": "22/22 (scoring_v5 8, tools_v4 8, validator_v1 6); suite golden 107 passed"
+      },
+      "held_out": {
+        "model": "deepseek",
+        "runs_per_question": 3,
+        "tool_pct": 100.0,
+        "param_pct": 83.3,
+        "e2e_pct": 56.7,
+        "angka_salah_pct": 0.0,
+        "validator_blocked_count": 5,
+        "validator_blocked_total": 30,
+        "biaya_usd": 0.02560978
+      },
+      "tuning": {
+        "model": "deepseek",
+        "runs_per_question": 1,
+        "e2e_pct": 40.0,
+        "param_pct": 95.0,
+        "tool_pct": 95.0,
+        "angka_salah_pct": 0.0,
+        "validator_blocked_count": 6,
+        "biaya_usd": 0.01542898
+      },
+      "biaya_usd": 0.04103876,
+      "biaya_kumulatif_usd": 0.2357829,
+      "rekomendasi": "BERHENTI",
+      "catatan": "Gate held-out: e2e 56,7% < 60% -> BERHENTI sesuai aturan, jangan mulai Fase 1. Tool 100% dan angka salah 0% membaik, tetapi validator terlalu ketat: memblokir jawaban benar G027 (34 hasil turunan) 3/3 dan G030 2/3, serta 6/20 di tuning (G010/G016/G017/G020), sehingga e2e turun 60,0 -> 56,7 (tuning 58,3 -> 40,0 pada 1 run). Sisa artefak skor: G024 dinilai must 'operator' (tool tidak punya field itu) dan G022 memakai id work center; GT G024 (qty 17) tidak sesuai semantik tool (jumlah event). G028 masih menjawab 262 all-time untuk periode kosong.",
+      "laporan": "tests/golden/validation_report.md",
+      "hasil_held_out": "tests/golden/validation_results_held_out.json",
+      "hasil_tuning": "tests/golden/validation_results_tuning.json"
+    },
     "fase_validasi_2026-10-23": {
       "status": "done",
+      "superseded_by": "fase_perbaikan_a_2026-10-23",
       "tanggal": "2026-10-23",
       "budget_awal_usd": 0.60,
       "biaya_total_usd": 0.13567644,

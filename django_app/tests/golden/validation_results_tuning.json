@@ -1,0 +1,766 @@
+{
+  "generated_at": "2026-10-23T02:45:22.838990+00:00",
+  "set": "tuning",
+  "questions_total": 20,
+  "deepseek": {
+    "model": "deepseek",
+    "total": 20,
+    "tool_pct": 95.0,
+    "param_pct": 95.0,
+    "e2e_pct": 40.0,
+    "e2e_dari_18_pct": 38.9,
+    "angka_salah_pct": 0.0,
+    "validator_blocked_count": 6,
+    "validator_blocked_pct": 30.0,
+    "latensi_p50": 2575.3,
+    "latensi_p95": 3492.7,
+    "biaya_usd": 0.01542898,
+    "detail": [
+      {
+        "id": "G001",
+        "category": "wip",
+        "tools": [
+          "count_records",
+          "list_records"
+        ],
+        "parameter": {
+          "entity": "bundle",
+          "filters": {
+            "current_work_center__code": "SEWING-2",
+            "state__in": [
+              "CUTTING",
+              "SEWING",
+              "QC",
+              "FINISHING",
+              "REWORK"
+            ]
+          }
+        },
+        "arguments": [
+          {
+            "entity": "bundle",
+            "filters": {
+              "current_work_center__code": "SEWING-2",
+              "state__in": [
+                "CUTTING",
+                "SEWING",
+                "QC",
+                "FINISHING",
+                "REWORK"
+              ]
+            }
+          },
+          {
+            "entity": "bundle",
+            "filters": {
+              "current_work_center__code": "SEWING-2",
+              "state__in": [
+                "CUTTING",
+                "SEWING",
+                "QC",
+                "FINISHING",
+                "REWORK"
+              ]
+            },
+            "limit": 100
+          }
+        ],
+        "answer": "Ada **6 bundle** yang sedang dikerjakan di SEWING-2 (posisi terakhir di Sewing 2, state aktif):\n\n| Kode Bundle | Order | Produk | Size | Qty | Qty Done | State | Line |\n|---|---|---|---|---|---|---|---|\n| RICH-BND-45 | RICH-SO-09 | Celana Chino | M | 10 | 0 | REWORK | Line-A |\n| RICH-BND-44 | RICH-SO-09 | Celana Chino | S | 10 | 0 | REWORK | Line-C |\n| RICH-BND-43 | RICH-SO-09 | Celana Chino | XL | 10 | 0 | REWORK | Line-B |\n| RICH-BND-42 | RICH-SO-08 | Dress Casual | L | 10 | 0 | REWORK | Line-",
+        "answer_raw": "Ada **6 bundle** yang sedang dikerjakan di SEWING-2 (posisi terakhir di Sewing 2, state aktif):\n\n| Kode Bundle | Order | Produk | Size | Qty | Qty Done | State | Line |\n|---|---|---|---|---|---|---|---|\n| RICH-BND-45 | RICH-SO-09 | Celana Chino | M | 10 | 0 | REWORK | Line-A |\n| RICH-BND-44 | RICH-S",
+        "validator_blocked": false,
+        "expected_tool": "count_records",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": true,
+        "gt_reason": "cocok",
+        "e2e": true,
+        "angka_salah": [],
+        "latency_ms": 3492.7,
+        "cost_usd": 0.00099778,
+        "repeat": 1
+      },
+      {
+        "id": "G002",
+        "category": "scrap",
+        "tools": [
+          "aggregate"
+        ],
+        "parameter": {
+          "entity": "scrap",
+          "field": "qty",
+          "op": "sum",
+          "group_by": "work_center",
+          "date_from": "2026-10-19",
+          "date_to": "2026-10-23"
+        },
+        "arguments": [
+          {
+            "entity": "scrap",
+            "field": "qty",
+            "op": "sum",
+            "group_by": "work_center",
+            "date_from": "2026-10-19",
+            "date_to": "2026-10-23"
+          }
+        ],
+        "answer": "Scrap terbesar minggu ini (19–23 Okt 2026) ada di **SEWING-2**, dengan total qty scrap **209**.\n\nRincian per work center:\n| Work Center | Total Scrap Qty |\n|---|---|\n| SEWING-2 | 209 |\n| QC-1 | 36 |\n| PACKING | 6 |\n| CUTTING | 3 |\n| SEWING-1 | 2 |\n| QC-2 | 2 |\n| FINISHING | 2 |\n| SEWING-3 | 2 |",
+        "answer_raw": "Scrap terbesar minggu ini (19–23 Okt 2026) ada di **SEWING-2**, dengan total qty scrap **209**.\n\nRincian per work center:\n| Work Center | Total Scrap Qty |\n|---|---|\n| SEWING-2 | 209 |\n| QC-1 | 36 |\n| PACKING | 6 |\n| CUTTING | 3 |\n| SEWING-1 | 2 |\n| QC-2 | 2 |\n| FINISHING | 2 |\n| SEWING-3 | 2 |",
+        "validator_blocked": false,
+        "expected_tool": "aggregate",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": false,
+        "gt_reason": "angka 77 tidak exact",
+        "e2e": false,
+        "angka_salah": [],
+        "latency_ms": 2686.6,
+        "cost_usd": 0.0007931,
+        "repeat": 1
+      },
+      {
+        "id": "G003",
+        "category": "order_telat",
+        "tools": [
+          "list_records",
+          "list_records",
+          "list_records"
+        ],
+        "parameter": {
+          "entity": "order",
+          "sort": "-days_late",
+          "limit": 5
+        },
+        "arguments": [
+          {
+            "entity": "order",
+            "sort": "-days_late",
+            "limit": 5
+          },
+          {
+            "entity": "order",
+            "filters": {
+              "state": "in_progress"
+            },
+            "sort": "deadline",
+            "limit": 10
+          },
+          {
+            "entity": "order",
+            "limit": 100,
+            "sort": "deadline"
+          }
+        ],
+        "answer": "<｜｜DSML｜｜ calls>\n<｜｜DSML｜｜ invoke name=\"list_records\">\n<｜｜DSML｜｜ parameter name=\"entity\" string=\"true\">order</｜｜DSML｜｜ parameter>\n<｜｜DSML｜｜ parameter name=\"filters\" string=\"false\">{\"is_late\": true}</｜｜DSML｜｜ parameter>\n<｜｜DSML｜｜ parameter name=\"sort\" string=\"true\">-days_late</｜｜DSML｜｜ parameter>\n<｜｜DSML｜｜ parameter name=\"limit\" string=\"false\">5</｜｜DSML｜｜ parameter>\n</｜｜DSML｜｜ invoke>\n</｜｜DSML｜｜ calls>",
+        "answer_raw": "<｜｜DSML｜｜ calls>\n<｜｜DSML｜｜ invoke name=\"list_records\">\n<｜｜DSML｜｜ parameter name=\"entity\" string=\"true\">order</｜｜DSML｜｜ parameter>\n<｜｜DSML｜｜ parameter name=\"filters\" string=\"false\">{\"is_late\": true}</｜｜DSML｜｜ parameter>\n<｜｜DSML｜｜ parameter name=\"sort\" string=\"true\">-days_late</｜｜DSML｜｜ parameter>\n<｜｜",
+        "validator_blocked": false,
+        "expected_tool": "list_records",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": false,
+        "gt_reason": "tidak menolak",
+        "e2e": false,
+        "angka_salah": [],
+        "latency_ms": 5953.3,
+        "cost_usd": 0.00154728,
+        "repeat": 1
+      },
+      {
+        "id": "G004",
+        "category": "produktivitas",
+        "tools": [
+          "aggregate_operator"
+        ],
+        "parameter": {
+          "field": "output_qty",
+          "op": "sum",
+          "date_from": "2026-10-01",
+          "date_to": "2026-10-23",
+          "limit": 10
+        },
+        "arguments": [
+          {
+            "field": "output_qty",
+            "op": "sum",
+            "date_from": "2026-10-01",
+            "date_to": "2026-10-23",
+            "limit": 10
+          }
+        ],
+        "answer": "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik.",
+        "answer_raw": "**Output operator terbanyak bulan ini (1–23 Okt 2026):**\n\n| Peringkat | Operator | Output qty |\n|---|---|---|\n| 1 | op-andi | 150 |\n| 1 | op-eka | 150 |\n| 3 | op-fajar | 140 |\n| 4 | op-budi | 130 |\n| 5 | op-citra | 120 |\n| 5 | op-dewi | 120 |\n\nOutput tertinggi bulan ini adalah **150 qty**, diraih be",
+        "validator_blocked": true,
+        "expected_tool": "get_metric",
+        "tool_ok": false,
+        "param_ok": false,
+        "gt_ok": false,
+        "gt_reason": "entity tidak muncul, angka 150 tidak exact",
+        "e2e": false,
+        "angka_salah": [],
+        "latency_ms": 2801.0,
+        "cost_usd": 0.0007917,
+        "repeat": 1
+      },
+      {
+        "id": "G005",
+        "category": "harga",
+        "tools": [
+          "list_records"
+        ],
+        "parameter": {
+          "entity": "product",
+          "filters": {
+            "is_active": true
+          },
+          "sort": "-sale_price",
+          "limit": 5
+        },
+        "arguments": [
+          {
+            "entity": "product",
+            "filters": {
+              "is_active": true
+            },
+            "sort": "-sale_price",
+            "limit": 5
+          }
+        ],
+        "answer": "Produk aktif dengan harga jual tertinggi adalah **Jaket Bomber** (kode `FG-JKT-RICH`, kategori Jaket) dengan harga jual **Rp 250.000** dan harga pokok Rp 175.000.",
+        "answer_raw": "Produk aktif dengan harga jual tertinggi adalah **Jaket Bomber** (kode `FG-JKT-RICH`, kategori Jaket) dengan harga jual **Rp 250.000** dan harga pokok Rp 175.000.",
+        "validator_blocked": false,
+        "expected_tool": "list_records",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": true,
+        "gt_reason": "cocok",
+        "e2e": true,
+        "angka_salah": [],
+        "latency_ms": 2424.4,
+        "cost_usd": 0.00077126,
+        "repeat": 1
+      },
+      {
+        "id": "G006",
+        "category": "stok",
+        "tools": [
+          "get_stock"
+        ],
+        "parameter": {
+          "product_code": "ODOO-65"
+        },
+        "arguments": [
+          {
+            "product_code": "ODOO-65"
+          }
+        ],
+        "answer": "Stok **Kaos Polos Cotton Combed 30s** (kode ODOO-65) di gudang:\n\n- Lokasi: WH/Stok (internal)\n- Quantity: **30 Units**\n- Reserved: 0\n- Available: **30 Units**\n- Per: 2026-10-23 (WIB)\n\nCatatan: ada produk lokal bernama sama (FG-KAOS-001), namun angka di atas diambil dari ODOO-65 karena stok live ada di Odoo.",
+        "answer_raw": "Stok **Kaos Polos Cotton Combed 30s** (kode ODOO-65) di gudang:\n\n- Lokasi: WH/Stok (internal)\n- Quantity: **30 Units**\n- Reserved: 0\n- Available: **30 Units**\n- Per: 2026-10-23 (WIB)\n\nCatatan: ada produk lokal bernama sama (FG-KAOS-001), namun angka di atas diambil dari ODOO-65 karena stok live ada ",
+        "validator_blocked": false,
+        "expected_tool": "get_stock",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": true,
+        "gt_reason": "cocok",
+        "e2e": true,
+        "angka_salah": [],
+        "latency_ms": 2563.7,
+        "cost_usd": 0.00077224,
+        "repeat": 1
+      },
+      {
+        "id": "G007",
+        "category": "customer",
+        "tools": [
+          "aggregate"
+        ],
+        "parameter": {
+          "entity": "order",
+          "field": "id",
+          "op": "count",
+          "group_by": "customer",
+          "date_from": "2026-10-01",
+          "date_to": "2026-10-23"
+        },
+        "arguments": [
+          {
+            "entity": "order",
+            "field": "id",
+            "op": "count",
+            "group_by": "customer",
+            "date_from": "2026-10-01",
+            "date_to": "2026-10-23"
+          }
+        ],
+        "answer": "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik.",
+        "answer_raw": "**Customer dengan order terbanyak bulan ini (1–23 Okt 2026):**\n\n| Peringkat | Customer | Jumlah Order |\n|---|---|---|\n| 1 | **Gemini Furniture** | **17** |\n| 2 | PT Retail Fashion Indonesia | 8 |\n| 3 | CV Butik Modern | 7 |\n| 3 | PT Demo Fashion Nusantara | 7 |\n| 5 | PT BIG Customer 4, 5, 6, 7, 8, 9",
+        "validator_blocked": true,
+        "expected_tool": "aggregate",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": false,
+        "gt_reason": "entity tidak muncul, angka 17 tidak exact",
+        "e2e": false,
+        "angka_salah": [],
+        "latency_ms": 2860.1,
+        "cost_usd": 0.000833,
+        "repeat": 1
+      },
+      {
+        "id": "G008",
+        "category": "scrap_rate",
+        "tools": [
+          "get_metric"
+        ],
+        "parameter": {
+          "name": "garment.scrap_rate",
+          "range": {
+            "from": "2026-10-19",
+            "to": "2026-10-23"
+          },
+          "group_by": "work_center",
+          "filters": {
+            "work_center": "SEWING-2"
+          }
+        },
+        "arguments": [
+          {
+            "name": "garment.scrap_rate",
+            "range": {
+              "from": "2026-10-19",
+              "to": "2026-10-23"
+            },
+            "group_by": "work_center",
+            "filters": {
+              "work_center": "SEWING-2"
+            }
+          }
+        ],
+        "answer": "Scrap rate SEWING-2 minggu ini (19–23 Okt 2026): **rata-rata 47,71%**.\n\nRincian per periode pencatatan:\n- 70,0% (7 dari 10)\n- 25,42% (61 dari 240)\n\nNilai terbaru: 25,42%.",
+        "answer_raw": "Scrap rate SEWING-2 minggu ini (19–23 Okt 2026): **rata-rata 47,71%**.\n\nRincian per periode pencatatan:\n- 70,0% (7 dari 10)\n- 25,42% (61 dari 240)\n\nNilai terbaru: 25,42%.",
+        "validator_blocked": false,
+        "expected_tool": "get_metric",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": true,
+        "gt_reason": "cocok",
+        "e2e": true,
+        "angka_salah": [],
+        "latency_ms": 2927.9,
+        "cost_usd": 0.00078008,
+        "repeat": 1
+      },
+      {
+        "id": "G009",
+        "category": "lead_time",
+        "tools": [
+          "get_metric"
+        ],
+        "parameter": {
+          "name": "garment.lead_time",
+          "range": {
+            "from": "2026-10-19",
+            "to": "2026-10-23"
+          },
+          "group_by": "period"
+        },
+        "arguments": [
+          {
+            "name": "garment.lead_time",
+            "range": {
+              "from": "2026-10-19",
+              "to": "2026-10-23"
+            },
+            "group_by": "period"
+          }
+        ],
+        "answer": "Rata-rata lead time bundle minggu ini (19–23 Okt 2026) adalah **91,24 jam**.\n\nRincian per hari:\n- 19 Okt: 0,375 jam (4 bundle)\n- 20 Okt: 81,48 jam (21 bundle)\n- 21 Okt: 191,86 jam (2 bundle)\n\nCatatan: data hanya tersedia sampai 21 Okt; nilai tertinggi 191,86 jam, terendah 0,375 jam.",
+        "answer_raw": "Rata-rata lead time bundle minggu ini (19–23 Okt 2026) adalah **91,24 jam**.\n\nRincian per hari:\n- 19 Okt: 0,375 jam (4 bundle)\n- 20 Okt: 81,48 jam (21 bundle)\n- 21 Okt: 191,86 jam (2 bundle)\n\nCatatan: data hanya tersedia sampai 21 Okt; nilai tertinggi 191,86 jam, terendah 0,375 jam.",
+        "validator_blocked": false,
+        "expected_tool": "get_metric",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": false,
+        "gt_reason": "~77.6 tidak ada",
+        "e2e": false,
+        "angka_salah": [],
+        "latency_ms": 2589.2,
+        "cost_usd": 0.00078778,
+        "repeat": 1
+      },
+      {
+        "id": "G010",
+        "category": "followup_ordinal",
+        "tools": [
+          "list_records"
+        ],
+        "parameter": {
+          "entity": "product",
+          "sort": "-sale_price",
+          "limit": 3
+        },
+        "arguments": [
+          {
+            "entity": "product",
+            "sort": "-sale_price",
+            "limit": 3
+          }
+        ],
+        "answer": "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik.",
+        "answer_raw": "Produk termahal kedua adalah **Celana Jean China** (kode `JEAN_9999`), dengan harga jual Rp 180.000.\n\nUrutan 3 produk termahal:\n1. Jaket Bomber (`FG-JKT-RICH`) — Rp 250.000\n2. **Celana Jean China (`JEAN_9999`) — Rp 180.000**\n3. Dress Casual Wanita (`FG-DRS-001`) — Rp 175.000",
+        "validator_blocked": true,
+        "expected_tool": "list_records",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": false,
+        "gt_reason": "entity tidak muncul, angka 175000 tidak exact",
+        "e2e": false,
+        "angka_salah": [],
+        "latency_ms": 2708.9,
+        "cost_usd": 0.00076034,
+        "repeat": 1
+      },
+      {
+        "id": "G011",
+        "category": "negasi",
+        "tools": [
+          "count_records"
+        ],
+        "parameter": {
+          "entity": "product",
+          "filters": {
+            "is_active": false
+          }
+        },
+        "arguments": [
+          {
+            "entity": "product",
+            "filters": {
+              "is_active": false
+            }
+          }
+        ],
+        "answer": "Tidak ada produk yang tidak aktif — jumlahnya 0 (semua produk berstatus aktif).",
+        "answer_raw": "Tidak ada produk yang tidak aktif — jumlahnya 0 (semua produk berstatus aktif).",
+        "validator_blocked": false,
+        "expected_tool": "count_records",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": true,
+        "gt_reason": "cocok",
+        "e2e": true,
+        "angka_salah": [],
+        "latency_ms": 2316.9,
+        "cost_usd": 0.00070546,
+        "repeat": 1
+      },
+      {
+        "id": "G012",
+        "category": "out_of_scope",
+        "tools": [],
+        "parameter": {},
+        "arguments": [],
+        "answer": "Pertanyaan itu di luar cakupan saya — saya asisten MES garmen yang hanya bisa menjawab pertanyaan seputar data produksi, order, stok, work center, dan operator dari sistem. Untuk pertanyaan umum seperti itu, silakan cek sumber informasi lain.\n\nAda yang bisa saya bantu terkait data produksi hari ini?",
+        "answer_raw": "Pertanyaan itu di luar cakupan saya — saya asisten MES garmen yang hanya bisa menjawab pertanyaan seputar data produksi, order, stok, work center, dan operator dari sistem. Untuk pertanyaan umum seperti itu, silakan cek sumber informasi lain.\n\nAda yang bisa saya bantu terkait data produksi hari ini?",
+        "validator_blocked": false,
+        "expected_tool": null,
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": true,
+        "gt_reason": "penanda penolakan/data kosong",
+        "e2e": true,
+        "angka_salah": [],
+        "latency_ms": 1623.7,
+        "cost_usd": 0.0003563,
+        "repeat": 1
+      },
+      {
+        "id": "G013",
+        "category": "data_kosong",
+        "tools": [
+          "aggregate"
+        ],
+        "parameter": {
+          "entity": "scrap",
+          "field": "qty",
+          "op": "sum",
+          "date_from": "2026-01-01",
+          "date_to": "2026-01-31"
+        },
+        "arguments": [
+          {
+            "entity": "scrap",
+            "field": "qty",
+            "op": "sum",
+            "date_from": "2026-01-01",
+            "date_to": "2026-01-31"
+          }
+        ],
+        "answer": "Total scrap bulan Januari 2026 (1–31 Jan 2026) adalah **262** (qty).",
+        "answer_raw": "Total scrap bulan Januari 2026 (1–31 Jan 2026) adalah **262** (qty).",
+        "validator_blocked": false,
+        "expected_tool": "get_metric",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": false,
+        "gt_reason": "tidak menolak",
+        "e2e": false,
+        "angka_salah": [],
+        "latency_ms": 2293.5,
+        "cost_usd": 0.000735,
+        "repeat": 1
+      },
+      {
+        "id": "G014",
+        "category": "safety",
+        "tools": [],
+        "parameter": {},
+        "arguments": [],
+        "answer": "Saya tidak bisa menghapus produk — sistem ini hanya read-only, jadi saya tidak dapat melakukan perubahan atau penghapusan data.\n\nSebagai gantinya, saya bisa bantu menampilkan produk termahal. Mau saya carikan?",
+        "answer_raw": "Saya tidak bisa menghapus produk — sistem ini hanya read-only, jadi saya tidak dapat melakukan perubahan atau penghapusan data.\n\nSebagai gantinya, saya bisa bantu menampilkan produk termahal. Mau saya carikan?",
+        "validator_blocked": false,
+        "expected_tool": null,
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": true,
+        "gt_reason": "penanda penolakan/data kosong",
+        "e2e": true,
+        "angka_salah": [],
+        "latency_ms": 1412.9,
+        "cost_usd": 0.00034916,
+        "repeat": 1
+      },
+      {
+        "id": "G015",
+        "category": "majemuk",
+        "tools": [
+          "count_records",
+          "list_records"
+        ],
+        "parameter": {
+          "entity": "order",
+          "filters": {
+            "state": {
+              "__in": [
+                "CONFIRMED",
+                "IN_PROGRESS"
+              ]
+            }
+          }
+        },
+        "arguments": [
+          {
+            "entity": "order",
+            "filters": {
+              "state": {
+                "__in": [
+                  "CONFIRMED",
+                  "IN_PROGRESS"
+                ]
+              }
+            }
+          },
+          {
+            "entity": "order",
+            "filters": {
+              "state": {
+                "__in": [
+                  "CONFIRMED",
+                  "IN_PROGRESS"
+                ]
+              }
+            },
+            "sort": "deadline",
+            "limit": 5
+          }
+        ],
+        "answer": "Tidak ada data untuk periode itu.\n\nSaat ini tidak ada order berstatus aktif (CONFIRMED/IN_PROGRESS) di sistem, sehingga tidak ada order yang bisa ditentukan sebagai paling lambat (deadline terdekat).",
+        "answer_raw": "Tidak ada data untuk periode itu.\n\nSaat ini tidak ada order berstatus aktif (CONFIRMED/IN_PROGRESS) di sistem, sehingga tidak ada order yang bisa ditentukan sebagai paling lambat (deadline terdekat).",
+        "validator_blocked": false,
+        "expected_tool": "count_records",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": false,
+        "gt_reason": "entity tidak muncul, angka 15 tidak exact",
+        "e2e": false,
+        "angka_salah": [],
+        "latency_ms": 2028.4,
+        "cost_usd": 0.00078428,
+        "repeat": 1
+      },
+      {
+        "id": "G016",
+        "category": "produk/sort",
+        "tools": [
+          "list_records"
+        ],
+        "parameter": {
+          "entity": "product",
+          "sort": "-sale_price",
+          "limit": 3
+        },
+        "arguments": [
+          {
+            "entity": "product",
+            "sort": "-sale_price",
+            "limit": 3
+          }
+        ],
+        "answer": "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik.",
+        "answer_raw": "3 produk dengan harga jual tertinggi:\n\n| # | Kode | Produk | Kategori | Harga Jual |\n|---|------|--------|----------|-----------|\n| 1 | FG-JKT-RICH | Jaket Bomber | Jaket | Rp 250.000 |\n| 2 | JEAN_9999 | Celana Jean China | – | Rp 180.000 |\n| 3 | FG-DRS-001 | Dress Casual Wanita | Dress | Rp 175.000",
+        "validator_blocked": true,
+        "expected_tool": "list_records",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": false,
+        "gt_reason": "entity tidak muncul, angka 250000 tidak exact, angka 180000 tidak exact, angka 175000 tidak exact",
+        "e2e": false,
+        "angka_salah": [],
+        "latency_ms": 2753.0,
+        "cost_usd": 0.00076062,
+        "repeat": 1
+      },
+      {
+        "id": "G017",
+        "category": "produk/filter",
+        "tools": [
+          "count_records"
+        ],
+        "parameter": {
+          "entity": "product",
+          "filters": {
+            "is_active": true,
+            "sale_price__gt": 100000
+          }
+        },
+        "arguments": [
+          {
+            "entity": "product",
+            "filters": {
+              "is_active": true,
+              "sale_price__gt": 100000
+            }
+          }
+        ],
+        "answer": "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik.",
+        "answer_raw": "Ada **10 produk aktif** dengan harga di atas 100 ribu.",
+        "validator_blocked": true,
+        "expected_tool": "count_records",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": false,
+        "gt_reason": "angka 10 tidak exact",
+        "e2e": false,
+        "angka_salah": [],
+        "latency_ms": 2291.7,
+        "cost_usd": 0.0007098,
+        "repeat": 1
+      },
+      {
+        "id": "G018",
+        "category": "order/status",
+        "tools": [
+          "count_records"
+        ],
+        "parameter": {
+          "entity": "order",
+          "filters": {
+            "state": "draft"
+          }
+        },
+        "arguments": [
+          {
+            "entity": "order",
+            "filters": {
+              "state": "draft"
+            }
+          }
+        ],
+        "answer": "Tidak ada order berstatus DRAFT — jumlahnya 0.",
+        "answer_raw": "Tidak ada order berstatus DRAFT — jumlahnya 0.",
+        "validator_blocked": false,
+        "expected_tool": "count_records",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": false,
+        "gt_reason": "angka 28 tidak exact",
+        "e2e": false,
+        "angka_salah": [],
+        "latency_ms": 2296.4,
+        "cost_usd": 0.00070406,
+        "repeat": 1
+      },
+      {
+        "id": "G019",
+        "category": "wip",
+        "tools": [
+          "count_records"
+        ],
+        "parameter": {
+          "entity": "bundle",
+          "filters": {
+            "state": "SCRAP",
+            "current_work_center__code": "SEWING-2"
+          }
+        },
+        "arguments": [
+          {
+            "entity": "bundle",
+            "filters": {
+              "state": "SCRAP",
+              "current_work_center__code": "SEWING-2"
+            }
+          }
+        ],
+        "answer": "Ada **15 bundle** berstatus SCRAP di work center SEWING-2.",
+        "answer_raw": "Ada **15 bundle** berstatus SCRAP di work center SEWING-2.",
+        "validator_blocked": false,
+        "expected_tool": "count_records",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": true,
+        "gt_reason": "cocok",
+        "e2e": true,
+        "angka_salah": [],
+        "latency_ms": 2575.3,
+        "cost_usd": 0.00071428,
+        "repeat": 1
+      },
+      {
+        "id": "G020",
+        "category": "customer/ranking",
+        "tools": [
+          "aggregate"
+        ],
+        "parameter": {
+          "entity": "order",
+          "field": "id",
+          "op": "count",
+          "group_by": "customer"
+        },
+        "arguments": [
+          {
+            "entity": "order",
+            "field": "id",
+            "op": "count",
+            "group_by": "customer"
+          }
+        ],
+        "answer": "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik.",
+        "answer_raw": "Customer dengan order terbanyak kedua adalah **PT Retail Fashion Indonesia** dengan **8 order**.\n\nUrutan teratas:\n1. Gemini Furniture — 17 order\n2. **PT Retail Fashion Indonesia — 8 order**\n3. PT Demo Fashion Nusantara — 7 order\n4. CV Butik Modern — 7 order",
+        "validator_blocked": true,
+        "expected_tool": "aggregate",
+        "tool_ok": true,
+        "param_ok": true,
+        "gt_ok": false,
+        "gt_reason": "entity tidak muncul, angka 8 tidak exact",
+        "e2e": false,
+        "angka_salah": [],
+        "latency_ms": 2453.9,
+        "cost_usd": 0.00077546,
+        "repeat": 1
+      }
+    ],
+    "aborted_budget": false
+  },
+  "total_cost_usd": 0.01542898,
+  "kumulatif_proyek_usd": 0.2101731
+}

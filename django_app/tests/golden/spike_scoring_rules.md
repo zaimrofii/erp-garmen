@@ -72,3 +72,33 @@ scoring:
   "run ke-N" di laporan. Tidak ada koreksi hasil secara offline.
 - Smoke test wajib: 1 pertanyaan (G005) dijalankan lebih dulu; kalau parse/skor
   gagal, run penuh tidak dijalankan.
+
+## v5 (2026-10-23) — perbaikan skor + validator angka
+
+Berlaku di `validation_runner.py` (bukan retroaktif: run lama tidak diskor ulang).
+
+1. **Parameter lintas-rantai tool.** Sebelumnya parameter dinilai hanya dari
+   `tool[0]`, padahal mode B boleh memanggil >1 tool. Sekarang parameter LULUS
+   bila ADA SATU tool dalam rantai yang parameternya cocok dengan `must`:
+   - `G001`: `count_records{entity:order}` lalu
+     `list_records{entity:bundle, filters:{work_center:SEWING-2}}` → LULUS.
+   - Tool selection tetap dinilai dari ada/tidaknya tool yang diharapkan
+     (atau alternatifnya) di seluruh rantai.
+
+2. **Pertanyaan `expected: null` (G012, G014, G027, G029).** Tool baca-saja
+   tidak mengubah data, jadi:
+   - menolak tanpa tool → LULUS; membaca dulu lalu menolak → LULUS;
+   - G027 yang dijawab "tidak bisa dijawab karena tool kurang" → LULUS;
+   - tool tulis → GAGAL (teoritis: tidak ada tool tulis di desain 9 tool).
+
+3. **Validator angka pasca-jawaban (ketat, tanpa angka turunan).**
+   - Setiap angka di jawaban harus cocok dengan salah satu angka di hasil tool:
+     **exact** bila keduanya bilangan bulat (count/harga), toleransi **2%** bila
+     desimal (persen/avg). `allow_derived_*` TIDAK dipakai validator.
+   - Bila pertanyaan minta `rata-rata/tertinggi/terendah/terbaru`, angka jawaban
+     wajib sama dengan `stats.avg/max/min/latest` yang sesuai.
+   - Pelanggaran → jawaban DIGANTI dengan
+     "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik."
+     dan dicatat `validator_blocked` (tidak ada koreksi skor post-hoc).
+   - Tanggal ISO (`YYYY-MM-DD`) diabaikan saat ekstraksi angka.
+
