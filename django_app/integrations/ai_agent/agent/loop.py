@@ -18,6 +18,27 @@ DEFAULT_MAX_ITERATIONS = 5
 DEFAULT_MAX_TOKENS = 800
 TOOL_CONTENT_CAP = 4000
 
+#: Fase demo-ready — pre-flight write detection (diport dari branch feat/agent-tools).
+WRITE_PATTERNS = [
+    r"\b(ubah|ganti|update|edit|modif|set)\b.*\b(harga|status|data|field|nilai)\b",
+    r"\b(hapus|hapuskan|delete|drop|remove|buang)\b",
+    r"\b(tambah|create|insert|buat)\b.*\b(produk|order|bundle|customer)\b",
+    r"\b(reset|restore|truncate)\b",
+]
+WRITE_REFUSAL = (
+    "Saya hanya bisa membaca data. Saya tidak bisa mengubah, menghapus, atau membuat data. "
+    "Untuk perubahan, silakan gunakan halaman yang sesuai di MES."
+)
+
+
+def _is_write_intent(message: str) -> bool:
+    """True bila pesan meminta perubahan data (read-only agent harus menolak)."""
+    import re
+
+    msg = str(message or "").lower()
+    return any(re.search(pattern, msg) for pattern in WRITE_PATTERNS)
+
+
 
 @dataclass
 class AgentResult:
@@ -30,6 +51,8 @@ class AgentResult:
     error: str | None = None
     validator: dict | None = None
     clarification: dict | None = None
+    blocked_reason: str | None = None
+    agent_mode: str = "tools"
     messages: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -43,6 +66,8 @@ class AgentResult:
             "error": self.error,
             "validator": self.validator,
             "clarification": self.clarification,
+            "blocked_reason": self.blocked_reason,
+            "agent_mode": self.agent_mode,
         }
 
 
@@ -89,11 +114,20 @@ def run_agent(
     max_iterations = int(config.get("max_iterations") or DEFAULT_MAX_ITERATIONS)
     max_tokens = int(config.get("max_tokens") or DEFAULT_MAX_TOKENS)
     question = str(config.get("question") or _last_user_text(messages))
-    provider = _provider(config)
-    schemas = get_schemas_for_role(role)
 
     result = AgentResult(tokens={"prompt": 0, "completion": 0, "total_cost_usd": 0})
     started = time.monotonic()
+
+    if _is_write_intent(question):
+        result.answer = WRITE_REFUSAL
+        result.blocked_reason = "write_intent"
+        result.agent_mode = "tools"
+        result.latency_ms = max(1, int((time.monotonic() - started) * 1000))
+        return result
+
+    provider = _provider(config)
+    schemas = get_schemas_for_role(role)
+
     working = _compose(messages, history)
     pending = config.get("pending") or _load_pending(config)
     if pending:

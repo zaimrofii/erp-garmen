@@ -214,10 +214,13 @@ def _agent_response(request, body, role: str, *, started: float, session_id: str
         error=result.error,
         tool_calls=trace,
         tokens=result.tokens,
+        # Agent loop tidak memakai confidence hardcoded; biarkan kosong (bukan 1.0 palsu).
+        confidence=None,
     )
     payload["agent_mode"] = "tools"
     payload["iterations"] = result.iterations
     payload["validator"] = result.validator
+    payload["blocked_reason"] = getattr(result, "blocked_reason", None)
     if result.clarification:
         payload["clarification"] = result.clarification
     return Response(payload)

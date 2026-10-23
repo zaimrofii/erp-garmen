@@ -11,6 +11,36 @@
       "test_count_scope": "tests/ai_agent (suite penuh tests/ tidak selesai dalam batas waktu; angka 840 = hasil nyata `pytest tests/ai_agent -q`)",
       "test_pre_existing_failures": 0
     },
+    "fase_demo_agent_loop_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "branch": "demo-ready",
+      "flag_aktif": true,
+      "flag_bukti": "docker compose exec -T django ... print(settings.AI_AGENT_TOOLS_ENABLED) -> True; .env:80 (ignored)",
+      "write_detection": {"implemented": true, "test_pass": "12/12 (agent suite 46 passed)"},
+      "smoke_test": {"passed": 3, "failed": 0, "biaya_usd": 0.004414},
+      "demo_10": {
+        "passed": 5,
+        "failed": 5,
+        "agent_mode_verified": true,
+        "gagal": ["Q2 validator blokir", "Q7 validator blokir", "Q9 validator blokir", "Q8 kosong (max_iterations=5)", "Q10 kosong (max_iterations=5)"],
+        "biaya_usd": 0.017016
+      },
+      "perbandingan_pipeline_lama": {
+        "tool_dipanggil": "tool produksi (aggregate, list_records, count_records, find_entity, get_metric, aggregate_operator) via gate AGENT_TOOLS",
+        "confidence": "null (bukan 0.80 hardcoded)",
+        "scrap_konsisten": true,
+        "scrap_bukti": "SEWING-2 minggu 19-23 Okt = 77 unit (DB 77); rate dari get_metric (21 Okt 14/20=70%)",
+        "stok_ditarik": false,
+        "stok_catatan": "tidak ada pertanyaan stok di 10 demo; get_stock belum diuji di sesi ini"
+      },
+      "biaya_usd": 0.021430,
+      "kumulatif_usd": 0.503,
+      "rekomendasi": "PERBAIKI DULU",
+      "catatan": "Agent loop aktif dan terbukti: gate AGENT_TOOLS, tool produksi, confidence null. Write intent 'Ubah harga...' ditolak tanpa LLM (0 token). Sisa: max_iterations 5 membuat Q8/Q10 kosong (perlu 8 seperti di feat/agent-tools), validator memblokir jawaban benar Q2/Q7/Q9, tie-break harga belum ada (Q9). Tidak ada jawaban yang dikoreksi setelah run.",
+      "laporan": "docs/recon/DEMO_AGENT_LOOP_2026-10-23.md",
+      "hasil": "tests/golden/demo_agent_loop_results.json"
+    },
     "demo_ready": {
       "tanggal": "2026-10-23",
       "branch": "demo-ready",
