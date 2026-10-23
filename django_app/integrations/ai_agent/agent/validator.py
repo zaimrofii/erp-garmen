@@ -243,8 +243,14 @@ LIST_NUMBERING_RE = re.compile(r"(?<!\d)\b\d{1,2}[.)](?=\s+[A-Za-z\u00C0-\u024F]
 
 
 def strip_list_numbering(text: str) -> str:
-    """Buang penomoran daftar ("1. Jaket", "2) Dress") di mana pun."""
-    return LIST_NUMBERING_RE.sub(" ", text or "")
+    """Buang penomoran daftar & indeks tabel markdown di mana pun."""
+    text = text or ""
+    # Indeks sel tabel markdown: | 1 | ... |
+    text = re.sub(r"(?<=\|)\s*\d{1,2}\s*(?=\|)", " ", text)
+    # Nomor daftar diikuti markdown bold/italic: "2. **Celana**", "1. *Dress*"
+    text = re.sub(r"(?<!\d)\b\d{1,2}[.)]\s+(?=\*\*|\*)", " ", text)
+    # Nomor daftar biasa: "1. Jaket", "2) Dress"
+    return LIST_NUMBERING_RE.sub(" ", text)
 
 
 def validate_answer(

@@ -36,10 +36,11 @@ def _messages(text="Berapa order?"):
 
 @pytest.mark.django_db
 def test_max_iterations_memberi_fallback_bukan_empty():
-    # Argumen berbeda tiap putaran agar tidak memicu deteksi repeated_tool_call.
+    # Nama tool bergantian agar tidak memicu same_tool_limit.
+    names = ["count_records", "list_records", "count_records", "list_records"]
     responses = [
-        _response(tool_calls=[_call(args={"entity": entity}, call_id=f"c{index}")])
-        for index, entity in enumerate(["order", "bundle", "product", "customer"])
+        _response(tool_calls=[_call(name, f"c{index}", {"entity": entity})])
+        for index, (name, entity) in enumerate(zip(names, ["order", "bundle", "product", "customer"]))
     ]
     provider = FakeProvider(responses)
     result = run_agent(_messages(), "SUPERVISOR", config={"provider": provider, "max_iterations": 3})

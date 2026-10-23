@@ -11,6 +11,22 @@
       "test_count_scope": "tests/ai_agent (suite penuh tests/ tidak selesai dalam batas waktu; angka 840 = hasil nyata `pytest tests/ai_agent -q`)",
       "test_pre_existing_failures": 0
     },
+    "fase_fix_markdown_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "branch": "demo-ready",
+      "regex_markdown": {"done": true, "test_pass": "6/6 (test_validator_markdown.py)", "detail": "buang 'N. **bold**', 'N. *italic*', dan indeks sel tabel '| N |'; desimal/ribuan aman"},
+      "loop_same_tool_limit": {"done": true, "test_pass": "2/2 (test_loop_same_tool_limit.py)", "detail": "tool sama >=3x -> blocked_reason=same_tool_limit dengan fallback; prompt aturan 13 (simpulkan setelah 1-2 tool)"},
+      "q6_verdict": "BENAR (format/konversi satuan: 91,24 jam ~ 3,8 hari) dan LULUS di demo",
+      "q7_verdict": "TIDAK JELAS (raw kosong saat run verifikasi) tetapi LULUS di demo",
+      "demo_11": {"passed": 10, "blocked": 0, "fallback": 1, "status_per_soal": {"q1": "lulus", "q2": "lulus", "q3": "lulus", "q4": "lulus", "q5": "lulus", "q6": "lulus", "q7": "lulus", "q8": "lulus (jawaban 'data tidak cukup')", "q9": "lulus", "q10": "fallback (same_tool_limit)", "q11": "lulus (get_stock top_n)"}},
+      "biaya_usd": 0.0157,
+      "kumulatif_usd": 0.63,
+      "rekomendasi": "DEMO",
+      "catatan": "Regex markdown + indeks tabel membuat Q9 dan Q11 lulus, dan Q6 lulus (konversi jam->hari kini tercakup). Prompt 'simpulkan setelah 1-2 tool' membuat Q8 menjawab 'Data tidak cukup' alih-alih kosong. Q10 satu-satunya fallback karena model memanggil list_records 3x dengan filter berbeda (aturan baru bekerja sesuai desain). Skor 10/11 memenuhi gerbang DEMO; Q10 bisa dihindari dengan menghapus klausa kedua atau menerima fallback.",
+      "laporan": "docs/recon/DEMO_FIX_2026-10-23.md",
+      "hasil": "tests/golden/demo_agent_loop_results.json"
+    },
     "fase_fix_regex_2026-10-23": {
       "status": "done",
       "tanggal": "2026-10-23",

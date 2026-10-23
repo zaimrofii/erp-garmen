@@ -34,7 +34,10 @@ ATURAN:
 11. Di luar produksi garmen -> tolak sopan dan singkat.
 12. Sertakan definisi singkat dari `metadata.definition` (mis. "stok on-hand dari Odoo")
     saat menyebut angka, agar sumber angka jelas. Metadata ada di `tool_metadata`
-    (tidak dikirim ke LLM saat loop; hanya untuk response final)."""
+    (tidak dikirim ke LLM saat loop; hanya untuk response final).
+13. Setelah 1-2 panggilan tool, kamu HARUS menyimpulkan jawaban. Jangan memanggil tool
+    yang sama berulang dengan filter berbeda. Kalau data tidak cukup setelah 2 tool,
+    jawab: "Data yang tersedia tidak cukup untuk menjawab ini. Bisa diperjelas?"."""
 
 
 def build_system_prompt(today: str | None = None, role: str = "") -> str:

@@ -123,6 +123,7 @@ def run_agent(
     result = AgentResult(tokens={"prompt": 0, "completion": 0, "total_cost_usd": 0})
     started = time.monotonic()
     repeats: dict[str, int] = {}
+    per_tool: dict[str, int] = {}
 
     if _is_write_intent(question):
         result.answer = WRITE_REFUSAL
@@ -198,10 +199,21 @@ def run_agent(
                     result.chart_data = chart
             signature = f"{call.get('name')}:{json.dumps(call.get('arguments') or {}, sort_keys=True, default=str)}"
             repeats[signature] = repeats.get(signature, 0) + 1
+            per_tool[call.get("name")] = per_tool.get(call.get("name"), 0) + 1
             if repeats[signature] >= 3:
                 # Loop tak produktif: tool sama + argumen sama 3x.
                 result.answer = _fallback_answer(result, reason="repeated_tool_call")
                 result.blocked_reason = "repeated_tool_call"
+                result.latency_ms = max(1, int((time.monotonic() - started) * 1000))
+                result.messages = working
+                return result
+            if per_tool[call.get("name")] >= 3:
+                # Tool yang sama dipanggil 3x dengan filter berbeda -> hentikan.
+                result.answer = (
+                    "Saya sudah mencari dengan beberapa filter, tapi belum bisa menyimpulkan. "
+                    "Bisa diperjelas pertanyaannya?"
+                )
+                result.blocked_reason = "same_tool_limit"
                 result.latency_ms = max(1, int((time.monotonic() - started) * 1000))
                 result.messages = working
                 return result

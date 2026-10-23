@@ -78,10 +78,17 @@ def test_loop_dua_tool_lalu_jawab():
 
 @pytest.mark.django_db
 def test_loop_max_iterations():
-    # Args berbeda per putaran: menguji max_iterations, bukan deteksi repeat.
+    # 5 tool BERBEDA agar tidak memicu same_tool_limit.
+    calls = [
+        ("count_records", {"entity": "order"}),
+        ("list_records", {"entity": "bundle", "limit": 1}),
+        ("aggregate", {"entity": "product", "field": "sale_price", "op": "max"}),
+        ("find_entity", {"entity": "work_center", "text": "SEWING"}),
+        ("get_product_orders", {"product_code": "TIDAK-ADA"}),
+    ]
     responses = [
-        _response(tool_calls=[_call("count_records", f"c{index}", {"entity": entity})])
-        for index, entity in enumerate(["order", "bundle", "product", "customer", "work_order"])
+        _response(tool_calls=[_call(name, f"c{index}", args)])
+        for index, (name, args) in enumerate(calls)
     ]
     provider = FakeProvider(responses)
     result = run_agent(
