@@ -88,13 +88,30 @@ def parse_numbers(text: str, rules: dict) -> list[float]:
     thousand = cfg.get("thousand_separator", ".")
     decimal = cfg.get("decimal_separator", ",")
     text = re.sub(r"(?i)\brp\.?\s*", "Rp ", text or "")
-    # Rentang tanggal ("19–25 Okt 2026", "1-31 Januari") bukan angka metrik.
+    # Kode (SEWING-2, ODOO-65, S00004, SO-2026-0040) bukan angka.
+    text = re.sub(
+        r"\b(?=[A-Za-z][A-Za-z0-9/-]*\d)[A-Za-z][A-Za-z0-9]*(?:[-/][A-Za-z0-9]+)*\b",
+        " ",
+        text,
+    )
+    # Tanggal ISO / slash / naratif bukan angka.
+    text = re.sub(r"\b\d{4}-\d{2}-\d{2}\b", " ", text)
+    text = re.sub(r"\b\d{1,2}/\d{1,2}/\d{4}\b", " ", text)
+    # Rentang tanggal ("19–25 Okt 2026", "1-31 Januari") — sebelum naratif.
     text = re.sub(
         r"\b\d{1,2}\s*[–-]\s*\d{1,2}\s*(?:jan|feb|mar|apr|mei|jun|jul|agu|sep|okt|nov|des)\w*",
         " ",
         text,
         flags=re.I,
     )
+    text = re.sub(
+        r"\b\d{1,2}\s+(?:jan|feb|mar|apr|mei|jun|jul|agu|sep|okt|nov|des)\w*(?:\s+\d{4})?\b",
+        " ",
+        text,
+        flags=re.I,
+    )
+    # Rentang angka ("5-10 unit") → dua angka terpisah.
+    text = re.sub(r"(?<=\d)\s*[–-]\s*(?=\d)", " ", text)
 
     out: list[float] = []
     pattern = r"(?<![\w-])(\d[\d.,]*)\s*(ribu|rb|juta)?"
@@ -104,6 +121,11 @@ def parse_numbers(text: str, rules: dict) -> list[float]:
         if re.fullmatch(r"0\.\d+", token):
             # "0.375" = desimal (Django JSON memakai titik desimal), bukan 375.
             value = float(token)
+        elif re.fullmatch(r"\d{1,3}(,\d{3})+(\.\d+)?", token) and (
+            token.count(",") >= 2 or "." in token
+        ):
+            # Ribuan gaya Inggris: "1,234.56" → 1234.56
+            value = float(token.replace(",", ""))
         elif re.fullmatch(rf"\d{{1,3}}({re.escape(thousand)}\d{{3}})+({re.escape(decimal)}\d+)?", token):
             whole, _, frac = token.replace(thousand, "").partition(decimal)
             value = float(f"{whole}.{frac}" if frac else whole)
@@ -115,7 +137,11 @@ def parse_numbers(text: str, rules: dict) -> list[float]:
             value = float(re.sub(r"[.,]", "", token) or 0)
         if scale_word:
             value *= float(scales.get(scale_word, 1))
-        if float(value) == int(value) and year_low <= int(value) <= year_high:
+        if (
+            not scale_word
+            and float(value) == int(value)
+            and year_low <= int(value) <= year_high
+        ):
             continue
         out.append(value)
     return out
@@ -144,6 +170,40 @@ def check_ground_truth(question: dict, answer: str, rules: dict) -> tuple[bool, 
         if not any(abs(value - check["approx"]) <= tolerance for value in numbers):
             reasons.append(f"~{check['approx']} tidak ada")
     return (not reasons), (", ".join(reasons) or "cocok")
+
+
+def numbers_in_results(results, rules: dict | None = None) -> list[float]:
+    """Ambil angka dari struktur hasil tool (JSON) tanpa ambiguitas teks.
+
+    Angka JSON (int/float) dipakai apa adanya — jadi 0.375 tetap 0.375, bukan
+    375 seperti bila diperlakukan sebagai format ribuan Indonesia.
+    """
+    rules = rules or load_rules()
+    out: list[float] = []
+
+    def walk(node) -> None:
+        if isinstance(node, bool) or node is None:
+            return
+        if isinstance(node, (int, float)):
+            out.append(float(node))
+            return
+        if isinstance(node, str):
+            text = node.strip()
+            if re.fullmatch(r"-?\d+(\.\d+)?", text):
+                out.append(float(text))
+            else:
+                out.extend(parse_numbers(text, rules))
+            return
+        if isinstance(node, dict):
+            for value in node.values():
+                walk(value)
+            return
+        if isinstance(node, (list, tuple)):
+            for value in node:
+                walk(value)
+
+    walk(results)
+    return out
 
 
 def _close(value: float, reference: float, tolerance: float) -> bool:
@@ -192,7 +252,7 @@ def wrong_numbers(answer: str, results: list[dict], rules: dict) -> list[float]:
     answered = parse_numbers(answer, rules)
     if not answered:
         return []
-    pool = parse_numbers(json.dumps(results, default=str), rules)
+    pool = numbers_in_results(results, rules)
 
     if not pool:
         # (iii) hanya NOL yang sah bila tool tidak mengembalikan angka.

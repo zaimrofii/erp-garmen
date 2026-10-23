@@ -72,3 +72,25 @@ Spike-2 (B, setelah koreksi) e2e_13 = 60,0%; spike-3 A = 61,5% — praktis setar
 **Keputusan: BLOCKED.** Butuh tambahan ~$0.004–0.005 untuk satu run bersih A+B
 dengan parser v3-fixed-2; atau terima angka A-only (e2e_13 61,5%) sebagai
 indikatif.
+
+---
+
+## 8. Verifikasi parser (2026-10-23, $0, tanpa LLM)
+
+- **45 test parser komprehensif** (`tests/golden/test_parser_comprehensive.py`):
+  **45/45 PASS** (64/64 PASS untuk seluruh `tests/golden/`).
+- Bug parser yang ditemukan & diperbaiki saat penulisan test:
+  1. `2 rb` → 2000 dianggap "tahun" (filter tahun 2000–2100) → **fixed**: filter
+     tahun tidak berlaku bila ada kata skala.
+  2. `1,234.56` (ribuan Inggris) → 123456 → **fixed**: cabang ribuan Inggris.
+  3. `5-10 unit` → hanya 5 → **fixed**: rentang angka dipecah.
+  4. `22/10/2026` & `22 Oktober 2026` → 22 (dan 10) terbaca → **fixed**:
+     tanggal ISO/slash/naratif dibuang.
+  5. `SO-2026-0040` berisiko terbaca 40 setelah pemecahan rentang → **fixed**:
+     token kode (huruf+digit) dibuang lebih dulu.
+  6. Pool angka hasil tool kini dibaca dari **struktur JSON**
+     (`numbers_in_results`), bukan regex teks → `0.375` tidak lagi jadi 375.
+- **Verifikasi jawaban nyata** (spike-2, dijalankan ulang tool-nya dengan
+  parameter tersimpan, tanpa LLM): G005, G010, G014 → **3/3 ground truth cocok**
+  dan **angka_salah = 0** untuk ketiganya.
+
