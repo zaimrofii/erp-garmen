@@ -11,6 +11,16 @@
       "test_count_scope": "tests/ai_agent (suite penuh tests/ tidak selesai dalam batas waktu; angka 840 = hasil nyata `pytest tests/ai_agent -q`)",
       "test_pre_existing_failures": 0
     },
+    "fase_fix_memory_cache_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "branch": "demo-ready",
+      "implemented": true,
+      "detail": "summarize_history(conversation_id) memakai cache Django key summary:{conversation}:{sha256(turn lama)} TTL 600s; history berubah -> ringkasan diperbarui; conversation berbeda -> cache terpisah",
+      "test_pass": "3/3 (test_memory_cache.py); suite agent+tools 132 passed",
+      "biaya_usd": 0.0,
+      "catatan": "Tanpa cache, tiap turn >10 memicu 1 panggilan LLM tambahan (ringkas + jawab). Dengan cache, panggilan ringkas hanya terjadi saat bagian lama berubah (~1x per 10 turn, bukan tiap turn)."
+    },
     "fase_fix_markdown_2026-10-23": {
       "status": "done",
       "tanggal": "2026-10-23",

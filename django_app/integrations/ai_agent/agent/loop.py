@@ -135,7 +135,7 @@ def run_agent(
     provider = _provider(config)
     schemas = get_schemas_for_role(role)
 
-    history = summarize_history(history, provider=provider)
+    history = summarize_history(history, provider=provider, conversation_id=str(config.get("session_id") or ""))
     working = _compose(messages, history)
     pending = config.get("pending") or _load_pending(config)
     if pending:
