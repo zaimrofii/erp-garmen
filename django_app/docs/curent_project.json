@@ -11,6 +11,31 @@
       "test_count_scope": "tests/ai_agent (suite penuh tests/ tidak selesai dalam batas waktu; angka 840 = hasil nyata `pytest tests/ai_agent -q`)",
       "test_pre_existing_failures": 0
     },
+    "fase_demo_verifikasi_final_2026-10-23": {
+      "status": "done",
+      "tanggal": "2026-10-23",
+      "branch": "demo-ready",
+      "q8": "empty (5 tool, jawaban kosong)",
+      "q9": "lulus (JEAN_9999)",
+      "q11": "tidak memanggil get_stock (model minta klarifikasi produk)",
+      "total_lulus": 6,
+      "total_soal": 11,
+      "status_per_soal": {"q1": "lulus", "q2": "lulus", "q3": "lulus", "q4": "lulus", "q5": "perlu_verifikasi", "q6": "blocked", "q7": "blocked", "q8": "empty", "q9": "lulus", "q10": "lulus_sebagian", "q11": "tidak_menjawab"},
+      "scrap_ok": true,
+      "customer_ok": true,
+      "order_ok": false,
+      "verifikasi_db": {
+        "scrap": "SEWING-2 minggu 19-23 Okt = 77 (DB 77); rate DB 55,75% vs jawaban Q5 47,71%",
+        "customer": "Gemini Furniture 17 (DB 17)",
+        "order": "jawaban 10 aktif (CONFIRMED); DB CONFIRMED 10 + IN_PROGRESS 5 = 15"
+      },
+      "biaya_usd": 0.017181,
+      "kumulatif_usd": 0.5368,
+      "rekomendasi": "TUNDA",
+      "catatan": "Prompt stok ditambahkan (prompts.py:12) tetapi model tetap tidak memanggil get_stock pada Q11. Q9 lulus setelah fix nomor urut. Sisa: Q6/Q7 diblokir validator, Q8 kosong karena loop berhenti di max_iterations tanpa fallback, Q10 memakai definisi aktif yang lebih sempit (CONFIRMED saja) daripada DB (CONFIRMED+IN_PROGRESS=15).",
+      "laporan": "docs/recon/DEMO_FIX_2026-10-23.md",
+      "hasil": "tests/golden/demo_agent_loop_results.json"
+    },
     "fase_demo_fix_2026-10-23": {
       "status": "done",
       "tanggal": "2026-10-23",

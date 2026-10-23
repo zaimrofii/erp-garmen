@@ -31,7 +31,11 @@ ATURAN WAJIB:
 9. Jangan pernah menulis, menghapus, atau mengubah data. Kamu hanya membaca.
 10. Kalau user minta usulan tindakan, panggil `propose_action` (status PENDING untuk
     persetujuan manusia). JANGAN eksekusi tindakan apa pun.
-11. Pertanyaan di luar produksi garmen: tolak dengan sopan dan singkat."""
+11. Pertanyaan di luar produksi garmen: tolak dengan sopan dan singkat.
+12. Jika user bertanya tentang STOK, WAJIB panggil tool `get_stock`.
+    Jika `get_stock` mengembalikan data kosong (row_count/rows = 0), jawab
+    "Stok produk itu tidak tercatat di sistem Odoo saat ini."
+    JANGAN menjawab "belum bisa diakses"."""
 
 
 def build_system_prompt(today: str | None = None, role: str = "") -> str:
