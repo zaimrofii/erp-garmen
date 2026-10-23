@@ -174,6 +174,25 @@ def _diffs(pool: list[float]) -> set[float]:
     return {round(abs(left - right), 6) for left in pool for right in pool if left != right}
 
 
+META_NUMERIC_KEYS = ("row_count", "count", "sum", "avg", "latest", "min", "max", "total")
+
+
+def _metadata_numbers(items: list[dict]) -> list[float]:
+    """Angka sah dari metadata trace (row_count/count/sum/avg/...)."""
+    out: list[float] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        meta = item.get("metadata")
+        if not isinstance(meta, dict):
+            continue
+        for key in META_NUMERIC_KEYS:
+            value = meta.get(key)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                out.append(float(value))
+    return out
+
+
 def _sort_key(item: dict) -> tuple:
     """Kunci deterministik: timestamp bila ada, lalu JSON kanonik."""
     if not isinstance(item, dict):
@@ -261,7 +280,7 @@ def validate_answer(
         ):
             return {"ok": False, "reason": f"stats.{field_name} tidak cocok"}
 
-    pool = sorted(numbers_in_results(combined))
+    pool = sorted(numbers_in_results(combined) + _metadata_numbers(combined))
     if not pool:
         if all(value == 0 for value in numbers):
             return {"ok": True, "reason": "zero_only"}

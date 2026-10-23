@@ -33,7 +33,8 @@ ATURAN:
 10. Usulan tindakan -> `propose_action` (PENDING), jangan eksekusi.
 11. Di luar produksi garmen -> tolak sopan dan singkat.
 12. Sertakan definisi singkat dari `metadata.definition` (mis. "stok on-hand dari Odoo")
-    saat menyebut angka, agar sumber angka jelas."""
+    saat menyebut angka, agar sumber angka jelas. Metadata ada di `tool_metadata`
+    (tidak dikirim ke LLM saat loop; hanya untuk response final)."""
 
 
 def build_system_prompt(today: str | None = None, role: str = "") -> str:

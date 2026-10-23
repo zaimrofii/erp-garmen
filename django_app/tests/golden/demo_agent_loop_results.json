@@ -1,10 +1,146 @@
 {
-  "label": "single-q9",
-  "total": 1,
-  "spent_usd": 0.000979,
+  "label": "demo",
+  "total": 11,
+  "spent_usd": 0.018133,
   "rows": [
     {
       "n": 1,
+      "question": "Produk termahal yang aktif apa?",
+      "status": 200,
+      "agent_mode": "tools",
+      "blocked_reason": null,
+      "tools": [
+        "list_records"
+      ],
+      "answer": "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik.",
+      "gate": "AGENT_TOOLS",
+      "confidence": null,
+      "cost_usd": 0.001038,
+      "latency_ms": 4471,
+      "new_logs": 2
+    },
+    {
+      "n": 2,
+      "question": "Customer dengan order terbanyak bulan ini?",
+      "status": 200,
+      "agent_mode": "tools",
+      "blocked_reason": null,
+      "tools": [
+        "aggregate"
+      ],
+      "answer": "**Customer dengan order terbanyak bulan ini (1–23 Oktober 2026):**\n\n| Peringkat | Customer | Jumlah Order |\n|---|---|---|\n| 1 | **Gemini Furniture** | **17** |\n| 2 | PT Retail Fashion Indonesia | 8 |\n| 3 | CV Butik Modern | 7 |\n| 3 | PT Demo Fashion Nusantara | 7 |\n| 5 | PT BIG Customer 4, 5, 6, 7, 8, 9, 10 | 4 masing-masing |\n| 12 | rifhan jagat | 2 |\n| 12 | joko widodo | 2 |\n| 14 | Lumber Inc | ",
+      "gate": "AGENT_TOOLS",
+      "confidence": null,
+      "cost_usd": 0.001047,
+      "latency_ms": 3308,
+      "new_logs": 2
+    },
+    {
+      "n": 3,
+      "question": "Berapa bundle sedang dikerjakan di SEWING-2?",
+      "status": 200,
+      "agent_mode": "tools",
+      "blocked_reason": null,
+      "tools": [
+        "find_entity",
+        "count_records",
+        "list_records",
+        "aggregate"
+      ],
+      "answer": "Di work center **SEWING-2** (Sewing 2) tercatat **22 bundle** yang masih tercatat di work center tersebut, tetapi **tidak ada satu pun yang berstatus sedang dikerjakan (IN_PROGRESS)**. Rincian statusnya:\n\n| Status | Jumlah bundle |\n|---|---|\n| SCRAP | 15 |\n| REWORK | 6 |\n| DONE | 1 |\n| **Total** | **22** |\n\nJadi bundle yang benar-benar \"sedang dikerjakan\" = **0**. Yang ada adalah 6 bundle berstatu",
+      "gate": "AGENT_TOOLS",
+      "confidence": null,
+      "cost_usd": 0.003011,
+      "latency_ms": 7001,
+      "new_logs": 5
+    },
+    {
+      "n": 4,
+      "question": "Scrap terbesar minggu ini di work center mana?",
+      "status": 200,
+      "agent_mode": "tools",
+      "blocked_reason": null,
+      "tools": [
+        "aggregate"
+      ],
+      "answer": "**Scrap terbesar minggu ini (19–23 Okt 2026): SEWING-2 dengan total 77 unit.**\n\nRincian scrap per work center (jumlah qty scrap, periode Senin 2026-10-19 s.d. hari ini 2026-10-23):\n\n| Work Center | Total Scrap (qty) |\n|---|---|\n| SEWING-2 | 77 |\n| PACKING | 6 |\n| QC-1 | 5 |\n| QC-2 | 1 |\n| SEWING-1 | 1 |\n| SEWING-3 | 1 |\n\nCatatan sumber: angka ini adalah **total kuantitas scrap yang tercatat per wo",
+      "gate": "AGENT_TOOLS",
+      "confidence": null,
+      "cost_usd": 0.001037,
+      "latency_ms": 4061,
+      "new_logs": 2
+    },
+    {
+      "n": 5,
+      "question": "Berapa persen scrap SEWING-2 minggu ini?",
+      "status": 200,
+      "agent_mode": "tools",
+      "blocked_reason": null,
+      "tools": [
+        "get_metric",
+        "find_entity"
+      ],
+      "answer": "**Scrap SEWING-2 minggu ini (19–23 Okt 2026): rata-rata 47,71%** — dari 2 titik data harian:\n\n| Tanggal/ID | Scrap | Numerator/Denominator |\n|---|---|---|\n| 56 | 70,00% | 7 / 10 |\n| 61 | 25,42% | 61 / 240 |\n\n- Terendah: 25,42% · Tertinggi: 70,00% · Terbaru: 25,42%\n\nCatatan: angka ini adalah *scrap rate* (persentase qty scrap terhadap output) dari metrik produksi garmen, bukan stok. Nilai 70% pada ",
+      "gate": "AGENT_TOOLS",
+      "confidence": null,
+      "cost_usd": 0.001064,
+      "latency_ms": 3471,
+      "new_logs": 3
+    },
+    {
+      "n": 6,
+      "question": "Rata-rata lead time bundle minggu ini?",
+      "status": 200,
+      "agent_mode": "tools",
+      "blocked_reason": null,
+      "tools": [
+        "get_metric"
+      ],
+      "answer": "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik.",
+      "gate": "AGENT_TOOLS",
+      "confidence": null,
+      "cost_usd": 0.001027,
+      "latency_ms": 2972,
+      "new_logs": 2
+    },
+    {
+      "n": 7,
+      "question": "Operator dengan output terbanyak bulan ini?",
+      "status": 200,
+      "agent_mode": "tools",
+      "blocked_reason": null,
+      "tools": [
+        "aggregate_operator"
+      ],
+      "answer": "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik.",
+      "gate": "AGENT_TOOLS",
+      "confidence": null,
+      "cost_usd": 0.00103,
+      "latency_ms": 3427,
+      "new_logs": 2
+    },
+    {
+      "n": 8,
+      "question": "Order mana paling telat dari deadline?",
+      "status": 200,
+      "agent_mode": "tools",
+      "blocked_reason": "max_iterations",
+      "tools": [
+        "list_records",
+        "list_records",
+        "list_records",
+        "list_records",
+        "list_records"
+      ],
+      "answer": "Saya sudah mencari data, tapi belum bisa menyimpulkan jawaban. Berikut yang saya temukan: list_records: gagal (invalid_argument); list_records: 10 baris; list_records: 73 baris. Bisa diperjelas pertanyaannya?",
+      "gate": "AGENT_TOOLS",
+      "confidence": null,
+      "cost_usd": 0.0033,
+      "latency_ms": 6421,
+      "new_logs": 6
+    },
+    {
+      "n": 9,
       "question": "Dari 3 produk termahal, mana yang kedua?",
       "status": 200,
       "agent_mode": "tools",
@@ -12,11 +148,49 @@
       "tools": [
         "list_records"
       ],
-      "answer": "Produk termahal kedua adalah **JEAN_9999 — Celana Jean China**, dengan harga jual **Rp 180.000**.\n\nUrutan 3 produk termahal (berdasarkan harga jual dari data produk MES, all-time):\n1. FG-JKT-RICH — Jaket Bomber — Rp 250.000\n2. **JEAN_9999 — Celana Jean China — Rp 180.000** ← kedua\n3. FG-DRS-001 — Dress Casual Wanita — Rp 175.000",
+      "answer": "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik.",
       "gate": "AGENT_TOOLS",
       "confidence": null,
-      "cost_usd": 0.000979,
-      "latency_ms": 2470,
+      "cost_usd": 0.000989,
+      "latency_ms": 2379,
+      "new_logs": 2
+    },
+    {
+      "n": 10,
+      "question": "Total order aktif, lalu mana yang paling lambat?",
+      "status": 200,
+      "agent_mode": "tools",
+      "blocked_reason": null,
+      "tools": [
+        "count_records",
+        "list_records",
+        "list_records",
+        "list_records",
+        "aggregate",
+        "list_records",
+        "list_records"
+      ],
+      "answer": "## Order Aktif\n\n**Total order aktif = 15 order**, terdiri dari:\n- **CONFIRMED: 10 order** (RICH-SO-01 s/d RICH-SO-10)\n- **IN_PROGRESS: 5 order** (SO-BIG-0031 s/d SO-BIG-0035)\n\n*(Sumber: data order di sistem MES; status DONE=30 dan DRAFT=28 tidak dihitung sebagai aktif. Catatan: filter `is_active` tidak tersedia untuk entity order, jadi \"aktif\" dihitung dari state CONFIRMED + IN_PROGRESS.)*\n\n## Pal",
+      "gate": "AGENT_TOOLS",
+      "confidence": null,
+      "cost_usd": 0.003552,
+      "latency_ms": 9999,
+      "new_logs": 8
+    },
+    {
+      "n": 11,
+      "question": "Stok produk paling banyak apa?",
+      "status": 200,
+      "agent_mode": "tools",
+      "blocked_reason": null,
+      "tools": [
+        "get_stock"
+      ],
+      "answer": "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik.",
+      "gate": "AGENT_TOOLS",
+      "confidence": null,
+      "cost_usd": 0.001038,
+      "latency_ms": 3877,
       "new_logs": 2
     }
   ]

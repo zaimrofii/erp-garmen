@@ -55,6 +55,7 @@ class AgentResult:
     blocked_reason: str | None = None
     agent_mode: str = "tools"
     chart_data: dict | None = None
+    tool_metadata: list = field(default_factory=list)
     messages: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -71,6 +72,7 @@ class AgentResult:
             "blocked_reason": self.blocked_reason,
             "agent_mode": self.agent_mode,
             "chart_data": self.chart_data,
+            "tool_metadata": self.tool_metadata,
         }
 
 
@@ -222,9 +224,20 @@ def run_agent(
                 {
                     "role": "tool",
                     "tool_call_id": call["id"],
-                    "content": json.dumps(outcome.to_dict(), default=str)[:TOOL_CONTENT_CAP],
+                    # Metadata TIDAK dikirim ke LLM (hanya data + status) agar token hemat.
+                    "content": json.dumps(
+                        {
+                            "ok": outcome.error is None,
+                            "error": outcome.error,
+                            "data": outcome.data,
+                            "row_count": outcome.row_count,
+                            "warnings": list(outcome.warnings),
+                        },
+                        default=str,
+                    )[:TOOL_CONTENT_CAP],
                 }
             )
+            result.tool_metadata.append(dict(getattr(outcome, "metadata", {}) or {}))
 
     result.error = "max_iterations"
     result.answer = _fallback_answer(result, reason="max_iterations")
