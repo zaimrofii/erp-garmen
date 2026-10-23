@@ -78,14 +78,19 @@ def test_loop_dua_tool_lalu_jawab():
 
 @pytest.mark.django_db
 def test_loop_max_iterations():
-    looping = _response(tool_calls=[_call("count_records", "c", {"entity": "order"})])
-    provider = FakeProvider([looping])
+    # Args berbeda per putaran: menguji max_iterations, bukan deteksi repeat.
+    responses = [
+        _response(tool_calls=[_call("count_records", f"c{index}", {"entity": entity})])
+        for index, entity in enumerate(["order", "bundle", "product", "customer", "work_order"])
+    ]
+    provider = FakeProvider(responses)
     result = run_agent(
         _messages(), "SUPERVISOR", config={"provider": provider, "max_iterations": 5}
     )
     assert result.error == "max_iterations"
     assert result.iterations == 5
-    assert result.answer == ""
+    assert result.answer != ""
+    assert "belum bisa menyimpulkan" in result.answer
     assert len(provider.calls) == 5
 
 

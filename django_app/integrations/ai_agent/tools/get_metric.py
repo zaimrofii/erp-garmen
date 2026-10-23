@@ -9,8 +9,9 @@ SUPERVISOR_PLUS = frozenset({"SUPERVISOR", "ADMIN", "OWNER"})
 SCHEMA = fn_schema(
     NAME,
     "Hitung metrik garment dan kembalikan stats {avg, latest, min, max, count, sum} +"
-    " series harian. Untuk pertanyaan 'rata-rata' pakai stats.avg, 'tertinggi' stats.max,"
-    " 'terendah' stats.min, 'terbaru' stats.latest. Isi range.from/range.to (YYYY-MM-DD).",
+    " series harian. WAJIB isi range.from dan range.to (YYYY-MM-DD); tanpa itu tool"
+    " menolak dengan error missing_date_range. Untuk pertanyaan 'rata-rata' pakai"
+    " stats.avg, 'tertinggi' stats.max, 'terendah' stats.min, 'terbaru' stats.latest.",
     {
         "name": {"type": "string", "enum": list(METRICS)},
         "range": {
@@ -41,7 +42,11 @@ def run(
     if str(group_by or "").strip().lower() == "operator":
         raise ValueError("tidak ada dimensi operator di registry; pakai aggregate_operator")
     if not isinstance(range, dict) or not range.get("from") or not range.get("to"):
-        raise ValueError("range wajib berisi from dan to (YYYY-MM-DD)")
+        return ToolResult.failure(
+            "missing_date_range",
+            "Pertanyaan ini butuh rentang tanggal. Tolong sebutkan periode: "
+            "'minggu ini', 'bulan ini', atau tanggal spesifik (YYYY-MM-DD).",
+        )
     start, end = require_date_range(range["from"], range["to"])
 
     metric = analytics_registry.get_metric(name)

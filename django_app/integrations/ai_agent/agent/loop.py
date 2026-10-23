@@ -117,6 +117,7 @@ def run_agent(
 
     result = AgentResult(tokens={"prompt": 0, "completion": 0, "total_cost_usd": 0})
     started = time.monotonic()
+    repeats: dict[str, int] = {}
 
     if _is_write_intent(question):
         result.answer = WRITE_REFUSAL
@@ -184,6 +185,15 @@ def run_agent(
         for call in response.tool_calls:
             outcome = execute_tool(call["name"], call.get("arguments"), role, user)
             result.tool_calls.append(_trace(call, outcome))
+            signature = f"{call.get('name')}:{json.dumps(call.get('arguments') or {}, sort_keys=True, default=str)}"
+            repeats[signature] = repeats.get(signature, 0) + 1
+            if repeats[signature] >= 3:
+                # Loop tak produktif: tool sama + argumen sama 3x.
+                result.answer = _fallback_answer(result, reason="repeated_tool_call")
+                result.blocked_reason = "repeated_tool_call"
+                result.latency_ms = max(1, int((time.monotonic() - started) * 1000))
+                result.messages = working
+                return result
             if (
                 call.get("name") == "find_entity"
                 and isinstance(outcome.data, dict)
@@ -208,9 +218,29 @@ def run_agent(
             )
 
     result.error = "max_iterations"
+    result.answer = _fallback_answer(result, reason="max_iterations")
+    result.blocked_reason = "max_iterations"
     result.latency_ms = max(1, int((time.monotonic() - started) * 1000))
     result.messages = working
     return result
+
+
+def _fallback_answer(result: AgentResult, reason: str = "") -> str:
+    """Ringkasan deterministik saat loop berhenti tanpa jawaban final."""
+    lines = []
+    for call in result.tool_calls[-3:]:
+        tool = call.get("tool")
+        rows = call.get("row_count")
+        error = call.get("error")
+        if error:
+            lines.append(f"{tool}: gagal ({error})")
+        else:
+            lines.append(f"{tool}: {rows} baris")
+    detail = "; ".join(lines) if lines else "belum ada hasil tool"
+    return (
+        "Saya sudah mencari data, tapi belum bisa menyimpulkan jawaban. "
+        f"Berikut yang saya temukan: {detail}. Bisa diperjelas pertanyaannya?"
+    )
 
 
 def _trace(call: dict, outcome: ToolResult) -> dict:

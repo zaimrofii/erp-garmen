@@ -13,6 +13,7 @@ tidak diblokir meski memuat angka.
 
 from __future__ import annotations
 
+import json
 import re
 from itertools import combinations
 from typing import Any
@@ -173,9 +174,29 @@ def _diffs(pool: list[float]) -> set[float]:
     return {round(abs(left - right), 6) for left in pool for right in pool if left != right}
 
 
+def _sort_key(item: dict) -> tuple:
+    """Kunci deterministik: timestamp bila ada, lalu JSON kanonik."""
+    if not isinstance(item, dict):
+        return ("", json.dumps(item, sort_keys=True, default=str))
+    stamp = (
+        item.get("as_of")
+        or item.get("created_at")
+        or item.get("timestamp")
+        or item.get("ts")
+        or ""
+    )
+    return (str(stamp), json.dumps(item, sort_keys=True, default=str))
+
+
+def _ordered(tool_results: list[dict] | None) -> list[dict]:
+    """Urutkan hasil tool secara deterministik (timestamp, lalu isi kanonik)."""
+    return sorted([item for item in (tool_results or []) if isinstance(item, dict)], key=_sort_key)
+
+
 def _stats_of(tool_results: list[dict]) -> dict | None:
-    for item in reversed(tool_results or []):
-        data = item.get("data") if isinstance(item, dict) and "data" in item else item
+    """Ambil stats dari hasil TERAKHIR setelah diurutkan (deterministik)."""
+    for item in reversed(_ordered(tool_results)):
+        data = item.get("data") if "data" in item else item
         if isinstance(data, dict) and isinstance(data.get("stats"), dict):
             return data["stats"]
     return None
@@ -221,7 +242,7 @@ def validate_answer(
     items = tool_results or []
     if isinstance(items, dict):
         items = [items]
-    combined = list(prior_results or []) + items
+    combined = _ordered(list(prior_results or []) + list(items))
 
     stats = _stats_of(items)
     if stats:
@@ -232,7 +253,7 @@ def validate_answer(
         ):
             return {"ok": False, "reason": f"stats.{field_name} tidak cocok"}
 
-    pool = numbers_in_results(combined)
+    pool = sorted(numbers_in_results(combined))
     if not pool:
         if all(value == 0 for value in numbers):
             return {"ok": True, "reason": "zero_only"}

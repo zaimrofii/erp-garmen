@@ -130,7 +130,15 @@ def main() -> int:
     if "--set" in sys.argv:
         label = sys.argv[sys.argv.index("--set") + 1]
     questions = SMOKE if label == "smoke" else DEMO
-    run(questions, label)
+    repeats = 1
+    if "--index" in sys.argv:
+        index = int(sys.argv[sys.argv.index("--index") + 1]) - 1
+        questions = [DEMO[index]]
+        label = f"single-q{index + 1}"
+        if "--repeat" in sys.argv:
+            repeats = max(1, int(sys.argv[sys.argv.index("--repeat") + 1]))
+    for _ in range(repeats):
+        run(questions, label)
     return 0
 
 

@@ -1,193 +1,24 @@
 {
-  "label": "demo",
-  "total": 11,
-  "spent_usd": 0.017181,
+  "label": "single-q5",
+  "total": 1,
+  "spent_usd": 0.001031,
   "rows": [
     {
       "n": 1,
-      "question": "Produk termahal yang aktif apa?",
-      "status": 200,
-      "agent_mode": "tools",
-      "blocked_reason": null,
-      "tools": [
-        "list_records"
-      ],
-      "answer": "Produk aktif dengan harga jual tertinggi adalah **FG-JKT-RICH — Jaket Bomber** (kategori Jaket), harga jual **Rp 250.000**, harga pokok Rp 175.000.\n\nUrutan berikutnya: JEAN_9999 — Celana Jean China (Rp 180.000), lalu FG-DRS-001 — Dress Casual Wanita dan FG-DRS-RICH — Dress Casual (keduanya Rp 175.000).",
-      "gate": "AGENT_TOOLS",
-      "confidence": null,
-      "cost_usd": 0.000984,
-      "latency_ms": 3254,
-      "new_logs": 2
-    },
-    {
-      "n": 2,
-      "question": "Customer dengan order terbanyak bulan ini?",
-      "status": 200,
-      "agent_mode": "tools",
-      "blocked_reason": null,
-      "tools": [
-        "aggregate"
-      ],
-      "answer": "**Customer dengan order terbanyak bulan ini (1–23 Okt 2026): Gemini Furniture — 17 order.**\n\nPeringkat berikutnya:\n| Customer | Jumlah Order |\n|---|---|\n| Gemini Furniture | 17 |\n| PT Retail Fashion Indonesia | 8 |\n| CV Butik Modern | 7 |\n| PT Demo Fashion Nusantara | 7 |\n| PT BIG Customer 4, 5, 6, 7, 8, 9, 10 | 4 masing-masing |\n| rifhan jagat | 2 |\n| joko widodo | 2 |\n| Lumber Inc | 1 |\n| Joel W",
-      "gate": "AGENT_TOOLS",
-      "confidence": null,
-      "cost_usd": 0.001019,
-      "latency_ms": 2895,
-      "new_logs": 2
-    },
-    {
-      "n": 3,
-      "question": "Berapa bundle sedang dikerjakan di SEWING-2?",
-      "status": 200,
-      "agent_mode": "tools",
-      "blocked_reason": null,
-      "tools": [
-        "find_entity",
-        "count_records",
-        "list_records",
-        "aggregate"
-      ],
-      "answer": "**Tidak ada bundle yang sedang dikerjakan (in-progress) di SEWING-2.**\n\nRincian bundle yang tercatat berada di work center SEWING-2 saat ini:\n\n| Status | Jumlah bundle |\n|---|---|\n| SCRAP | 15 |\n| REWORK | 6 |\n| DONE | 1 |\n| **Total** | **22** |\n\nJadi tidak ada satu pun bundle berstatus in-progress di SEWING-2 — yang ada justru 15 bundle scrap dan 6 bundle rework. Ini indikasi masalah kualitas yan",
-      "gate": "AGENT_TOOLS",
-      "confidence": null,
-      "cost_usd": 0.003037,
-      "latency_ms": 6997,
-      "new_logs": 5
-    },
-    {
-      "n": 4,
-      "question": "Scrap terbesar minggu ini di work center mana?",
-      "status": 200,
-      "agent_mode": "tools",
-      "blocked_reason": null,
-      "tools": [
-        "aggregate"
-      ],
-      "answer": "Scrap terbesar minggu ini (19–23 Okt 2026) ada di **SEWING-2** dengan total **77 unit** — jauh di atas work center lain.\n\nRincian scrap per work center:\n\n| Work Center | Total Scrap (qty) |\n|---|---|\n| SEWING-2 | 77 |\n| PACKING | 6 |\n| QC-1 | 5 |\n| QC-2 | 1 |\n| SEWING-1 | 1 |\n| SEWING-3 | 1 |\n\nSEWING-2 menyumbang sekitar 85% dari seluruh scrap minggu ini. Kalau mau, saya bisa buatkan usulan tindak",
-      "gate": "AGENT_TOOLS",
-      "confidence": null,
-      "cost_usd": 0.001008,
-      "latency_ms": 3566,
-      "new_logs": 2
-    },
-    {
-      "n": 5,
       "question": "Berapa persen scrap SEWING-2 minggu ini?",
       "status": 200,
       "agent_mode": "tools",
       "blocked_reason": null,
       "tools": [
-        "get_metric"
+        "get_metric",
+        "find_entity"
       ],
-      "answer": "Scrap rate SEWING-2 minggu ini (19–23 Okt 2026):\n\n- **Rata-rata: 47,71%**\n- Terbaru: 25,42% (61 dari 240)\n- Tertinggi: 70,0% (7 dari 10)\n- Terendah: 25,42%\n- Data: 2 titik (count = 2)\n\nCatatan: nilai 70% berasal dari sampel sangat kecil (10 unit), sehingga rata-rata 47,71% sangat terpengaruh outlier tersebut. Angka terbaru 25,42% (dari 240 unit) lebih representatif.",
+      "answer": "**Scrap rate SEWING-2 minggu ini (19–23 Okt 2026):**\n\n- **Rata-rata: 47,71%** (dari 2 hari data tercatat)\n- Terendah: 25,42% (61 scrap / 240 output)\n- Tertinggi: 70,00% (7 scrap / 10 output) — volume kecil, jadi persentase mudah melonjak\n\nCatatan: angka rata-rata 47,71% sangat dipengaruhi hari dengan denominator kecil (10 unit). Kalau dilihat agregat total: 68 scrap dari 250 output ≈ **27,2%** — i",
       "gate": "AGENT_TOOLS",
       "confidence": null,
-      "cost_usd": 0.001001,
-      "latency_ms": 3647,
-      "new_logs": 2
-    },
-    {
-      "n": 6,
-      "question": "Rata-rata lead time bundle minggu ini?",
-      "status": 200,
-      "agent_mode": "tools",
-      "blocked_reason": null,
-      "tools": [
-        "get_metric"
-      ],
-      "answer": "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik.",
-      "gate": "AGENT_TOOLS",
-      "confidence": null,
-      "cost_usd": 0.000986,
-      "latency_ms": 3296,
-      "new_logs": 2
-    },
-    {
-      "n": 7,
-      "question": "Operator dengan output terbanyak bulan ini?",
-      "status": 200,
-      "agent_mode": "tools",
-      "blocked_reason": null,
-      "tools": [
-        "aggregate_operator"
-      ],
-      "answer": "Angka yang dihasilkan tidak konsisten dengan data. Coba tanyakan lebih spesifik.",
-      "gate": "AGENT_TOOLS",
-      "confidence": null,
-      "cost_usd": 0.000994,
-      "latency_ms": 3497,
-      "new_logs": 2
-    },
-    {
-      "n": 8,
-      "question": "Order mana paling telat dari deadline?",
-      "status": 200,
-      "agent_mode": "tools",
-      "blocked_reason": null,
-      "tools": [
-        "list_records",
-        "list_records",
-        "list_records",
-        "list_records",
-        "list_records"
-      ],
-      "answer": "",
-      "gate": "AGENT_TOOLS",
-      "confidence": null,
-      "cost_usd": 0.003334,
-      "latency_ms": 7522,
-      "new_logs": 6
-    },
-    {
-      "n": 9,
-      "question": "Dari 3 produk termahal, mana yang kedua?",
-      "status": 200,
-      "agent_mode": "tools",
-      "blocked_reason": null,
-      "tools": [
-        "list_records"
-      ],
-      "answer": "Produk termahal kedua adalah **JEAN_9999 — Celana Jean China**, dengan harga jual **Rp 180.000**.\n\nUrutan 3 produk termahal:\n1. FG-JKT-RICH — Jaket Bomber — Rp 250.000\n2. **JEAN_9999 — Celana Jean China — Rp 180.000**\n3. FG-DRS-001 — Dress Casual Wanita — Rp 175.000",
-      "gate": "AGENT_TOOLS",
-      "confidence": null,
-      "cost_usd": 0.00096,
-      "latency_ms": 3361,
-      "new_logs": 2
-    },
-    {
-      "n": 10,
-      "question": "Total order aktif, lalu mana yang paling lambat?",
-      "status": 200,
-      "agent_mode": "tools",
-      "blocked_reason": null,
-      "tools": [
-        "count_records",
-        "list_records",
-        "list_records",
-        "list_records",
-        "count_records",
-        "list_records"
-      ],
-      "answer": "**Total order aktif: 10 order** (state CONFIRMED, belum selesai).\n\n**Yang paling lambat / paling mendesak** — yaitu deadline terdekat:\n\n| Order | Customer | Deadline | Sisa waktu | Status keterlambatan |\n|---|---|---|---|---|\n| **RICH-SO-01** | PT Retail Fashion Indonesia | 2026-10-29 | 6 hari | Belum terlambat (is_late: false) |\n| RICH-SO-02 | CV Butik Modern | 2026-10-30 | 7 hari | Belum terlamb",
-      "gate": "AGENT_TOOLS",
-      "confidence": null,
-      "cost_usd": 0.0034,
-      "latency_ms": 9728,
-      "new_logs": 7
-    },
-    {
-      "n": 11,
-      "question": "Stok produk paling banyak apa?",
-      "status": 200,
-      "agent_mode": "tools",
-      "blocked_reason": null,
-      "tools": [],
-      "answer": "Saya perlu tahu produk mana yang dimaksud. Namun, pertanyaan \"stok produk paling banyak\" berarti mencari produk dengan stok tertinggi — tapi tool `get_stock` hanya bisa mengecek satu produk per kode, dan tidak ada tool untuk memeringkat stok semua produk.\n\nInformasi ini belum bisa diakses dari sistem. Jika Anda sebutkan kode produknya (mis. ODOO-65), saya bisa cek stoknya.",
-      "gate": "AGENT_TOOLS",
-      "confidence": null,
-      "cost_usd": 0.000458,
-      "latency_ms": 1959,
-      "new_logs": 1
+      "cost_usd": 0.001031,
+      "latency_ms": 3819,
+      "new_logs": 3
     }
   ]
 }

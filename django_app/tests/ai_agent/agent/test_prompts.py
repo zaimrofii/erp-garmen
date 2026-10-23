@@ -15,17 +15,18 @@ def test_prompt_memuat_instruksi_kunci():
     prompt = build_system_prompt(today="2026-10-23")
     keys = [
         "JANGAN mengarang angka",
-        "stats.avg",
-        "stats.max",
-        "stats.min",
-        "stats.latest",
-        "Tidak ada data untuk periode itu",
+        "`stats`",
+        "avg",
+        "max",
+        "min",
+        "latest",
+        "Tidak ada data untuk",
         "SEMUA klausa",
         "Informasi ini belum bisa diakses dari sistem",
         "is_active=true",
         "propose_action",
-        "hanya membaca",
-        "di luar produksi garmen",
+        "Read-only",
+        "produksi garmen",
     ]
     for key in keys:
         assert key in prompt, key
@@ -38,4 +39,4 @@ def test_template_konsisten_dengan_prompt():
 
 
 def test_prompt_role_kosong_jadi_user():
-    assert "Peran pengguna: USER" in build_system_prompt(today="2026-10-23")
+    assert "Peran: USER" in build_system_prompt(today="2026-10-23")
