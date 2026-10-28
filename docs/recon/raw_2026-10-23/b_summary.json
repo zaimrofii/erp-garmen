@@ -1,0 +1,684 @@
+{
+ "total_runs": 230,
+ "verdicts": {
+  "CORRECT": 80,
+  "MISLEADING": 30,
+  "WRONG": 95,
+  "NA": 10,
+  "UNVERIFIED": 15
+ },
+ "per_question": [
+  {
+   "phase": "b_demo",
+   "q": "Produk termahal yang aktif apa?",
+   "topic": "termahal",
+   "n": 5,
+   "pass": 5,
+   "tool_variants": 1,
+   "num_variants": 3,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "CORRECT": 5
+   }
+  },
+  {
+   "phase": "b_demo",
+   "q": "Customer dengan order terbanyak bulan ini?",
+   "topic": "customer",
+   "n": 5,
+   "pass": 2,
+   "tool_variants": 1,
+   "num_variants": 4,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "CORRECT": 2,
+    "MISLEADING": 3
+   }
+  },
+  {
+   "phase": "b_demo",
+   "q": "Berapa bundle sedang dikerjakan di SEWING-2?",
+   "topic": "sewing2",
+   "n": 5,
+   "pass": 2,
+   "tool_variants": 4,
+   "num_variants": 2,
+   "blocked": 0,
+   "fallback": 3,
+   "verdicts": {
+    "WRONG": 3,
+    "CORRECT": 2
+   }
+  },
+  {
+   "phase": "b_demo",
+   "q": "Scrap terbesar minggu ini di work center mana?",
+   "topic": "scrap_wc",
+   "n": 5,
+   "pass": 5,
+   "tool_variants": 1,
+   "num_variants": 2,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "CORRECT": 5
+   }
+  },
+  {
+   "phase": "b_demo",
+   "q": "Berapa persen scrap SEWING-2 minggu ini?",
+   "topic": "scrap_pct",
+   "n": 5,
+   "pass": 5,
+   "tool_variants": 1,
+   "num_variants": 5,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "CORRECT": 5
+   }
+  },
+  {
+   "phase": "b_demo",
+   "q": "Rata-rata lead time bundle minggu ini?",
+   "topic": "leadtime",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 3,
+   "blocked": 3,
+   "fallback": 0,
+   "verdicts": {
+    "MISLEADING": 2,
+    "WRONG": 3
+   }
+  },
+  {
+   "phase": "b_demo",
+   "q": "Operator dengan output terbanyak bulan ini?",
+   "topic": "operator",
+   "n": 5,
+   "pass": 5,
+   "tool_variants": 1,
+   "num_variants": 3,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "CORRECT": 5
+   }
+  },
+  {
+   "phase": "b_demo",
+   "q": "Order mana paling telat dari deadline?",
+   "topic": "telat",
+   "n": 5,
+   "pass": 5,
+   "tool_variants": 1,
+   "num_variants": 5,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "CORRECT": 5
+   }
+  },
+  {
+   "phase": "b_demo",
+   "q": "Dari 3 produk termahal, mana yang kedua?",
+   "topic": "ordinal2",
+   "n": 5,
+   "pass": 5,
+   "tool_variants": 1,
+   "num_variants": 2,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "CORRECT": 5
+   }
+  },
+  {
+   "phase": "b_demo",
+   "q": "Total order aktif, lalu mana yang paling lambat?",
+   "topic": "order_aktif",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 5,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "MISLEADING": 5
+   }
+  },
+  {
+   "phase": "b_demo",
+   "q": "Stok produk paling banyak apa?",
+   "topic": "stok",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 1,
+   "blocked": 5,
+   "fallback": 0,
+   "verdicts": {
+    "WRONG": 5
+   }
+  },
+  {
+   "phase": "b_transcript",
+   "q": "eh bro, produk paling mahal kita apa sih sekarang?",
+   "topic": "termahal",
+   "n": 5,
+   "pass": 5,
+   "tool_variants": 1,
+   "num_variants": 1,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "CORRECT": 5
+   }
+  },
+  {
+   "phase": "b_transcript",
+   "q": "nah terus yang beli banyak itu siapa aja sih bulan ini?",
+   "topic": "customer",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 2,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "WRONG": 5
+   }
+  },
+  {
+   "phase": "b_transcript",
+   "q": "oh iya, yang di sewing 2 itu sekarang ada apa aja sih? penasaran aja",
+   "topic": "sewing2",
+   "n": 5,
+   "pass": 1,
+   "tool_variants": 4,
+   "num_variants": 5,
+   "blocked": 0,
+   "fallback": 1,
+   "verdicts": {
+    "CORRECT": 1,
+    "WRONG": 4
+   }
+  },
+  {
+   "phase": "b_transcript",
+   "q": "yang di sewing 2 sekarang bundle apa aja?",
+   "topic": "sewing2",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 4,
+   "num_variants": 4,
+   "blocked": 0,
+   "fallback": 5,
+   "verdicts": {
+    "WRONG": 5
+   }
+  },
+  {
+   "phase": "b_transcript",
+   "q": "lah kok pada scrap semua, emang scrap paling gede di wc mana sih?",
+   "topic": "scrap_wc",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 2,
+   "num_variants": 2,
+   "blocked": 4,
+   "fallback": 0,
+   "verdicts": {
+    "WRONG": 5
+   }
+  },
+  {
+   "phase": "b_transcript",
+   "q": "scrap terbesar di work center mana?",
+   "topic": "scrap_wc",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 1,
+   "blocked": 5,
+   "fallback": 0,
+   "verdicts": {
+    "WRONG": 5
+   }
+  },
+  {
+   "phase": "b_transcript",
+   "q": "ganti topik deh. scrap terbesar di work center mana?",
+   "topic": "scrap_wc",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 1,
+   "blocked": 5,
+   "fallback": 0,
+   "verdicts": {
+    "WRONG": 5
+   }
+  },
+  {
+   "phase": "b_transcript",
+   "q": "coba tampilkan daftar scrap per work center aja",
+   "topic": "scrap_wc",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 2,
+   "blocked": 4,
+   "fallback": 0,
+   "verdicts": {
+    "WRONG": 5
+   }
+  },
+  {
+   "phase": "b_transcript",
+   "q": "aku ingi tau data tentang scrap",
+   "topic": "scrap_wc",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 4,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "WRONG": 5
+   }
+  },
+  {
+   "phase": "b_transcript",
+   "q": "oh berarti dari dulu gitu ya. kalo rata-rata lead time bulan ini berapa?",
+   "topic": "leadtime",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 2,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "MISLEADING": 5
+   }
+  },
+  {
+   "phase": "b_transcript",
+   "q": "kalo operator paling produktif bulan ini siapa?",
+   "topic": "operator",
+   "n": 5,
+   "pass": 4,
+   "tool_variants": 1,
+   "num_variants": 2,
+   "blocked": 1,
+   "fallback": 0,
+   "verdicts": {
+    "CORRECT": 4,
+    "WRONG": 1
+   }
+  },
+  {
+   "phase": "b_transcript",
+   "q": "apa kemampuan utamamu",
+   "topic": "naratif",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 1,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "NA": 5
+   }
+  },
+  {
+   "phase": "b_transcript",
+   "q": "jelaskan WIP flow",
+   "topic": "naratif",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 5,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "NA": 5
+   }
+  },
+  {
+   "phase": "b_transcript",
+   "q": "ok, beri aku data tentang WIP flow",
+   "topic": "wip",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 3,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "WRONG": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "scrap paling banyak di work center mana ya?",
+   "topic": "scrap_wc",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 4,
+   "blocked": 1,
+   "fallback": 0,
+   "verdicts": {
+    "WRONG": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "work center mana yang scrapnya paling besar?",
+   "topic": "scrap_wc",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 1,
+   "blocked": 5,
+   "fallback": 0,
+   "verdicts": {
+    "WRONG": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "tolong cek scrap per work center",
+   "topic": "scrap_wc",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 1,
+   "blocked": 5,
+   "fallback": 0,
+   "verdicts": {
+    "WRONG": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "sewing 2 lagi ngerjain bundle apa aja?",
+   "topic": "sewing2",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 1,
+   "blocked": 0,
+   "fallback": 5,
+   "verdicts": {
+    "WRONG": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "ada bundle apa di sewing 2 sekarang?",
+   "topic": "sewing2",
+   "n": 5,
+   "pass": 4,
+   "tool_variants": 3,
+   "num_variants": 5,
+   "blocked": 0,
+   "fallback": 1,
+   "verdicts": {
+    "CORRECT": 4,
+    "WRONG": 1
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "bundle di SEWING-2 sekarang apa aja",
+   "topic": "sewing2",
+   "n": 5,
+   "pass": 4,
+   "tool_variants": 3,
+   "num_variants": 5,
+   "blocked": 0,
+   "fallback": 1,
+   "verdicts": {
+    "CORRECT": 4,
+    "WRONG": 1
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "dari 3 produk termahal, yang kedua apa?",
+   "topic": "ordinal2",
+   "n": 5,
+   "pass": 5,
+   "tool_variants": 1,
+   "num_variants": 1,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "CORRECT": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "produk termahal nomor dua?",
+   "topic": "ordinal2",
+   "n": 5,
+   "pass": 5,
+   "tool_variants": 1,
+   "num_variants": 1,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "CORRECT": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "ranking dua harga tertinggi produk apa?",
+   "topic": "ordinal2",
+   "n": 5,
+   "pass": 5,
+   "tool_variants": 1,
+   "num_variants": 1,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "CORRECT": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "stok paling banyak apa?",
+   "topic": "stok",
+   "n": 5,
+   "pass": 5,
+   "tool_variants": 1,
+   "num_variants": 1,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "UNVERIFIED": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "produk dengan stok terbesar?",
+   "topic": "stok",
+   "n": 5,
+   "pass": 5,
+   "tool_variants": 1,
+   "num_variants": 2,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "UNVERIFIED": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "stok gudang terbanyak produk apa",
+   "topic": "stok",
+   "n": 5,
+   "pass": 5,
+   "tool_variants": 1,
+   "num_variants": 1,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "UNVERIFIED": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "lead time rata-rata bulan ini berapa?",
+   "topic": "leadtime",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 4,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "MISLEADING": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "berapa rata-rata lead time bulan ini?",
+   "topic": "leadtime",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 3,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "MISLEADING": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "lead time produksi bulan ini gimana?",
+   "topic": "leadtime",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 5,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "MISLEADING": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "WIP per work center gimana?",
+   "topic": "wip",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 2,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "WRONG": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "sebaran WIP tiap work center?",
+   "topic": "wip",
+   "n": 5,
+   "pass": 0,
+   "tool_variants": 1,
+   "num_variants": 2,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "WRONG": 5
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "WIP di tiap WC sekarang berapa?",
+   "topic": "wip",
+   "n": 5,
+   "pass": 2,
+   "tool_variants": 1,
+   "num_variants": 2,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "WRONG": 3,
+    "CORRECT": 2
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "order mana yang telat?",
+   "topic": "telat",
+   "n": 5,
+   "pass": 3,
+   "tool_variants": 2,
+   "num_variants": 4,
+   "blocked": 0,
+   "fallback": 2,
+   "verdicts": {
+    "WRONG": 2,
+    "CORRECT": 3
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "ada order telat nggak?",
+   "topic": "telat",
+   "n": 5,
+   "pass": 3,
+   "tool_variants": 3,
+   "num_variants": 4,
+   "blocked": 0,
+   "fallback": 2,
+   "verdicts": {
+    "WRONG": 2,
+    "CORRECT": 3
+   }
+  },
+  {
+   "phase": "b_paraphrase",
+   "q": "order paling telat yang mana?",
+   "topic": "telat",
+   "n": 5,
+   "pass": 5,
+   "tool_variants": 1,
+   "num_variants": 4,
+   "blocked": 0,
+   "fallback": 0,
+   "verdicts": {
+    "CORRECT": 5
+   }
+  }
+ ],
+ "h1_split": {
+  "tanpa_periode": {
+   "n": 175,
+   "ok": 74
+  },
+  "eksplisit": {
+   "n": 55,
+   "ok": 21
+  }
+ },
+ "fail_categories": {
+  "tool_error": 88,
+  "max_iterations_fallback": 15,
+  "validator_block": 38,
+  "block:angka": 38,
+  "partial_fallback": 5
+ },
+ "missing_date_range_runs": 59
+}
